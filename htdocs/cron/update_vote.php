@@ -219,6 +219,11 @@ fclose($fp);
 # We no longer need our array of empty votes.
 unset($empty_votes);
 
+if (!isset($votes) || count($votes) == 0)
+{
+	die('No votes were found.');
+}
+
 foreach ($votes as $vote)
 {
 		
