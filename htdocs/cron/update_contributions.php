@@ -3,8 +3,8 @@
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
-require_once '../includes/settings.inc.php';
-require_once '../includes/functions.inc.php';
+require_once __DIR__ . '/../includes/../includes/settings.inc.php';
+require_once __DIR__ . '/../includes/../includes/functions.inc.php';
 
 # Set a time limit of 4 minutes for this script to run.
 set_time_limit(240);

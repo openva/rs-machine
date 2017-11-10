@@ -10,8 +10,8 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-include_once('../includes/settings.inc.php');
-include_once('../includes/functions.inc.php');
+include_once(__DIR__ . '/../includes/settings.inc.php');
+include_once(__DIR__ . '/../includes/functions.inc.php');
 
 if (IN_SESSION == 'N')
 {

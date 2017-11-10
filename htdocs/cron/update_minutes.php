@@ -12,9 +12,9 @@
 	# INCLUDES
 	# Include any files or libraries that are necessary for this specific
 	# page to function.
-	include_once('../includes/settings.inc.php');
-	include_once('../includes/functions.inc.php');
-	include_once('../includes/htmlpurifier/HTMLPurifier.auto.php');
+	include_once(__DIR__ . '/../includes/../includes/settings.inc.php');
+	include_once(__DIR__ . '/../includes/../includes/functions.inc.php');
+	include_once(__DIR__ . '/../includes/../includes/htmlpurifier/HTMLPurifier.auto.php');
 	
 	# DECLARATIVE FUNCTIONS
 	# Run those functions that are necessary prior to loading this specific

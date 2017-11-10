@@ -14,8 +14,8 @@ ini_set('display_errors', 1);
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
-include_once('../includes/settings.inc.php');
-include_once('../includes/functions.inc.php');
+include_once(__DIR__ . '/../includes/settings.inc.php');
+include_once(__DIR__ . '/../includes/functions.inc.php');
 
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific

@@ -9,8 +9,8 @@
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
-include_once('../includes/settings.inc.php');
-include_once('../includes/functions.inc.php');
+include_once(__DIR__ . '/../includes/../includes/settings.inc.php');
+include_once(__DIR__ . '/../includes/../includes/functions.inc.php');
 
 # Don't bother to run this if the General Assembly isn't in session.
 if (IN_SESSION == 'n')
