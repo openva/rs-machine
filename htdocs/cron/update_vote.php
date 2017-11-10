@@ -180,13 +180,18 @@ if ($vote === FALSE)
 }
 
 # If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
-if (md5($vote) == md5_file('vote.csv'))
-{
-	echo 'vote.csv hasn’t changed since the last update';
-	exit;
+if (file_exists('vote.csv'))
+	if (md5($vote) == md5_file('vote.csv'))
+	{
+		echo 'vote.csv hasn’t changed since the last update';
+		exit;
+	}
 }
 
-file_put_contents('vote.csv', $vote);
+if (!file_put_contents('vote.csv', $vote))
+{
+	die('Could not save vote file.');
+}
 
 # Open the resulting file.
 $fp = fopen('vote.csv','r');
