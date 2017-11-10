@@ -198,7 +198,7 @@ if (!file_put_contents('vote.csv', $vote))
 $fp = fopen('vote.csv','r');
 
 # Step through each row in the CSV file, one by one.
-while (($vote = fgetcsv($fp, 1500, ',')) !== FALSE)
+while (($vote = fgetcsv($fp, 2500, ',')) !== FALSE)
 {
 	# Only deal with votes that were tallied -- that is, that have row counts greater than 1.
 	if (count($vote) > 1)
