@@ -1,6 +1,6 @@
 # Richmond Sunlight
 
-The website.
+The scrapers, parsers, etc. that drive the backend of Richmond Sunlight.
 
 [![Code Climate](https://codeclimate.com/github/openva/rs-machine/badges/gpa.svg)](https://codeclimate.com/github/openva/rs-machine)
 
