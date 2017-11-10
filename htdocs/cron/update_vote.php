@@ -221,7 +221,7 @@ unset($empty_votes);
 
 if (!isset($votes) || count($votes) == 0)
 {
-	die('No votes were found.');
+	exit('No new votes were found.');
 }
 
 foreach ($votes as $vote)
