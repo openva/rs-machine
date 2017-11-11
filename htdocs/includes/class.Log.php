@@ -1,3 +1,5 @@
+<?php
+
 class Log
 {
 
@@ -56,7 +58,19 @@ class Log
          */
         if ($this->output == 'slack')
         {
-            $this->slack($message);
+
+            $emoji = array(
+                1 => ':white_large_square:',
+                2 => ':white_large_square:',
+                3 => ':white_large_square:',
+                4 => ':large_orange_diamond: ',
+                5 => ':large_orange_diamond: ',
+                6 => ':rotating_light:',
+                7 => ':scream:',
+                8 => ':skull:'
+                );
+            $this->slack($message, 'rs', $emoji[$level]);
+
         }
 
         /*
@@ -71,10 +85,10 @@ class Log
 
     }
 
-    function slack($message, $room = 'rs' $icon = ':longbox:'')
+    function slack($message, $room = 'rs', $icon = ':longbox:')
     {
 
-        $room = ($room) ? $room : "engineering";
+        $room = ($room) ? $room : "general";
         $data = "payload=" . json_encode(array(
                 "channel"       =>  "#{$room}",
                 "text"          =>  $message,
