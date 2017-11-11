@@ -58,7 +58,7 @@ else
  * Connect to Memcached, as we may well be interacting with it during this session.
  */
 $mc = new Memcached();
-$mc->addServer("127.0.0.1", 11211);
+$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 
 /*
  * Set a flag that will allow us to ignore the header row.

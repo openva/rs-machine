@@ -42,7 +42,7 @@ if (isset($_GLOBAL['history']))
 		 * Connect to Memcached, since we'll be interacting with it during this session.
 		 */
 		$mc = new Memcached();
-		$mc->addServer("127.0.0.1", 11211);
+		$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 		
 		# Prepare our query for updating the chamber that bills are in.		
 		$chamber_stmt = $dbh->prepare('UPDATE bills

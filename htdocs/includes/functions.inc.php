@@ -41,7 +41,7 @@ function cache_save($data, $key)
 	 * Connect to Memcached.
 	 */
 	$mc = new Memcached();
-	$mc->addServer("127.0.0.1", 6379);
+	$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 			
 	/*
 	 * Cache this page in Memcached for one hour.
@@ -66,7 +66,7 @@ function cache_open($key)
 	 * Connect to Memcached.
 	 */
 	$mc = new Memcached();
-	$mc->addServer("127.0.0.1", 6379);
+	$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 	
 	/*
 	 * If this page is cached in Memcached, retrieve it from there.
