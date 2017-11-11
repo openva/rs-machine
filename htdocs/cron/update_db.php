@@ -158,4 +158,4 @@ if (($type == 'all') || ($type == 'photosynthesis'))
 	}
 }
 
-echo '<p>Done updating '.$type.'</p>';
+echo 'Done updating ' . $type;
