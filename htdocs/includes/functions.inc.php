@@ -13,8 +13,17 @@
 # !!! See also composer.json in the webroot!
 function __autoload_libraries($name)
 {
-	
-	if (file_exists($_SERVER['DOCUMENT_ROOT'] . 'includes/class.' . $name . '.php') === TRUE)
+
+	if (php_sapi_name() == 'cli')
+	{
+		$includes_dir = dirname(__FILE__) . '/';
+	}
+	else
+	{
+		$includes_dir = $_SERVER['DOCUMENT_ROOT'] . 'includes/';
+	}
+
+	if (file_exists($includes_dir . 'class.' . $name . '.php') === TRUE)
 	{	
 		include 'class.' . $name . '.php';
 		return TRUE;
