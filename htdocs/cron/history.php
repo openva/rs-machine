@@ -196,6 +196,8 @@ if (isset($_GLOBAL['history']))
 		# Close the CSV file.
 		fclose($fp);
 		
+		$log->put('Updated bill histories', 2);
+
 	}
 	
 }

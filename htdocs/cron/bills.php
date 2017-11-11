@@ -6,14 +6,14 @@ $bills = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
 	. '@legis.state.va.us/fromdlas/csv' . $dlas_session_id . '/BILLS.CSV');
 if (empty($bills))
 {
-	pushover_alert('Bills missing from DLAS', 'BILLS.CSV doesn’t exist on legis.state.va.us.');
+	$log->put('BILLS.CSV doesn’t exist on legis.state.va.us.', 8);
 	die('No data found on DLAS’s FTP server.');
 }
 
 # If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
 if (md5($bills) == md5_file('bills.csv'))
 {
-	echo 'bills.csv has not been modified since it was last downloaded.';
+	$log->put('Not updating bills, because bills.csv has not been modified since it was last downloaded.', 2);
 	exit;
 }
 
@@ -95,13 +95,13 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$hashes[$number] = $hash;
 		if (!isset($hashes[$number]))
 		{
-			echo '<p>Adding ';
+			$log->put('Adding ' . strtoupper($number) . '.', 1);
 		}
 		else
 		{
-			echo '<p>Updating ';
+			$log->put('Updating ' . strtoupper($number) . '.', 1);
 		}
-		echo strtoupper($number) .'.</p>';
+		echo strtoupper($number) ."\n";
 		
 	}
 	
@@ -148,8 +148,8 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$bill['chamber'] = 'senate';
 	}
 	
-	# Set the last committee to be the committee in the chamber
-	# in which there was most recently activity.
+	# Set the last committee to be the committee in the chamber in which there was most recently
+	# activity.
 	if (empty($bill['last_house_date']))
 	{
 		$bill['last_house_date'] = 0;
@@ -270,7 +270,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	
 	if ($result === FALSE)
 	{
-		echo '<p style="color: #f00;">'.$bill['number'].' failed:</p><p><code>'.$sql.'</code></p>';
+		$log->put('Adding' . $bill['number'] . ' failed.', 7);
 		unset($hashes[$number]);
 	}
 	
