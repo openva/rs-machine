@@ -30,6 +30,8 @@ include_once(__DIR__ . '/../includes/functions.inc.php');
 include_once(__DIR__ . '/../includes/photosynthesis.inc.php');
 include_once(__DIR__ . '/../includes/htmlpurifier/HTMLPurifier.auto.php');
 
+$log = new Log;
+
 # Don't bother to run this if the General Assembly isn't in session.
 if (IN_SESSION == 'N')
 {
