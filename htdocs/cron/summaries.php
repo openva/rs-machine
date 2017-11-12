@@ -106,18 +106,16 @@ if (mysql_num_rows($result) > 0)
 			$result2 = mysql_query($sql);
 			if (!$result2)
 			{
-				echo '<p>Insertion of '.strtoupper($bill['number']).' summary failed.</p>';
+				$log->put('Insertion of '. strtoupper($bill['number']) . ' summary failed.', 6);
 			}
 			else
 			{
-				echo '<p>Insertion of '.strtoupper($bill['number']).' succeeded.</p>';
+				$log->put('Insertion of '. strtoupper($bill['number']) . ' succeeded.', 1);
 			}
 		}
 		else
 		{
-			echo '<p><a href="http://leg1.state.va.us/cgi-bin/legp504.exe?'.$bill['lis_id'].'+sum+'.
-				strtoupper($bill['number']).'">Summary of '.strtoupper($bill['number'])
-				.'</a> came up blank.</p>';
+			$log->put('Summary of '. strtoupper($bill['number']) . ' came up blank.', 4);
 		}
 		
 		# Unset the variables that we used here.
