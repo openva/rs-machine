@@ -9,7 +9,7 @@
 # Don't bother to run this if the General Assembly isn't in session.
 if (IN_SESSION == 'n')
 {
-	exit();
+	return FALSE;
 }
 
 # Give this script 60 seconds to complete.
@@ -19,77 +19,6 @@ set_time_limit(240);
 $session_id = SESSION_ID;
 $session_year = SESSION_YEAR;
 $dlas_session_id = SESSION_LIS_ID;
-
-# DECLARATIVE FUNCTIONS
-# Run those functions that are necessary prior to loading this specific
-# page.
-$db = new PDO( PDO_DSN, PDO_USERNAME, PDO_PASSWORD, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT) );
-
-# LEGISLATOR ID TRANSLATION
-$sql = 'SELECT id, lis_id, chamber
-		FROM representatives
-		WHERE date_ended IS NULL AND lis_id IS NOT NULL 
-		ORDER BY id ASC';
-$result = $db->query($sql);
-if ( ($result === FALSE) || ($result->rowCount() == 0) )
-{
-	$log->put('No legislators were found in the database, which seems bad.', 10);
-	die();
-}
-while ($legislator = $result->fetch(PDO::FETCH_ASSOC))
-{
-	$legislators[] = $legislator;
-}
-
-# COMMITTEE ID TRANSLATION
-$sql = 'SELECT id, lis_id, chamber
-		FROM committees
-		WHERE parent_id IS NULL
-		ORDER BY id ASC';
-$result = $db->query($sql);
-if ( ($result === FALSE) || ($result->rowCount() == 0) )
-{
-	$log->put('No committees were found in the database, which seems bad.', 9);
-	die();
-}
-while ($committee = $result->fetch(PDO::FETCH_ASSOC))
-{
-	$committees[] = $committee;
-}
-
-# LIST ALL VOTES THAT WE NEED TO RECORD
-# Since vote numbers are provided in the bills' history data, we start off by generating a
-# list of all votes that are supposed to exist, but we have no record of. Since we don't
-# record unrecorded votes (instances of votes in VOTES.CSV for which no vote was recorded),
-# many of these instances will be non-recorded votes, but we have code below to skip over
-# those. We only include status updates with an lis_vote_id that's eight characters or less,
-# because longer ones are for subcommittee votes, which aren't includes in votes.csv.
-$empty_votes = array();
-$sql = 'SELECT DISTINCT bills_status.lis_vote_id
-		FROM bills_status
-		LEFT JOIN bills
-			ON bills_status.bill_id = bills.id
-		WHERE
-			(SELECT COUNT(*)
-			FROM votes
-			WHERE lis_id = bills_status.lis_vote_id
-			AND session_id=' . $session_id . ') = 0
-		AND bills.session_id = ' . $session_id . ' AND bills_status.lis_vote_id IS NOT NULL
-		AND CHAR_LENGTH(bills_status.lis_vote_id) <= 8';
-		//AND DATEDIFF(now(), bills_status.date) <= 2';
-$result = $db->query($sql);
-if ($result === FALSE)
-{
-	die();
-}
-elseif ($result->rowCount() == 0)
-{
-	$log->put('Found no new votes in need of being tallied.', 1);
-}
-while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC))
-{
-	$empty_votes[] = $empty_vote['lis_vote_id'];
-}
 
 # FUNCTIONS
 
@@ -165,6 +94,77 @@ function lookup_com_id($lis_id)
 	
 }
 
+# DECLARATIVE FUNCTIONS
+# Run those functions that are necessary prior to loading this specific
+# page.
+$db = new PDO( PDO_DSN, PDO_USERNAME, PDO_PASSWORD, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT) );
+
+# LEGISLATOR ID TRANSLATION
+$sql = 'SELECT id, lis_id, chamber
+		FROM representatives
+		WHERE date_ended IS NULL AND lis_id IS NOT NULL 
+		ORDER BY id ASC';
+$result = $db->query($sql);
+if ( ($result === FALSE) || ($result->rowCount() == 0) )
+{
+	$log->put('No legislators were found in the database, which seems bad.', 10);
+	die();
+}
+while ($legislator = $result->fetch(PDO::FETCH_ASSOC))
+{
+	$legislators[] = $legislator;
+}
+
+# COMMITTEE ID TRANSLATION
+$sql = 'SELECT id, lis_id, chamber
+		FROM committees
+		WHERE parent_id IS NULL
+		ORDER BY id ASC';
+$result = $db->query($sql);
+if ( ($result === FALSE) || ($result->rowCount() == 0) )
+{
+	$log->put('No committees were found in the database, which seems bad.', 9);
+	die();
+}
+while ($committee = $result->fetch(PDO::FETCH_ASSOC))
+{
+	$committees[] = $committee;
+}
+
+# LIST ALL VOTES THAT WE NEED TO RECORD
+# Since vote numbers are provided in the bills' history data, we start off by generating a
+# list of all votes that are supposed to exist, but we have no record of. Since we don't
+# record unrecorded votes (instances of votes in VOTES.CSV for which no vote was recorded),
+# many of these instances will be non-recorded votes, but we have code below to skip over
+# those. We only include status updates with an lis_vote_id that's eight characters or less,
+# because longer ones are for subcommittee votes, which aren't includes in votes.csv.
+$empty_votes = array();
+$sql = 'SELECT DISTINCT bills_status.lis_vote_id
+		FROM bills_status
+		LEFT JOIN bills
+			ON bills_status.bill_id = bills.id
+		WHERE
+			(SELECT COUNT(*)
+			FROM votes
+			WHERE lis_id = bills_status.lis_vote_id
+			AND session_id=' . $session_id . ') = 0
+		AND bills.session_id = ' . $session_id . ' AND bills_status.lis_vote_id IS NOT NULL
+		AND CHAR_LENGTH(bills_status.lis_vote_id) <= 8';
+		//AND DATEDIFF(now(), bills_status.date) <= 2';
+$result = $db->query($sql);
+if ($result === FALSE)
+{
+	die();
+}
+elseif ($result->rowCount() == 0)
+{
+	$log->put('Found no new votes in need of being tallied.', 1);
+}
+while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC))
+{
+	$empty_votes[] = $empty_vote['lis_vote_id'];
+}
+
 # Retrieve the CSV data and save it to a local file.
 $vote = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@legis.state.va.us/fromdlas/csv'
 	. $dlas_session_id . '/VOTE.CSV');
@@ -181,14 +181,14 @@ if (file_exists('vote.csv'))
 	if (md5($vote) == md5_file('vote.csv'))
 	{
 		$log->put('vote.csv was unchanged since the last update.', 2);
-		exit;
+		return FALSE;
 	}
 }
 
 if (!file_put_contents('vote.csv', $vote))
 {
 	$log->put('Could not save vote.csv.', 9);
-	die();
+	return FALSE;
 }
 
 # Open the resulting file.
@@ -219,6 +219,7 @@ unset($empty_votes);
 if (!isset($votes) || count($votes) == 0)
 {
 	$log->put('vote.csv contained no votes.', 3);
+	return FALSE;
 }
 
 foreach ($votes as $vote)
