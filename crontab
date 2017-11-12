@@ -8,7 +8,7 @@
 05 2 * * * /usr/bin/php cron/update_vote.php
 
 # Collects scheduled meetings and hearings.
-09 6-15 * * * /usr/bin/php cron/update_dockets.php=
+09 6-15 * * * /usr/bin/php cron/update_dockets.php
 
 # Get the floor minutes from the House and the Senate.
 0 6,9,12,15,18,21 * * * /usr/bin/php cron/update_minutes.php
