@@ -25,7 +25,7 @@ include_once(__DIR__ . '/../includes/functions.inc.php');
 /*
  * Define the directory where the PDFs will be stored.
  */
-$dir = $_SERVER['DOCUMENT_ROOT'] . '/downloads/bills/' . SESSION_YEAR . '/pdf/';
+$dir = '../downloads/bills/' . SESSION_YEAR . '/pdf/';
 
 if (file_exists($dir) === FALSE)
 {
