@@ -17,9 +17,6 @@
 # all of the HTML, but only the body content.
 #
 ###
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 	
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
@@ -41,6 +38,7 @@ if (IN_SESSION != 'Y')
 # If it's between 10am and 5pm.
 if ( (date('G') >= 10) && (date('G') <= 16) )
 {
+
 	$house = get_content('http://leg5.state.va.us/currentitem/house.htm');
 	$senate = get_content('http://leg5.state.va.us/currentitem/senate.htm');
 	
@@ -48,8 +46,8 @@ if ( (date('G') >= 10) && (date('G') <= 16) )
 	{
 		$house = trim($house);
 		$sql = 'INSERT INTO chamber_status
-				SET chamber="house", session_id='.SESSION_ID.',
-				date=now(), text = "'.addslashes($house).'"';
+				SET chamber="house", session_id=' . SESSION_ID . ',
+				date=now(), text = "' . addslashes($house) . '"';
 		mysql_query($sql);
 	}
 	
@@ -57,10 +55,9 @@ if ( (date('G') >= 10) && (date('G') <= 16) )
 	{
 		$house = trim($senate);
 		$sql = 'INSERT INTO chamber_status
-				SET chamber="senate", session_id='.SESSION_ID.',
-				date=now(), text = "'.addslashes($senate).'"';
+				SET chamber="senate", session_id=' . SESSION_ID . ',
+				date=now(), text = "' . addslashes($senate) . '"';
 		mysql_query($sql);
 	}
+	
 }
-
-?>
