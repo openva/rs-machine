@@ -19,11 +19,6 @@
 //	 -- only 67-900 and 67-902 are being picked up, not 67-901. This isn't *real* common, but
 //   it's not unheard of. Somewhere between 1% and 2% of bills have such references.
 
-# DECLARATIVE FUNCTIONS
-# Run those functions that are necessary prior to loading this specific
-# page.
-@connect_to_db();
-
 $sql = 'SELECT bills_full_text.id AS full_text_id, bills.id, bills_full_text.text
 		FROM bills_full_text
 		LEFT JOIN bills
@@ -36,11 +31,11 @@ $sql = 'SELECT bills_full_text.id AS full_text_id, bills.id, bills_full_text.tex
 			WHERE bill_id=bills_full_text.bill_id) = 0
 		ORDER BY RAND()
 		LIMIT 100';
-$result = @mysql_query($sql);
-if (@mysql_num_rows($result) > 0)
+$result = mysql_query($sql);
+if (mysql_num_rows($result) > 0)
 {
 
-	while ($bill = @mysql_fetch_array($result))
+	while ($bill = mysql_fetch_array($result))
 	{
 		$bill = array_map('stripslashes', $bill);
 		# We want to strip out HTML (save for paragraphs), carriage returns, and extra spaces.
@@ -52,9 +47,9 @@ if (@mysql_num_rows($result) > 0)
 		
 		# Just test to see if this is even a bill that affects the state code. If it doesn't,
 		# then we can quit our work on this bill and move onto the next one.
-		if ( (stristr($bill['text'], 'the Code of Virginia is amended') === false)
+		if ( (stristr($bill['text'], 'the Code of Virginia is amended') === FALSE)
 			&&
-			(stristr($bill['text'], 'the Code of Virginia are amended') === false) )
+			(stristr($bill['text'], 'the Code of Virginia are amended') === FALSE) )
 		{
 			continue;
 		}
@@ -65,9 +60,9 @@ if (@mysql_num_rows($result) > 0)
 		$bill['text'] = explode('</p> <p>', $bill['text']);
 		foreach ($bill['text'] as $paragraph)
 		{
-			if ( (stristr($paragraph, 'the Code of Virginia is amended') !== false)
+			if ( (stristr($paragraph, 'the Code of Virginia is amended') !== FALSE)
 				||
-				(stristr($paragraph, 'the Code of Virginia are amended') !== false) )
+				(stristr($paragraph, 'the Code of Virginia are amended') !== FALSE) )
 			{
 				$bill['paragraph'] = $paragraph;
 				break;
@@ -105,12 +100,10 @@ if (@mysql_num_rows($result) > 0)
 			# they actually exist, since many bills propose to create new laws, meaning that they
 			# don't exist to be verified against.
 			$sql = 'INSERT INTO bills_section_numbers
-					SET full_text_id='.$bill['full_text_id'].', bill_id='.$bill['id'].',
-					section_number="'.$match.'", date_created=now()';
+					SET full_text_id=' . $bill['full_text_id'] . ', bill_id=' . $bill['id'] . ',
+					section_number="' . $match . '", date_created=now()';
 			mysql_query($sql);
 			
 		}
 	}
 }
-
-?>
