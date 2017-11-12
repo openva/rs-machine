@@ -14,6 +14,21 @@
 #
 ###
 
+$downloads_dir = '../downloads/';
+
+/*
+ * Make sure that our downloads directory exists and is writable.
+ */
+if (file_exists($downloads_dir) == FALSE)
+{
+	mkdir($downloads_dir);
+}
+if (is_writeable($downloads_dir) == FALSE)
+{
+	$log->put('Could no write to downloads directory', 8);
+	die('No data found on DLAS’s FTP server.');
+}
+
 # Save a listing of the proposed changes to laws as JSON.
 $sql = 'SELECT UPPER(bills.number) AS bill_number, bills.catch_line AS bill_catch_line,
 		bills_section_numbers.section_number AS law
@@ -34,9 +49,9 @@ if (mysql_num_rows($result) > 0)
 	}
 	
 	$changes = json_encode($changes);
-	if (is_writeable('../downloads/law-changes.json'))
+	if (is_writeable($downloads_dir . 'law-changes.json'))
 	{
-		file_put_contents('../downloads/law-changes.json', $changes);
+		file_put_contents($downloads_dir . 'law-changes.json', $changes);
 	}
 }
 
@@ -59,10 +74,10 @@ if (mysql_num_rows($result) > 0)
 		'District Description', 'Sex', 'E-Mail', 'Website', 'Place Name', 'Longitude', 'Latitude',
 		'LIS ID 1', 'LIS ID 2', 'RS ID', 'SBE ID');
 	# Open a handle to write a file.
-	$fp = fopen('../downloads/legislators.csv', 'w');
+	$fp = fopen($downloads_dir . 'legislators.csv', 'w');
 	if ($fp === false)
 	{
-		die('Could not write to ../downloads/legislators.csv.');
+		die('Could not write to . ' $downloads_dir ' . legislators.csv.');
 	}
 	fputcsv($fp, $csv_header);
 	
@@ -94,7 +109,7 @@ if (mysql_num_rows($result) > 0)
 	$csv_header = array('Year', 'Chamber','Bill #','Catch Line','Patron','Summary','Status','Outcome',
 		'Date Introduced');
 	# Open a handle to write a file.
-	$fp = fopen('../downloads/bills.csv', 'w');
+	$fp = fopen($downloads_dir . 'bills.csv', 'w');
 	fputcsv($fp, $csv_header);
 	
 	while ($bill = mysql_fetch_array($result, MYSQL_ASSOC))
@@ -126,7 +141,7 @@ if (mysql_num_rows($result) > 0)
 {
 	$csv_header = array('Year','Bill #','Section #');
 	# Open a handle to write a file.
-	$fp = fopen('../downloads/sections.csv', 'w');
+	$fp = fopen($downloads_dir . 'sections.csv', 'w');
 	fputcsv($fp, $csv_header);
 	
 	while ($bill = mysql_fetch_array($result, MYSQL_ASSOC))
@@ -167,7 +182,7 @@ if (mysql_num_rows($result) > 0)
 		$committees[$membership{'committee'}][] = array($membership['name'], $membership['id'], $membership['position']);
 	}
 	$committees = json_encode($committees);
-	file_put_contents( '../downloads/committees.json' , $committees);
+	file_put_contents($downloads_dir . 'committees.json' , $committees);
 	
 }
 
@@ -226,9 +241,9 @@ if (mysql_num_rows($result) > 0)
 		}
 		
 		# If the file doesn't already exist, save it.
-		if (file_exists('../downloads/bills/' . $bill['year'] . '/' . $bill['number'] . '.html') === FALSE)
+		if (file_exists($downloads_dir . 'bills/' . $bill['year'] . '/' . $bill['number'] . '.html') === FALSE)
 		{
-			file_put_contents('../downloads/bills/' . $bill['year'] . '/' . $bill['number'] . '.html', $bill['text']);
+			file_put_contents($downloads_dir . 'bills/' . $bill['year'] . '/' . $bill['number'] . '.html', $bill['text']);
 		}
 		
 	}
@@ -238,7 +253,7 @@ if (mysql_num_rows($result) > 0)
 
 
 # Video clips.
-$filename = '../downloads/video-index.json';
+$filename = $downloads_dir . 'video-index.json';
 if (is_writeable($filename))
 {
 	
@@ -268,7 +283,7 @@ if (is_writeable($filename))
 				$clip['path'] = 'http://www.richmondsunlight.com'.$clip['path'];
 			}
 			# Write this clip, as JSON, to our file.
-			file_put_contents('../downloads/video-index.json', json_encode($clip).',', FILE_APPEND);
+			file_put_contents($downloads_dir . 'video-index.json', json_encode($clip).',', FILE_APPEND);
 		}	
 	}
 	
@@ -279,5 +294,3 @@ if (is_writeable($filename))
 	fwrite($fp, ']');
 	fclose($fp);
 }
-
-?>
