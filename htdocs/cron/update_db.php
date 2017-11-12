@@ -183,6 +183,12 @@ if (($type == 'all') || ($type == 'dockets'))
 	require 'dockets.php';
 }
 
+# Update the meeting schedule
+if (($type == 'all') || ($type == 'meetings'))
+{
+	require 'meetings.php';
+}
+
 # UPDATE DASHBOARD SMART PORTFOLIOS
 # Step through every smart portfolio and update its constituent bills.
 if (($type == 'all') || ($type == 'photosynthesis'))
