@@ -8,20 +8,6 @@
 #
 ###
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-	
-# INCLUDES
-# Include any files or libraries that are necessary for this specific
-# page to function.
-include_once(__DIR__ . '/../includes/settings.inc.php');
-include_once(__DIR__ . '/../includes/functions.inc.php');
-
-# DECLARATIVE FUNCTIONS
-# Run those functions that are necessary prior to loading this specific
-# page.
-@connect_to_db();
-
 /*
  * Define the directory where the PDFs will be stored.
  */
@@ -85,6 +71,3 @@ foreach ($bills as $bill)
 	file_put_contents($dir . $bill . '.pdf', $pdf_contents);
 	
 }
-
-
-?>

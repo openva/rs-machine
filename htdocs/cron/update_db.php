@@ -171,6 +171,12 @@ if (($type == 'all') || ($type == 'export'))
 	require 'export.php';
 }
 
+# Retrieve PDF copies of bills.
+if (($type == 'all') || ($type == 'download_pdfs'))
+{
+	require 'download_pdfs.php';
+}
+
 # UPDATE DASHBOARD SMART PORTFOLIOS
 # Step through every smart portfolio and update its constituent bills.
 if (($type == 'all') || ($type == 'photosynthesis'))
