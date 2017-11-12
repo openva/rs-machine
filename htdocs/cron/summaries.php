@@ -9,7 +9,7 @@ $sql = 'SELECT bills.id, bills.number, sessions.lis_id
 		FROM bills
 		LEFT JOIN sessions
 			ON bills.session_id = sessions.id
-		WHERE bills.summary IS NULL AND bills.session_id = '.$session_id.'
+		WHERE bills.summary IS NULL AND bills.session_id = ' . $session_id . '
 		ORDER BY RAND()
 		LIMIT 15';
 $result = mysql_query($sql);
@@ -20,8 +20,8 @@ if (mysql_num_rows($result) > 0)
 	{
 		
 		# Intialize a cURL session.
-		$ch = curl_init('http://leg1.state.va.us/cgi-bin/legp504.exe?'.$bill['lis_id'].'+sum+'
-			.strtoupper($bill['number']));
+		$ch = curl_init('http://leg1.state.va.us/cgi-bin/legp504.exe?' . $bill['lis_id'] . '+sum+'
+			. strtoupper($bill['number']));
 		
 		# Retrieve the summary.
 		curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -101,8 +101,8 @@ if (mysql_num_rows($result) > 0)
 		if (!empty($summary))
 		{
 			$sql = 'UPDATE bills
-					SET summary="'.mysql_real_escape_string($summary).'"
-					WHERE id='.$bill['id'];
+					SET summary="' . mysql_real_escape_string($summary) . '"
+					WHERE id=' . $bill['id'];
 			$result2 = mysql_query($sql);
 			if (!$result2)
 			{

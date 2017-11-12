@@ -3,8 +3,8 @@
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
-require_once __DIR__ . '/../includes/../includes/settings.inc.php';
-require_once __DIR__ . '/../includes/../includes/functions.inc.php';
+require_once __DIR__ . '/../includes/settings.inc.php';
+require_once __DIR__ . '/../includes/functions.inc.php';
 
 # Set a time limit of 4 minutes for this script to run.
 set_time_limit(240);
@@ -12,8 +12,7 @@ set_time_limit(240);
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
 # page.
-@connect_to_db();
-
+connect_to_db();
 
 # Get a list of the IDs and the SBE IDs for every legislator who is currently in office.
 $sql = 'SELECT id, name, sbe_id
@@ -53,7 +52,7 @@ while ($legislator = mysql_fetch_array($result))
 	# Insert it into the database.
 	$sql = 'UPDATE representatives
 			SET contributions="' . addslashes(serialize($contributions)) . '"
-			WHERE id=' .$legislator['id'];
+			WHERE id=' . $legislator['id'];
 	mysql_query($sql);
 	if (mysql_affected_rows() === 1)
 	{
@@ -65,5 +64,3 @@ while ($legislator = mysql_fetch_array($result))
 	}
 	
 }
-
-?>
