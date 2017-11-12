@@ -11,13 +11,13 @@
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
-include_once(__DIR__ . '/../includes/../includes/settings.inc.php');
-include_once(__DIR__ . '/../includes/../includes/functions.inc.php');
+include_once(__DIR__ . '/../includes/settings.inc.php');
+include_once(__DIR__ . '/../includes/functions.inc.php');
 
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
 # page.
-@connect_to_db();
+connect_to_db();
 
 # PAGE METADATA
 $page_title = 'Calculate Vote Partisanship';
@@ -30,9 +30,9 @@ $sql = 'SELECT vote_id AS id, vote, representatives.party, COUNT(*) AS count
 		LEFT JOIN votes ON representatives_votes.vote_id = votes.id
 		WHERE votes.partisanship IS NULL AND votes.id=1345
 		GROUP BY id, party, vote';
-$result = @mysql_query($sql);
-$row_count = @mysql_num_rows($result);
-echo '<p>'.$row_count.'</p>';
+$result = mysql_query($sql);
+$row_count = mysql_num_rows($result);
+
 if ($row_count > 0)
 {
 	$i=1;
@@ -113,7 +113,6 @@ if ($row_count > 0)
 				# Calculate the overall rating.
 				$this_vote['partisanship'] = round((($this_vote['R']['rating'] + $this_vote['D']['rating']) / 2), 4);
 				
-				print_r($this_vote);
 			}
 			
 			/*
