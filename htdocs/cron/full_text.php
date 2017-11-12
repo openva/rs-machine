@@ -124,11 +124,11 @@ if (mysql_num_rows($result) > 0)
 				$result2 = mysql_query($sql);
 				if (!$result2)
 				{
-					echo '<p>Insertion of '.strtoupper($text['number']).' text failed.</p>';
+					$log->put('Insertion of  ' . trtoupper($text['number']) . ' bill text failed.', 5);
 				}
 				else
 				{
-					echo '<p>Insertion of '.strtoupper($text['number']).' text succeeded.</p>';
+					$log->put('Insertion of  ' . trtoupper($text['number']) . ' bill text succeeded.', 2);
 				}
 			}
 			
@@ -149,7 +149,7 @@ if (mysql_num_rows($result) > 0)
 					WHERE id='.$text['id'];
 			mysql_query($sql);
 			
-			echo '<p><a href="'. $url . '">Full text of '.$text['number'].'</a> came up blank.</p>';
+			$log->put('Full text of ' . $text['number'] . ' came up blank.', 5);
 			
 		}
 	}
