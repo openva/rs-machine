@@ -17,31 +17,19 @@
 	# 
 	###
 	
-	# INCLUDES
-	# Include any files or libraries that are necessary for this specific
-	# page to function.
-	include_once(__DIR__ . '/../includes/../includes/settings.inc.php');
-	include_once(__DIR__ . '/../includes/../includes/functions.inc.php');
-	
-	# DECLARATIVE FUNCTIONS
-	# Run those functions that are necessary prior to loading this specific
-	# page.
-	@connect_to_db();
-	
-	# PAGE CONTENT
-	
 	# Build up an array of subcommittee IDs.
 	$sql = 'SELECT committees.id, committees.lis_id, c2.lis_id AS parent_lis_id, committees.chamber
 			FROM committees
 			LEFT JOIN committees AS c2
 				ON committees.parent_id = c2.id
 			WHERE committees.chamber="senate" AND committees.lis_id IS NOT NULL';
-	$result = @mysql_query($sql);
-	if (@mysql_num_rows($result) == 0)
+	$result = mysql_query($sql);
+	if (mysql_num_rows($result) == 0)
 	{
+		$log->put('No subcommittees were found, which seems bad.', 10);
 		exit;
 	}
-	while ($committee = @mysql_fetch_array($result))
+	while ($committee = mysql_fetch_array($result))
 	{
 	
 		# If this is a subcommittee, pad out its parent ID for use in the URL.
@@ -70,6 +58,7 @@
 			$committee['chamber'] = 'H';
 		}
 		$committees[] = $committee;
+
 	}
 	
 	# Create an array of upcoming dates for which there could plausibly be dockets, going
@@ -92,8 +81,8 @@
 				# Get the docket for a subcommittee.
 				if (!empty($committee['parent_lis_id']))
 				{
-					$url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?'.SESSION_LIS_ID.'+sub+'
-						.$committee['chamber'].$committee['parent_lis_id'].$committee['lis_id'].$date['url'];
+					$url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+sub+'
+						. $committee['chamber'] . $committee['parent_lis_id'] . $committee['lis_id'] . $date['url'];
 					$raw_html = get_content($url);
 				}
 				
@@ -104,8 +93,8 @@
 					// date. But sometimes it's a 2. When the 2 is shown, it's also listed on the LIS site
 					// parenthetically after the date (i.e. "January 21, 2010 (2)"). We're only finding dockets
 					// with 1s, which means we're missing some unknown minority of dockets.
-					$url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?'.SESSION_LIS_ID.'+doc+'
-						.$committee['chamber'].$committee['lis_id'].'1'.$date['url'];
+					$url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+doc+'
+						. $committee['chamber'] . $committee['lis_id'] . '1' . $date['url'];
 					$raw_html = get_content($url);
 				}
 			}
@@ -120,7 +109,7 @@
 				# docket, but are no longer. (If we only ever add new bills, then we have no
 				# method of deleting old bills.)
 				$sql = 'DELETE FROM dockets
-						WHERE date="'.$date['full'].'" AND committee_id='.$committee['id'];
+						WHERE date="' . $date['full'] . '" AND committee_id=' . $committee['id'];
 				mysql_query($sql);
 				
 				foreach ($bill[0] as $bill)
@@ -133,11 +122,11 @@
 					
 					# Insert the meeting data into the dockets table.
 					$sql = 'INSERT INTO dockets
-							SET date="'.$date['full'].'", committee_id='.$committee['id'].',
+							SET date="' . $date['full'] . '", committee_id=' . $committee['id'] . ',
 							bill_id =
 								(SELECT id
 								FROM bills
-								WHERE number = "'.$bill.'" AND session_id = '.SESSION_ID.'),
+								WHERE number = "' . $bill . '" AND session_id = ' . SESSION_ID . '),
 							date_created = now()
 							ON DUPLICATE KEY UPDATE id=id';
 					mysql_query($sql);
@@ -149,5 +138,3 @@
 			sleep(1);
 		}
 	}
-
-?>
