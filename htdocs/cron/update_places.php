@@ -21,7 +21,7 @@ include_once(__DIR__ . '/../includes/functions.inc.php');
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
 # page.
-@connect_to_db();
+connect_to_db();
 
 # Select all bills that contain a phrase concerning geography for which we don't already have
 # location records stored.
