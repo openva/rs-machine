@@ -108,7 +108,7 @@ if (mysql_num_rows($result) > 0)
 			
 			# Any time that we've just got a question mark hanging out, that should be a section
 			# symbol.
-			$full_text = str_replace(' ? ', ' &sect; ', $full_text);
+			$full_text = str_replace(' ? ', ' §&nbsp;', $full_text);
 			
 			# Put the data back into the database, but clean it up first.
 			$full_text = trim($full_text);
@@ -119,8 +119,8 @@ if (mysql_num_rows($result) > 0)
 				# We store the bill's text, and also reset the counter that tracks failed attempts
 				# to retrieve the text from the legislature's website.
 				$sql = 'UPDATE bills_full_text
-						SET text="'.$full_text.'", failed_retrievals=0
-						WHERE id='.$text['id'];
+						SET text="' . $full_text . '", failed_retrievals=0
+						WHERE id=' . $text['id'];
 				$result2 = mysql_query($sql);
 				if (!$result2)
 				{
@@ -154,5 +154,3 @@ if (mysql_num_rows($result) > 0)
 		}
 	}
 }
-
-?>
