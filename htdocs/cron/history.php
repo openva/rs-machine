@@ -9,12 +9,12 @@ if (isset($_GLOBAL['history']))
 		. '@legis.state.va.us/fromdlas/csv' . $dlas_session_id . '/HISTORY.CSV');
 	
 	# If the MD5 value of the new file is different than the saved file, make some updates.
-	if (md5($history) != md5_file('history.csv'))
+	if ( (file_exists('history.csv') == FALSE) || md5($history) != md5_file('history.csv') )
 	{
 	
 		file_put_contents('history.csv', $history);
 	
-		# Open the resultant file.
+		# Open the resulting file.
 		$fp = fopen('history.csv','r');
 	
 		# Retrieve our saved serialized array of hash data, so that we can only update or insert
