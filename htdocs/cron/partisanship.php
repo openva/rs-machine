@@ -21,7 +21,8 @@ $sql = 'SELECT id
 $result = mysql_query($sql);
 if (mysql_num_rows($result) == 0)
 {
-	die();
+	$log->put('There are no legislators in the database, which seems bad?', 10);
+	exit();
 }
 
 while ($legislator = mysql_fetch_array($result))
@@ -36,11 +37,11 @@ while ($legislator = mysql_fetch_array($result))
 				ON bills_copatrons.bill_id=bills.id
 			LEFT JOIN representatives
 				ON bills.chief_patron_id=representatives.id
-			WHERE bills_copatrons.legislator_id='.$legislator['id'].'
+			WHERE bills_copatrons.legislator_id=' . $legislator['id'] . '
 			GROUP BY representatives.party';
-	$result2 = @mysql_query($sql);
+	$result2 = mysql_query($sql);
 	$tmp = array();
-	while ($copatron = @mysql_fetch_array($result2))
+	while ($copatron = mysql_fetch_array($result2))
 	{
 		$tmp[$copatron{'party'}] = $copatron['number'];
 	}
@@ -51,7 +52,7 @@ while ($legislator = mysql_fetch_array($result))
 		
 		# Populate an array that we use to determine overall partisanship. 0 = Democratic and 100 =
 		# Republican. Because our number is based on the majority support, we need to rescale it.
-		if (key($tmp)=='D')
+		if (key($tmp) == 'D')
 		{
 			$tmp = round((current($tmp)/$total)*100);
 			if ($tmp > 50)
@@ -78,11 +79,11 @@ while ($legislator = mysql_fetch_array($result))
 			IN
 				(SELECT id
 				FROM bills
-				WHERE chief_patron_id = '.$legislator['id'].')
+				WHERE chief_patron_id = ' . $legislator['id'] . ')
 			GROUP BY representatives.party';
-	$result2 = @mysql_query($sql);
+	$result2 = mysql_query($sql);
 	$tmp = array();
-	while ($copatron = @mysql_fetch_array($result2))
+	while ($copatron = mysql_fetch_array($result2))
 	{
 		$tmp[$copatron{'party'}] = $copatron['number'];
 	}
@@ -122,11 +123,11 @@ while ($legislator = mysql_fetch_array($result))
 				bills_copatrons.bill_id IN
 					(SELECT bill_id
 					FROM bills_copatrons
-					WHERE legislator_id='.$legislator['id'].')
+					WHERE legislator_id=' . $legislator['id'] . ')
 			GROUP BY representatives.party';
-	$result2 = @mysql_query($sql);
+	$result2 = mysql_query($sql);
 	$tmp = array();
-	while ($copatron = @mysql_fetch_array($result2))
+	while ($copatron = mysql_fetch_array($result2))
 	{
 		$tmp[$copatron{'party'}] = $copatron['number'];
 	}
@@ -137,7 +138,7 @@ while ($legislator = mysql_fetch_array($result))
 		
 		# Populate an array that we use to determine overall partisanship. 0 = Democratic and 100 =
 		# Republican. Because our number is based on the majority support, we need to rescale it.
-		if (key($tmp)=='D')
+		if (key($tmp) == 'D')
 		{
 			$tmp = round((current($tmp)/$total)*100);
 			if ($tmp > 50)
@@ -164,11 +165,11 @@ while ($legislator = mysql_fetch_array($result))
 				WHERE date_ended IS NULL 
 				OR date_ended >= NOW( ) 
 				GROUP BY party';
-		$result2 = @mysql_query($sql);
-		if (@mysql_num_rows($result2) > 0)
+		$result2 = mysql_query($sql);
+		if (mysql_num_rows($result2) > 0)
 		{
 			$tmp = array();
-			while ($chamber = @mysql_fetch_array($result2))
+			while ($chamber = mysql_fetch_array($result2))
 			{
 				$tmp[$chamber{'party'}] = $chamber['number'];
 			}
@@ -178,8 +179,8 @@ while ($legislator = mysql_fetch_array($result))
 			$partisanship = round(array_sum($partisanship) / count($partisanship));
 			
 			$sql = 'UPDATE representatives
-					SET partisanship='.$partisanship.'
-					WHERE id='.$legislator['id'];
+					SET partisanship=' . $partisanship . '
+					WHERE id=' . $legislator['id'];
 			mysql_query($sql);
 			unset($partisanship);
 		}
