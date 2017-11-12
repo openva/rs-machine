@@ -4,28 +4,15 @@
 # Retrieve and Store Minutes
 # 
 # PURPOSE
-# Retrieves the minutes from every meeting of the House and Senate and
-# stores them in the database.
+# Retrieves the minutes from every meeting of the House and Senate and strores them.
 # 
 ###
-
-# INCLUDES
-# Include any files or libraries that are necessary for this specific
-# page to function.
-include_once(__DIR__ . '/../includes/../includes/settings.inc.php');
-include_once(__DIR__ . '/../includes/../includes/functions.inc.php');
-include_once(__DIR__ . '/../includes/../includes/htmlpurifier/HTMLPurifier.auto.php');
-
-# DECLARATIVE FUNCTIONS
-# Run those functions that are necessary prior to loading this specific
-# page.
-@connect_to_db();
 
 # PAGE CONTENT
 $sql = 'SELECT date, chamber
 		FROM minutes';
 $result = mysql_query($sql);
-if (@mysql_num_rows($result) > 0)
+if (mysql_num_rows($result) > 0)
 {
 	while ($tmp = mysql_fetch_array($result))
 	{
@@ -33,8 +20,8 @@ if (@mysql_num_rows($result) > 0)
 	}
 }
 
-$chambers['house'] = 'http://vacap.legis.virginia.gov/chamber.nsf/'.SESSION_LIS_ID.'HMinutes?OpenForm';
-$chambers['senate'] = 'http://leg1.state.va.us/cgi-bin/legp504.exe?ses='.SESSION_LIS_ID.'&typ=lnk&val=07';
+$chambers['house'] = 'http://vacap.legis.virginia.gov/chamber.nsf/' . SESSION_LIS_ID . 'HMinutes?OpenForm';
+$chambers['senate'] = 'http://leg1.state.va.us/cgi-bin/legp504.exe?ses=' . SESSION_LIS_ID . '&typ=lnk&val=07';
 
 foreach ($chambers as $chamber => $listing_url)
 {
@@ -66,13 +53,11 @@ foreach ($chambers as $chamber => $listing_url)
 			{
 				$source_url = 'http://vacap.legis.virginia.gov/chamber.nsf/'.$regs[1].'/'.$regs[2].'?OpenDocument';
 				$date = date('Y-m-d', strtotime($regs[4].' '.$regs[5].' '.$regs[6]));
-				//echo '<strong>House</strong><pre>'.print_r($regs, true).'</pre>';
 			}
 			elseif ($chamber == 'senate')
 			{
 				$source_url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?'.$regs[1].'+min+'.$regs[2];
 				$date = date('Y-m-d', strtotime($regs[3].' '.$regs[4].' '.$regs[5]));
-				//echo '<strong>Senate</strong><pre>'.print_r($regs, true).'</pre>';
 			}
 			
 			# Determines if this is a duplicate. If a match is found, the "repeat" flag is set.
@@ -100,7 +85,7 @@ foreach ($chambers as $chamber => $listing_url)
 			$minutes = get_content($source_url);
 			
 			# If the query was successful.
-			if ($minutes != false)
+			if ($minutes != FALSE)
 			{
 				
 				# Strip out the bulk of the markup. We allow the HR tag because we sometimes use
@@ -113,10 +98,10 @@ foreach ($chambers as $chamber => $listing_url)
 				# Determine where to end the minutes. We have three versions of this strpos() to
 				# accomodation variations in the data, primarily between the house and senate.
 				$strpos = strpos($minutes, 'KEY: A');
-				if ($strpos == false)
+				if ($strpos == FALSE)
 				{
 					$strpos = strpos($minutes, 'KEY:  A');
-					if ($strpos == false)
+					if ($strpos == FALSE)
 					{
 						$strpos = strpos($minutes, '<hr>');
 					}
@@ -137,16 +122,14 @@ foreach ($chambers as $chamber => $listing_url)
 				{
 					# Insert the minutes into the database.
 					$sql = 'INSERT INTO minutes
-							SET date = "'.$date.'", chamber="'.$chamber.'",
-							text="'.$minutes.'"';
+							SET date = "' . $date . '", chamber="' . $chamber . '",
+							text="' . $minutes . '"';
 					$result = mysql_query($sql);
 					if (!$result)
 					{
 						echo '<p>'.$date.' '.$chamber.' <font color="red">failed</font>.</p>';
-					}
-					else
-					{
-						echo '<p>'.$date.' '.$chamber.' succeeded.</p>';
+						$log->put('Inserting the minutes for ' . $date . ' in ' . $chamber
+							. ' failed. ' . $sql, 8);
 					}
 				}
 			
