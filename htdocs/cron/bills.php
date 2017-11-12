@@ -51,6 +51,10 @@ if (file_exists($hash_path))
 }
 else
 {
+	if (!file_exists('hashes/'))
+	{
+		mkdir('hashes');
+	}
 	$hashes = array();
 }
 
@@ -222,6 +226,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 
 	if (mysql_num_rows($result) > 0)
 	{
+
 		$sql = 'UPDATE bills SET ';
 		$existing_bill = mysql_fetch_array($result);
 		$sql_suffix = ' WHERE id=' . $existing_bill['id'];
