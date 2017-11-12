@@ -59,7 +59,7 @@ if (PHP_SAPI === 'cli')
 {
 
 	# If there are no command-line switches, update everything.
-	if ($_SERVER['argc'] > 1)
+	if ($_SERVER['argc'] <= 1)
 	{
 		$type = 'all';
 	}
