@@ -9,8 +9,8 @@
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
-include_once(__DIR__ . '/../includes/../includes/settings.inc.php');
-include_once(__DIR__ . '/../includes/../includes/functions.inc.php');
+include_once(__DIR__ . '/includes/settings.inc.php');
+include_once(__DIR__ . '/includes/functions.inc.php');
 
 # Don't bother to run this if the General Assembly isn't in session.
 if (IN_SESSION == 'n')
@@ -39,7 +39,8 @@ $sql = 'SELECT id, lis_id, chamber
 $result = $db->query($sql);
 if ( ($result === FALSE) || ($result->rowCount() == 0) )
 {
-	die("Could not retrieve legislator IDs.");
+	$log->put('No legislators were found in the database, which seems bad.', 10);
+	die();
 }
 while ($legislator = $result->fetch(PDO::FETCH_ASSOC))
 {
@@ -54,7 +55,8 @@ $sql = 'SELECT id, lis_id, chamber
 $result = $db->query($sql);
 if ( ($result === FALSE) || ($result->rowCount() == 0) )
 {
-	die("Could not retrieve committee IDs.");
+	$log->put('No committees were found in the database, which seems bad.', 9);
+	die();
 }
 while ($committee = $result->fetch(PDO::FETCH_ASSOC))
 {
@@ -84,11 +86,11 @@ $sql = 'SELECT DISTINCT bills_status.lis_vote_id
 $result = $db->query($sql);
 if ($result === FALSE)
 {
-	die('Could not retrieve committee IDs.');
+	die();
 }
 elseif ($result->rowCount() == 0)
 {
-	exit('No votes to tally.');
+	$log->put('Found no new votes in need of being tallied.', 1);
 }
 while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC))
 {
@@ -175,7 +177,7 @@ $vote = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@leg
 
 if ($vote === FALSE)
 {
-	pushover_alert('vote.csv couldn’t be retrieved', 'The file could not be found on legis.state.va.us.');
+	$log->put('vote.csv couldn’t be retrieved from legis.state.va.us.', 8);
 	die('vote.csv could not be retrieved from legis.state.va.us.');
 }
 
@@ -184,14 +186,15 @@ if (file_exists('vote.csv'))
 {
 	if (md5($vote) == md5_file('vote.csv'))
 	{
-		echo 'vote.csv hasn’t changed since the last update';
+		$log->put('vote.csv was unchanged since the last update.', 2);
 		exit;
 	}
 }
 
 if (!file_put_contents('vote.csv', $vote))
 {
-	die('Could not save vote file.');
+	$log->put('Could not save vote.csv.', 9);
+	die();
 }
 
 # Open the resulting file.
@@ -221,7 +224,7 @@ unset($empty_votes);
 
 if (!isset($votes) || count($votes) == 0)
 {
-	exit('No new votes were found.');
+	$log->put('vote.csv contained no votes.', 3);
 }
 
 foreach ($votes as $vote)
@@ -310,16 +313,16 @@ foreach ($votes as $vote)
 	
 	# Create a record for this vote.
 	$sql = 'INSERT INTO votes
-			SET lis_id="'.$lis_vote_id.'", tally="'.$tally.'", session_id="'.$session_id.'",
-			total='.$total.', outcome="'.$outcome.'", chamber="'.$chamber.'",
+			SET lis_id="' . $lis_vote_id . '", tally="' . $tally . '", session_id="' . $session_id . '",
+			total=' . $total . ', outcome="' . $outcome . '", chamber="' . $chamber . '",
 			date_created=now()';
 	if (!empty($committee_id))
 	{
-		$sql .= ', committee_id='.$committee_id;
+		$sql .= ', committee_id=' . $committee_id;
 	}
 	if (!empty($committee_id))
 	{
-		$sql .= ' ON DUPLICATE KEY UPDATE committee_id='.$committee_id;
+		$sql .= ' ON DUPLICATE KEY UPDATE committee_id=' . $committee_id;
 	}
 	else
 	{
@@ -329,7 +332,7 @@ foreach ($votes as $vote)
 	
 	if ($result === FALSE)
 	{
-		echo '<p style="color: #f00;">Inserting vote failed: <code>' . $sql . '</code></p>';
+		$log->put('New vote could not be inserted into the database.' . $sql, 9);
 	}
 	
 	else
@@ -352,14 +355,15 @@ foreach ($votes as $vote)
 				}
 				
 				$sql = 'INSERT DELAYED INTO representatives_votes
-						SET representative_id='.$legislator[$i]['id'].',
-						vote="'.$legislator[$i]['vote'].'", vote_id='.$vote_id.',
+						SET representative_id=' . $legislator[$i]['id'] . ',
+						vote="' . $legislator[$i]['vote'] . '", vote_id=' . $vote_id . ',
 						date_created=now()
 						ON DUPLICATE KEY UPDATE vote=vote';
 				$result = $db->exec($sql);
 				if ($result === FALSE)
 				{
 					echo '<p>Insertion of vote record failed: <code>' . $sql . '</code></p>';
+					$log->put('A legislator’s vote could not be inserted into the database.' . $sql, 7);
 				}
 			}
 		}
@@ -404,7 +408,3 @@ $sql = 'UPDATE votes
 			LIMIT 1)
 		WHERE date IS NULL';
 $db->exec($sql);
-
-echo 'Done';
-
-?>

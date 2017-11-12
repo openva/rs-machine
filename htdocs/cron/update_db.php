@@ -195,6 +195,12 @@ if (($type == 'all') || ($type == 'minutes'))
 	require 'minutes.php';
 }
 
+# Update the voting record.
+if ($type == 'vote')
+{
+	require 'vote.php';
+}
+
 # UPDATE DASHBOARD SMART PORTFOLIOS
 # Step through every smart portfolio and update its constituent bills.
 if (($type == 'all') || ($type == 'photosynthesis'))
