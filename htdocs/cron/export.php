@@ -202,6 +202,15 @@ $result = mysql_query($sql);
 if (mysql_num_rows($result) > 0)
 {
 
+	if (file_exists($downloads_dir . 'bills/') === FALSE)
+	{
+		$success = mkdir($downloads_dir . 'bills/');
+		if ($success === FALSE)
+		{
+			$log->put('Could not create ' . $downloads_dir . 'bills/ directory', 7);
+		}
+	}
+
 	# Rather than check each time if the year's directory exists, just keep track here.
 	$exists = array();
 	
@@ -280,7 +289,7 @@ if (is_writeable($filename))
 		{
 			if (substr($clip['path'], 0, 1) == '/')
 			{
-				$clip['path'] = 'http://www.richmondsunlight.com'.$clip['path'];
+				$clip['path'] = 'https://www.richmondsunlight.com'.$clip['path'];
 			}
 			# Write this clip, as JSON, to our file.
 			file_put_contents($downloads_dir . 'video-index.json', json_encode($clip).',', FILE_APPEND);
