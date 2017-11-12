@@ -77,7 +77,7 @@ if (mysql_num_rows($result) > 0)
 	$fp = fopen($downloads_dir . 'legislators.csv', 'w');
 	if ($fp === false)
 	{
-		die('Could not write to . ' $downloads_dir ' . legislators.csv.');
+		die('Could not write to ' . $downloads_dir . 'legislators.csv.');
 	}
 	fputcsv($fp, $csv_header);
 	
