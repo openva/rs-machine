@@ -29,6 +29,8 @@
 		$log->put('No subcommittees were found, which seems bad.', 10);
 		exit;
 	}
+	
+	$committees = array();
 	while ($committee = mysql_fetch_array($result))
 	{
 	
