@@ -49,9 +49,8 @@
 # Convert bill data to JSON.
 0 * * * * csvtojson --ignoreEmpty=true rs_machine/cron/bills.csv > rs_machine/downloads/bills.json
 
-# Capture legislative video.
-#*/5 * * * * cron/video-trigger.sh -c house -t 300
-#*/5 * * * * cron/video-trigger.sh -c senate -t 300
+# Download legislative video
+44 12-20 * * * rs_machine/cron/get_video.php
 
 # Store downloads on S3.
 5 * * * * aws s3 sync rs_machine/downloads s3://downloads.richmondsunlight.com --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers --storage-class REDUCED_REDUNDANCY >/dev/null 2>&1
