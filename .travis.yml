@@ -10,5 +10,5 @@ install:
   - composer
   - sudo apt-get install -y php5.6-cli php5.6-mysql php5.6-curl php5.6-memcached zip
 script: find . -name "*.php" -print0 |xargs -0 -n1 -P8 php -l
- notifications:
+notifications:
     slack: openva:1rT25C76cdWXkrBQHeN7qcoC
