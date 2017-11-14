@@ -28,7 +28,7 @@ $sql = 'SELECT c1.id, c1.lis_id, c2.name AS parent, c1.name, c1.chamber
 $result = mysql_query($sql);
 if (mysql_num_rows($result) == 0)
 {
-	$log->put('No subcommittees were found, which seems bad.', 10);
+	$log->put('No subcommittees were found, which seems bad.', 7);
 	exit;
 }
 while ($committee = mysql_fetch_array($result))
@@ -340,15 +340,17 @@ foreach ($csv as &$meeting)
 		$sql .= ', committee_id=' . $meeting['committee_id'];
 	}
 	$result = mysql_query($sql);
+
 	if (mysql_affected_rows($result) == 0)
 	{
 		$log->put('Failed to add meeting '.$meeting['description'].' on ' . $meeting['date']
-			. '.', 8);
+			. '. ' . $sql, 7);
 	}
 	else
 	{
 		$log->put('Added meeting '.$meeting['description'].' on ' . $meeting['date'] . '.', 1);
 	}
+	
 }
 
 # Delete all of the duplicate meetings. We end up with the same meeting recorded over and over
