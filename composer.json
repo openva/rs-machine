@@ -1,11 +1,8 @@
 {
-    "config": {
-        "vendor-dir": "includes"
-    },
     "require": {
-        "elasticsearch/elasticsearch": "~0.4"
-    },
-    "autoload": {
-    	"classmap": ["includes/"]
+        "elasticsearch/elasticsearch": "~0.4",
+        "kellan/magpierss": "0.72",
+        "PHPMailer/PHPMailer": "~6.0",
+        "ezyang/htmlpurifier":"dev-master"
     }
 }
