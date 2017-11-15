@@ -14,7 +14,7 @@
 #
 ###
 
-$downloads_dir = '../downloads/';
+$downloads_dir = __DIR__ . '/../downloads/';
 
 /*
  * Make sure that our downloads directory exists and is writable.
@@ -44,7 +44,7 @@ if (mysql_num_rows($result) > 0)
 	$changes = array();
 	while ($change = mysql_fetch_array($result, MYSQL_ASSOC))
 	{
-		$change['url'] = 'http://www.richmondsunlight.com/bill/'.SESSION_YEAR.'/'
+		$change['url'] = 'https://www.richmondsunlight.com/bill/'.SESSION_YEAR.'/'
 			.strtolower($change['bill_number']).'/';
 		$changes[] = $change;
 	}
@@ -237,12 +237,12 @@ if (mysql_num_rows($result) > 0)
 		if (!in_array($bill['year'], $exists))
 		{
 		
-			if (file_exists('../downloads/bills/' . $bill['year']) === FALSE)
+			if (file_exists($downloads_dir . 'bills/' . $bill['year']) === FALSE)
 			{
-				$success = mkdir('../downloads/bills/' . $bill['year']);
+				$success = mkdir($downloads_dir . 'bills/' . $bill['year']);
 				if ($success === FALSE)
 				{
-					$log->put('Could not create directory ../downloads/bills/' . $bill['year'], 8);
+					$log->put('Could not create directory ' . $downloads_dir . 'bills/' . $bill['year'], 8);
 					return FALSE;
 				}
 			}
