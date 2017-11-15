@@ -88,16 +88,16 @@ class Log
     function slack($message, $room = 'rs', $icon = ':longbox:')
     {
 
-        $room = ($room) ? $room : "general";
-        $data = "payload=" . json_encode(array(
-                "channel"       =>  "#{$room}",
-                "text"          =>  $message,
-                "icon_emoji"    =>  $icon
+        $room = ($room) ? $room : 'general';
+        $data = 'payload=' . json_encode(array(
+                'channel'       =>  '#{$room}',
+                'text'          =>  $message,
+                'icon_emoji'    =>  $icon
             ));
 
         // You can get your webhook endpoint from your Slack settings
         $ch = curl_init(SLACK_WEBHOOK);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $result = curl_exec($ch);
