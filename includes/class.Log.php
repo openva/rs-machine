@@ -108,6 +108,33 @@ class Log
     }
 
     /**
+     * Log an error to a text file.
+     */
+    function filesystem($message)
+    {
+
+       
+        /*
+         * Keep logs in different locations, depending on how this has been invoked.
+         */
+        if (PHP_SAPI === 'cli')
+        {
+            $file = __DIR__ . '../logs/site.log';
+        }
+        else
+        {
+            $file = __DIR__ . '../../logs/site.log';
+        }
+
+        if (file_put_contents($file, $message) === FALSE)
+        {
+            return FALSE;
+        }
+        return TRUE;
+
+    }
+
+    /**
      * Send an alert to the Pushover iOS app.
      */
     function pushover($title, $message)
