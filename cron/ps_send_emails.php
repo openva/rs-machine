@@ -17,10 +17,10 @@
 	# INCLUDES
 	# Include any files or libraries that are necessary for this specific
 	# page to function.
-	require_once __DIR__ . '/../includes/../includes/settings.inc.php';
-	require_once __DIR__ . '/../includes/../includes/functions.inc.php';
-	require_once __DIR__ . '/../includes/../includes/photosynthesis.inc.php';
-	require_once __DIR__ . '/../includes/../includes/phpmailer/class.phpmailer.php';
+	require_once __DIR__ . '/../includes/settings.inc.php';
+	require_once __DIR__ . '/../includes/functions.inc.php';
+	require_once __DIR__ . '/../includes/photosynthesis.inc.php';
+	require_once __DIR__ . '/../includes/phpmailer/class.phpmailer.php';
 
 	# Don't bother to run this if the General Assembly isn't in session.
 	if (IN_SESSION == 'n') exit();
@@ -161,5 +161,3 @@
 		// log this activity to a database audit table
 
 	}
-
-?>

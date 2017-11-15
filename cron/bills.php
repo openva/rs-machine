@@ -7,14 +7,15 @@ $bills = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
 if (empty($bills))
 {
 	$log->put('BILLS.CSV doesn’t exist on legis.state.va.us.', 8);
-	die('No data found on DLAS’s FTP server.');
+	echo 'No data found on DLAS’s FTP server.';
+	return FALSE;
 }
 
 # If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
 if (md5($bills) == md5_file('bills.csv'))
 {
 	$log->put('Not updating bills, because bills.csv has not been modified since it was last downloaded.', 2);
-	exit;
+	return FALSE;
 }
 
 /*

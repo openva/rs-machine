@@ -29,7 +29,7 @@ $result = mysql_query($sql);
 if (mysql_num_rows($result) == 0)
 {
 	$log->put('No subcommittees were found, which seems bad.', 7);
-	exit;
+	return FALSE;
 }
 while ($committee = mysql_fetch_array($result))
 {
@@ -110,7 +110,7 @@ $html = get_content('http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS
 eregi('<a href="/cgi-bin/legp507.exe\?([0-9]{3})\+([a-z0-9]{3})">csv file</a>', $html, $regs);
 if (!isset($regs) || !is_array($regs))
 {
-	exit;
+	return FALSE;
 }
 
 # Fetch the redirection page. The legislature doesn't just link to the URL, because that might
@@ -123,7 +123,7 @@ unset($regs);
 eregi('<a href="(.*)">here</a>', $redirect, $regs);
 if (!isset($regs) || !is_array($regs))
 {
-	exit;
+	return FALSE;
 }
 
 # Fetch the CSV.

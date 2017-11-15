@@ -18,7 +18,7 @@ if (IN_SESSION == 'N')
 	die('The General Assembly is not in session.');
 }
 
-@connect_to_db();
+connect_to_db();
 
 /*
 	QUESTIONS

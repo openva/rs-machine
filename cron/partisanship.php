@@ -22,7 +22,7 @@ $result = mysql_query($sql);
 if (mysql_num_rows($result) == 0)
 {
 	$log->put('There are no legislators in the database, which seems bad?', 10);
-	exit();
+	return FALSE;
 }
 
 while ($legislator = mysql_fetch_array($result))

@@ -32,7 +32,7 @@ connect_to_db();
 # Only bother if the chamber is in session.
 if (IN_SESSION != 'Y')
 {
-	die();
+	return TRUE;
 }
 
 # If it's between 10am and 5pm.

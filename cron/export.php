@@ -25,8 +25,9 @@ if (file_exists($downloads_dir) == FALSE)
 }
 if (is_writeable($downloads_dir) == FALSE)
 {
-	$log->put('Could no write to downloads directory', 8);
-	die('No data found on DLAS’s FTP server.');
+	$log->put('Could not write to downloads directory', 8);
+	echo 'No data found on DLAS’s FTP server.';
+	return FALSE;
 }
 
 # Save a listing of the proposed changes to laws as JSON.
@@ -75,9 +76,10 @@ if (mysql_num_rows($result) > 0)
 		'LIS ID 1', 'LIS ID 2', 'RS ID', 'SBE ID');
 	# Open a handle to write a file.
 	$fp = fopen($downloads_dir . 'legislators.csv', 'w');
-	if ($fp === false)
+	if ($fp === FALSE)
 	{
-		die('Could not write to ' . $downloads_dir . 'legislators.csv.');
+		$log->put('Could not write to ' . $downloads_dir . 'legislators.csv.', 8);
+		return FALSE;
 	}
 	fputcsv($fp, $csv_header);
 	
@@ -238,9 +240,10 @@ if (mysql_num_rows($result) > 0)
 			if (file_exists('../downloads/bills/' . $bill['year']) === FALSE)
 			{
 				$success = mkdir('../downloads/bills/' . $bill['year']);
-				if ($success === false)
+				if ($success === FALSE)
 				{
-					die('Could not create directory ../downloads/bills/' . $bill['year']);
+					$log->put('Could not create directory ../downloads/bills/' . $bill['year'], 8);
+					return FALSE;
 				}
 			}
 			

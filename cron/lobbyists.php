@@ -19,7 +19,7 @@ set_time_limit(0);
 include_once(__DIR__ . '/../includes/../includes/functions.inc.php');
 include_once(__DIR__ . '/../includes/../includes/settings.inc.php');
 
-@connect_to_db();
+connect_to_db();
 
 /*
  * Define the URL where the JSON files are found.

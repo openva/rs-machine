@@ -108,7 +108,7 @@ $result = $db->query($sql);
 if ( ($result === FALSE) || ($result->rowCount() == 0) )
 {
 	$log->put('No legislators were found in the database, which seems bad.', 10);
-	die();
+	return FALSE;
 }
 while ($legislator = $result->fetch(PDO::FETCH_ASSOC))
 {
@@ -124,7 +124,7 @@ $result = $db->query($sql);
 if ( ($result === FALSE) || ($result->rowCount() == 0) )
 {
 	$log->put('No committees were found in the database, which seems bad.', 9);
-	die();
+	return FALSE;
 }
 while ($committee = $result->fetch(PDO::FETCH_ASSOC))
 {
@@ -154,7 +154,7 @@ $sql = 'SELECT DISTINCT bills_status.lis_vote_id
 $result = $db->query($sql);
 if ($result === FALSE)
 {
-	die();
+	return FALSE;
 }
 elseif ($result->rowCount() == 0)
 {
@@ -172,7 +172,7 @@ $vote = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@leg
 if ($vote === FALSE)
 {
 	$log->put('vote.csv couldn’t be retrieved from legis.state.va.us.', 8);
-	die('vote.csv could not be retrieved from legis.state.va.us.');
+	return FALSE;
 }
 
 # If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
