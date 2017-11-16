@@ -32,4 +32,4 @@ do
 	sed -i -e 's/define('\''$i'\'', '\'''\'')/define('\''$i'\'', '\''${!i}'\'')/g' includes/settings.inc.php
 done
 
-cat includes/settings-test.inc.php
+cat includes/settings.inc.php
