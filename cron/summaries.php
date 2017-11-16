@@ -75,7 +75,8 @@ if (mysql_num_rows($result) > 0)
 		$summary = strip_tags($summary, '<b><i><em><strong>');
 
 		# Run the summary through HTML Purifier.
-		$purifier = new HTMLPurifier();
+		$config = HTMLPurifier_Config::createDefault();
+		$purifier = new HTMLPurifier($config);
 		$summary = $purifier->purify($summary);
 		
 		# Clean up the bolding, so that we don't bold a blank space.

@@ -213,7 +213,8 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	}
 
 	# Create an instance of HTML Purifier to clean up the text.
-	$purifier = new HTMLPurifier();
+	$config = HTMLPurifier_Config::createDefault();
+	$purifier = new HTMLPurifier($config);
 	
 	# Purify the HTML and trim off the surrounding whitespace.
 	$bill['catch_line'] = trim($purifier->purify($bill['catch_line']));

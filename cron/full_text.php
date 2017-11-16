@@ -27,7 +27,8 @@ if (mysql_num_rows($result) == 0)
 }
 
 # Fire up HTML Purifier.
-//$purifier = new HTMLPurifier();
+//$config = HTMLPurifier_Config::createDefault();
+//$purifier = new HTMLPurifier($config);
 
 while ($text = mysql_fetch_array($result))
 {

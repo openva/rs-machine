@@ -110,7 +110,8 @@ foreach ($chambers as $chamber => $listing_url)
 				$minutes = trim($minutes);
 				
 				# Run the minutes through HTML Purifier, just to make sure they're clean.
-				$purifier = new HTMLPurifier();
+				$config = HTMLPurifier_Config::createDefault();
+				$purifier = new HTMLPurifier($config);
 				$minutes = $purifier->purify($minutes);
 				
 				# Prepare them for MySQL.
