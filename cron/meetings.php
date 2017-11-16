@@ -344,7 +344,7 @@ foreach ($csv as &$meeting)
 	if (mysql_affected_rows($result) == 0)
 	{
 		$log->put('Failed to add meeting '.$meeting['description'].' on ' . $meeting['date']
-			. '. ' . $sql . "\r\r" . mysql_error($result), 7);
+			. '. ' . $sql . "\n\n" . mysql_error($result), 7);
 	}
 	else
 	{
