@@ -29,7 +29,7 @@ done
 # Now iterate over again and perform the replacement.
 for i in "${variables[@]}"
 do
-	sed -i -e 's/define('\''$i'\'', '\'''\'')/define('\''$i'\'', '\''${!i}'\'')/g' includes/settings-test.inc.php
+	sed -i -e 's/define('\''$i'\'', '\'''\'')/define('\''$i'\'', '\''${!i}'\'')/g' includes/settings.inc.php
 done
 
 cat includes/settings-test.inc.php
