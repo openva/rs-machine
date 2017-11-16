@@ -1,4 +1,7 @@
 {
+	"config": {
+        "vendor-dir": "includes/vendor"
+    },
     "require": {
         "elasticsearch/elasticsearch": "~0.4",
         "kellan/magpierss": "0.72",
