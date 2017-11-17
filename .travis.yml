@@ -1,8 +1,9 @@
 language: php
 php:
 - '5.6'
-services:
-- mysql
+notifications:
+  slack:
+    secure: yLlrDX7C9oF4ESAz86fslJfTusDY7PjQmcdNpVBkMq5Y1+/cOcJQO2kg2do/1Ka6zibo/yBIAC/+egobC9/J6381H4bSkNQfwTYD2e9Z4OhMQ5DvL+SEl3OiQ/usWoNmI7QagbyUE6kQt+61D3xZ70b9XfS19a4Qoku/EzrQHOM7flwqrQQ2iD4OjVxHtS7K76Pr/fmxu1HuLEZBqnENCV4hauCVnVoUNMEsK351+eDo9QXmedS9gyDmdmvUliGw7GaLB79uTsFvDm5YQ2Jqsv4pWAE2inMAy2XMFktop6dWXALOhjAEHhZY/O6DcNKp0Qbhx5HDCBTs9XX7anUWzoaUkgZA84iLAENlA529HvOBodPrOLTI7OfO/7MEX5P9Dg2yorTQGAgFkV5R8TKbNxuf17441wpOE8Q7MwbpXPgGmd8PmLGGinBicZvmJ/sze5vJwcbwwp238OseCcLYiuIBPgrCVsT8jizniQ6IvGoDigrD86uvVe+Bu8E6FhwORhvmXMiu64IfdlVFwLOvQK67aq4kdjMdEg3wbyM23k3aY8CPeSAfOkcJdiJsoivxIw4nlz7q0HUAvR7HD+hJCjwXpyPx7m4b6o3lj/3G7iQ9aCLMmsGOSf8YlChMSa/Zg5jxuTcBdU8IIlfZY+lihKj7tyWZFfKdw8qKwLmbDyo=
 before_install:
 - sudo add-apt-repository ppa:ondrej/php -y
 - sudo apt-get update -q
@@ -13,16 +14,13 @@ script:
 - find . -name "*.php" -print0 |xargs -0 -n1 -P8 php -l
 - ./config_variables.sh
 - zip -r latest *
-- mkdir -p dpl_cd_upload
-- mv latest.zip dpl_cd_upload/latest.zip
-notifications:
-  slack:
-    secure: yLlrDX7C9oF4ESAz86fslJfTusDY7PjQmcdNpVBkMq5Y1+/cOcJQO2kg2do/1Ka6zibo/yBIAC/+egobC9/J6381H4bSkNQfwTYD2e9Z4OhMQ5DvL+SEl3OiQ/usWoNmI7QagbyUE6kQt+61D3xZ70b9XfS19a4Qoku/EzrQHOM7flwqrQQ2iD4OjVxHtS7K76Pr/fmxu1HuLEZBqnENCV4hauCVnVoUNMEsK351+eDo9QXmedS9gyDmdmvUliGw7GaLB79uTsFvDm5YQ2Jqsv4pWAE2inMAy2XMFktop6dWXALOhjAEHhZY/O6DcNKp0Qbhx5HDCBTs9XX7anUWzoaUkgZA84iLAENlA529HvOBodPrOLTI7OfO/7MEX5P9Dg2yorTQGAgFkV5R8TKbNxuf17441wpOE8Q7MwbpXPgGmd8PmLGGinBicZvmJ/sze5vJwcbwwp238OseCcLYiuIBPgrCVsT8jizniQ6IvGoDigrD86uvVe+Bu8E6FhwORhvmXMiu64IfdlVFwLOvQK67aq4kdjMdEg3wbyM23k3aY8CPeSAfOkcJdiJsoivxIw4nlz7q0HUAvR7HD+hJCjwXpyPx7m4b6o3lj/3G7iQ9aCLMmsGOSf8YlChMSa/Zg5jxuTcBdU8IIlfZY+lihKj7tyWZFfKdw8qKwLmbDyo=
+- mkdir -p upload
+- mv latest.zip upload/latest.zip
 deploy:
 - provider: s3
   access_key_id: $AWS_ACCESS_KEY
   secret_access_key: $AWS_SECRET_KEY
-  local_dir: dpl_cd_upload
+  local_dir: upload
   skip_cleanup: true
   on: &2
     repo: openva/rs-machine
