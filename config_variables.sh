@@ -41,5 +41,3 @@ do
 	value=${value//;/\;}
 	sed -i -e "s|define('$i', '')|define('$i', '$value')|g" includes/settings.inc.php
 done
-
-cat includes/settings.inc.php
