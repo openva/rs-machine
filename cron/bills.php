@@ -26,7 +26,7 @@ $bills = trim($bills);
 /*
  * Save the bills locally.
  */
-file_put_contents('bills.csv', $bills);
+if (file_put_contents(__DIR__ . '/bills.csv', $bills) === FALSE)
 
 /*
  * Open the resulting file.
