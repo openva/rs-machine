@@ -16,7 +16,7 @@ if (isset($_GLOBAL['history']))
 	}
 	
 	# If the MD5 value of the new file is different than the saved file, make some updates.
-	if ( (file_exists('history.csv') == FALSE) || md5($history) != md5_file('history.csv') )
+	if ( (file_exists(__DIR__ . '/history.csv') == FALSE) || md5($history) != md5_file(__DIR__ . '/history.csv') )
 	{
 		
 		# First, save the file.
