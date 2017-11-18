@@ -7,19 +7,38 @@ if (isset($_GLOBAL['history']))
 	# Retrieve the CSV data and save it to a local file.
 	$history = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
 		. '@legis.state.va.us/fromdlas/csv' . $dlas_session_id . '/HISTORY.CSV');
+
+	if (!$history || empty($history))
+	{
+		$log->put('HISTORY.CSV doesn’t exist on legis.state.va.us.', 8);
+		echo 'No history data found on DLAS’s FTP server.';
+		return FALSE;
+	}
 	
 	# If the MD5 value of the new file is different than the saved file, make some updates.
 	if ( (file_exists('history.csv') == FALSE) || md5($history) != md5_file('history.csv') )
 	{
-	
-		file_put_contents('history.csv', $history);
+		
+		# First, save the file.
+		if (file_put_contents(__DIR__ . '/history.csv', $history) === FALSE)
+		{
+			$log->put('history.csv could not be saved to the filesystem.', 8);
+			echo 'history.csv could not be saved to the filesystem.';
+			return FALSE;
+		}
 	
 		# Open the resulting file.
-		$fp = fopen('history.csv','r');
+		$fp = fopen(__DIR__ . '/history.csv','r');
+		if ($fp === FALSE)
+		{
+			$log->put('history.csv could not be read from the filesystem.', 8);
+			echo 'history.csv could not be read from the filesystem.';
+			return FALSE;
+		}
 	
 		# Retrieve our saved serialized array of hash data, so that we can only update or insert
 		# bills that have changed, or that are new.
-		$hash_path = 'hashes/history-' . SESSION_ID . '.md5';
+		$hash_path = __DIR__ . '/hashes/history-' . SESSION_ID . '.md5';
 		if (file_exists($hash_path))
 		{
 			$hashes = file_get_contents($hash_path);
@@ -35,6 +54,10 @@ if (isset($_GLOBAL['history']))
 		}
 		else
 		{
+			if (!file_exists(__DIR__ . '/hashes/'))
+			{
+				mkdir(__DIR__ . '/hashes');
+			}
 			$hashes = array();
 		}
 
