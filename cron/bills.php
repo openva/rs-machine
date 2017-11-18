@@ -4,7 +4,7 @@
 # otherwise, if the connection fails, we end up with a zero-length file.
 $bills = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
 	. '@legis.state.va.us/fromdlas/csv' . $dlas_session_id . '/BILLS.CSV');
-if (empty($bills))
+if (!$bills || empty($bills))
 {
 	$log->put('BILLS.CSV doesn’t exist on legis.state.va.us.', 8);
 	echo 'No data found on DLAS’s FTP server.';
@@ -27,17 +27,28 @@ $bills = trim($bills);
  * Save the bills locally.
  */
 if (file_put_contents(__DIR__ . '/bills.csv', $bills) === FALSE)
+{
+	$log->put('bills.csv could not be saved to the filesystem.', 8);
+	echo 'bills.csv could not be saved to the filesystem.';
+	return FALSE;
+}
 
 /*
  * Open the resulting file.
  */
 $fp = fopen('bills.csv','r');
+if ($fp === FALSE)
+{
+	$log->put('bills.csv could not be read from the filesystem.', 8);
+	echo 'bills.csv could not be read from the filesystem.';
+	return FALSE;
+}
 
 /*
  * Also, retrieve our saved serialized array of hash data, so that we can only update or insert
  * bills that have changed, or that are new.
  */
-$hash_path = 'hashes/bills-' . SESSION_ID . '.md5';
+$hash_path = __DIR__ . '/hashes/bills-' . SESSION_ID . '.md5';
 if (file_exists($hash_path))
 {
 	$hashes = file_get_contents($hash_path);
@@ -52,9 +63,9 @@ if (file_exists($hash_path))
 }
 else
 {
-	if (!file_exists('hashes/'))
+	if (!file_exists(__DIR__ . '/hashes/'))
 	{
-		mkdir('hashes');
+		mkdir(__DIR__ . '/hashes');
 	}
 	$hashes = array();
 }
@@ -302,8 +313,8 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 			if (!empty($bill['text'][$i]['number']) && !empty($bill['text'][$i]['date']))
 			{
 				$sql = 'INSERT INTO bills_full_text
-						SET bill_id = '.$bill['id'].', number="'.$bill['text'][$i]['number'].'",
-						date_introduced="'.$bill['text'][$i]['date'].'", date_created=now()
+						SET bill_id = ' . $bill['id'] . ', number="' . $bill['text'][$i]['number'] . '",
+						date_introduced="' . $bill['text'][$i]['date'] . '", date_created=now()
 						ON DUPLICATE KEY UPDATE date_introduced=date_introduced';
 				mysql_query($sql);
 			}
