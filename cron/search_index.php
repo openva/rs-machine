@@ -7,7 +7,7 @@
 /*
  * Create our indexing directory, if it doesn't exist.
  */
-$dir_name = 'search_index';
+$dir_name = __DIR__ . '/search_index';
 if (file_exists($dir_name) === FALSE)
 {
 	if (!mkdir($dir_name, 0755))
@@ -81,6 +81,7 @@ while ($bill = $sth->fetchObject())
 	if (!file_put_contents($filename, $file_contents, FILE_APPEND))
 	{
 		$log->put($bill->number . ' (' .$bill->year . ') could not be exported as JSON for indexing.', 3);
+		return FALSE;
 	}
 
 }
