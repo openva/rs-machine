@@ -6,3 +6,7 @@ files:
 permissions:
     - object: /home/ubuntu/rs-machine/
       owner: ubuntu
+      group: ubuntu
+      mode: 755
+      type:
+       - directory
