@@ -25,7 +25,7 @@ before_install:
 install:
 - composer install
 script:
-- find . -name "*.php" -print0 |xargs -0 -n1 -P8 php -l
+- find cron/*.php includes/*.php -print0 |xargs -0 -n1 -P8 php -l
 - ./config_variables.sh
 - zip -r latest *
 - mkdir -p upload
