@@ -10,3 +10,6 @@ permissions:
       mode: 755
       type:
        - directory
+hooks:
+  AfterInstall:
+    - location: deploy/postdeploy.sh
