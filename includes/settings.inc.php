@@ -71,6 +71,9 @@ define('MAPBOX_TOKEN', '');
 # Pushover API Key
 define('PUSHOVER_KEY', '');
 
+# Slack Webhook
+define('SLACK_WEBHOOK', '');
+
 # The list of words that, when used, will lead to instant blacklisting. They're rot 13ed here.
 $GLOBALS['banned_words'] = array('fuvg','shpx','nffubyr','chffl','phag','shpxre','zbgureshpxre',
 	'shpxvat','pbpxfhpxre','gjng','qvpxurnq');
