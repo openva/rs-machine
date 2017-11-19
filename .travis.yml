@@ -20,7 +20,6 @@ before_install:
 # Get includes from the website's repo, per https://github.com/openva/rs-machine/issues/13
 - git clone https://github.com/openva/richmondsunlight.com.git
 - cp richmondsunlight.com/htdocs/includes/*.php includes/
-- rm includes/settings.php
 - rm -Rf richmondsunlight.com
 install:
 - composer install
