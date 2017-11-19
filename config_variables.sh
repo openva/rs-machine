@@ -37,5 +37,6 @@ done
 for i in "${variables[@]}"
 do
 	echo "Replacing $i"
-	perl -i -pe"s/'$i', ''/'$i', '${!i}')/g" includes/settings.inc.php
+	perl -i -pe"s|'$i', ''|'$i', '${!i}')g" includes/settings.inc.php
+
 done
