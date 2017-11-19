@@ -15,14 +15,13 @@ $sql = 'SELECT bills_full_text.id, bills_full_text.number, sessions.lis_id
 			ON bills.session_id = sessions.id
 		WHERE bills_full_text.text IS NULL AND bills_full_text.failed_retrievals < 20
 		ORDER BY bills_full_text.failed_retrievals ASC, sessions.year DESC,
-		bills.date_introduced DESC, bills_full_text.date_introduced DESC
-		LIMIT 10';
+		bills.date_introduced DESC, bills_full_text.date_introduced DESC';
 
 $result = mysql_query($sql);
 
 if (mysql_num_rows($result) == 0)
 {
-	$log->put('Found no bills lacking their full text.', 3);
+	$log->put('Found no bills lacking their full text.', 1);
 	return FALSE;
 }
 

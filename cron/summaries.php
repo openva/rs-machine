@@ -10,8 +10,7 @@ $sql = 'SELECT bills.id, bills.number, sessions.lis_id
 		LEFT JOIN sessions
 			ON bills.session_id = sessions.id
 		WHERE bills.summary IS NULL AND bills.session_id = ' . $session_id . '
-		ORDER BY RAND()
-		LIMIT 15';
+		ORDER BY RAND()';
 $result = mysql_query($sql);
 if (mysql_num_rows($result) > 0)
 {
