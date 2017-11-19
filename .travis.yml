@@ -13,7 +13,6 @@ addons:
       - php5.6-mysql
       - php5.6-curl
       - php5.6-memcached
-      - composer
       - zip
       - ruby
       - awscli
