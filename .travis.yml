@@ -26,8 +26,8 @@ deploy:
   secret_access_key: $AWS_SECRET_KEY
   local_dir: upload
   skip_cleanup: true
-  on: &2
-    repo: openva/rs-machine
+  on:
+    branch: master
   bucket: deploy.machine.richmondsunlight.com
   region: us-east-1
 - provider: codedeploy
@@ -39,4 +39,5 @@ deploy:
   application: RS-Machine
   deployment_group: RS-Machine-Fleet
   region: us-east-1
-  on: *2
+  on:
+    branch: master
