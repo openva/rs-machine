@@ -38,8 +38,8 @@ if (IN_SESSION == 'N')
 	exit();
 }
 
-# Set a time limit of 8 minutes for this script to run.
-set_time_limit(480);
+# Set a time limit of 10 minutes for this script to run.
+set_time_limit(600);
 
 # FUNDAMENTAL VARIABLES
 $session_id = SESSION_ID;
