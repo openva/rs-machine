@@ -36,8 +36,5 @@ done
 # Now iterate over again and perform the replacement.
 for i in "${variables[@]}"
 do
-	# Escape any semicolons, since they have a reserved value in sed.
-	value=${!i}
-	value=${value//;/\;}
-	sed -i -e "s|define('$i', '')|define('$i', '$value')|g" includes/settings.inc.php
+	perl -i -pe"s/'$i', ''/'$i', '${!i}')/g" includes/settings.inc.php
 done
