@@ -36,7 +36,7 @@ if (file_put_contents(__DIR__ . '/bills.csv', $bills) === FALSE)
 /*
  * Open the resulting file.
  */
-$fp = fopen('bills.csv','r');
+$fp = fopen(__DIR__ . '/bills.csv','r');
 if ($fp === FALSE)
 {
 	$log->put('bills.csv could not be read from the filesystem.', 8);
