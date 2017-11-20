@@ -24,23 +24,6 @@ variables=(
 	SLACK_WEBHOOK
 )
 
-
-export LIS_FTP_USERNAME="test"
-export LIS_FTP_PASSWORD="test"
-export PDO_DSN="test1;test2"
-export PDO_SERVER="test"
-export PDO_USERNAME="test"
-export PDO_PASSWORD="test"
-export GMAPS_KEY="test"
-export YAHOO_KEY="test"
-export OPENSTATES_KEY="test"
-export OPENVA_KEY="test"
-export VA_DECODED_KEY="test"
-export MAPBOX_TOKEN="test"
-export MEMCACHED_SERVER="test"
-export PUSHOVER_KEY="test"
-export SLACK_WEBHOOK="test"
-
 # Iterate over the variables and make sure that they're all populated.
 for i in "${variables[@]}"
 do
