@@ -56,5 +56,5 @@ do
 	# Escape any semicolons, since they have a reserved value in sed.
 	value=${!i}
 	value=${value//;/\;}
-	sed -i -e "s|define('$i', '')|define('$i', '$value')|g" ../includes/settings.inc.php
+	sed -i -e "s|define('$i', '')|define('$i', '$value')|g" includes/settings.inc.php
 done
