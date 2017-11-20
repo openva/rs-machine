@@ -127,11 +127,11 @@ while ($text = mysql_fetch_array($result))
 			$result2 = mysql_query($sql);
 			if (!$result2)
 			{
-				$log->put('Insertion of  ' . trtoupper($text['number']) . ' bill text failed.', 5);
+				$log->put('Insertion of  ' . strtoupper($text['number']) . ' bill text failed.', 5);
 			}
 			else
 			{
-				$log->put('Insertion of  ' . trtoupper($text['number']) . ' bill text succeeded.', 2);
+				$log->put('Insertion of  ' . strtoupper($text['number']) . ' bill text succeeded.', 2);
 			}
 		}
 		
