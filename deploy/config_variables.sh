@@ -33,6 +33,8 @@ do
 	fi
 done
 
+echo DSN value, before being processed, is $PDO_DSN
+
 # Now iterate over again and perform the replacement.
 for i in "${variables[@]}"
 do
