@@ -27,6 +27,7 @@ install:
 script:
 - find cron/*.php includes/*.php -print0 |xargs -0 -n1 -P8 php -l
   && ./deploy/config_variables.sh
+  && ./deploy/aws_credentials.sh
   && zip -r latest *
   && mkdir -p upload
   && mv latest.zip upload/latest.zip
