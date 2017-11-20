@@ -5,8 +5,6 @@
 # while the settings file is stored on GitHub.
 #==================================================================================
 
-echo DSN value, before being processed, is $PDO_DSN
-
 # Define the list of environmental variables that we need to populate during deployment.
 variables=(
 	LIS_FTP_USERNAME
@@ -38,9 +36,5 @@ done
 # Now iterate over again and perform the replacement.
 for i in "${variables[@]}"
 do
-	# Escape any semicolons, since they have a reserved value in sed.
-	value=${!i}
-	value=${value//;/\;}
-	echo $i is $value
 	sed -i -e "s|define('$i', '')|define('$i', '$value')|g" includes/settings.inc.php
 done
