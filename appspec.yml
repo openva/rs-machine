@@ -15,5 +15,7 @@ permissions:
       type:
        - directory
 hooks:
+  BeforeInstall:
+    - location: deploy/predeploy.sh
   AfterInstall:
     - location: deploy/postdeploy.sh
