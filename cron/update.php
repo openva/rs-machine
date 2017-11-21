@@ -97,7 +97,7 @@ $dbh = new PDO(PDO_DSN, PDO_USERNAME, PDO_PASSWORD);
 if ($dbh === FALSE)
 {
 	$log->put('Could not connect to database.', 8);
-	die('Could not connect to database.')
+	die('Could not connect to database.');
 }
 
 # Run bills.php, which contains the functionality that updates the bill listing. Note that this will
