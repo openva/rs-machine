@@ -265,8 +265,11 @@ foreach ($csv as &$meeting)
 		{
 			if (stristr($meeting['description'], $committee) != FALSE)
 			{
-				$meeting['committee_id'] = $id;
-				break;
+				if (is_numeric($id))
+				{
+					$meeting['committee_id'] = $id;
+					break;
+				}
 			}
 		}
 	}
@@ -341,12 +344,12 @@ foreach ($csv as &$meeting)
 	}
 	$result = mysql_query($sql);
 
-	if (mysql_affected_rows($result) == 0)
+	if (!$result)
 	{
 		$log->put('Failed to add meeting '.$meeting['description'].' on ' . $meeting['date']
-			. '. ' . $sql . "\n\n" . mysql_error($result), 7);
+			. '. ' . $sql . "\n\n" . mysql_error(), 5);
 	}
-	else
+	elseif (mysql_affected_rows($result) > 0)
 	{
 		$log->put('Added meeting '.$meeting['description'].' on ' . $meeting['date'] . '.', 1);
 	}
