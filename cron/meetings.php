@@ -63,7 +63,7 @@ while ($committee = mysql_fetch_array($result))
 		# If the word "and" is used in this subcommittee name, then we need to also create
 		# versions of it with an ampersand in place of the word "and," because LIS can't decide
 		# which they want to use to name committees.
-		if (stristr($committee['sub'], ' and ') != false)
+		if (stristr($committee['sub'], ' and ') != FALSE)
 		{
 			$committee['sub'] = str_replace(' and ', ' & ', $committee['sub']);
 			$committees[] = array($committee['id'] => $tmp . ' - ' . $committee['sub']);
@@ -238,9 +238,9 @@ foreach ($csv as &$meeting)
 	else
 	{
 		# Convert the date and time into a timestamp.
-		$meeting['datetime'] = strtotime($meeting['time'].' '.$meeting['date']);
+		$meeting['datetime'] = strtotime($meeting['time'] . ' ' . $meeting['date']);
 		$meeting['date'] = date('Y-m-d', $meeting['datetime']);
-		$meeting['time'] = date('H:i', $meeting['datetime']).':00';
+		$meeting['time'] = date('H:i', $meeting['datetime']) . ':00';
 		unset($meeting['datetime']);
 	}
 	
@@ -263,7 +263,7 @@ foreach ($csv as &$meeting)
 		# committee and try to match it.
 		foreach ($committees[$i] as $id => $committee)
 		{
-			if (stristr($meeting['description'], $committee) != false)
+			if (stristr($meeting['description'], $committee) != FALSE)
 			{
 				$meeting['committee_id'] = $id;
 				break;
