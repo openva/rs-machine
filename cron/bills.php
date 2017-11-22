@@ -111,7 +111,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$hashes[$number] = $hash;
 		if (!isset($hashes[$number]))
 		{
-			$log->put('Adding ' . strtoupper($number) . '.', 7);
+			$log->put('Adding ' . strtoupper($number) . '.', 3);
 			echo 'Adding ';
 		}
 		else
