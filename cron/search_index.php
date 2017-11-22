@@ -78,7 +78,7 @@ while ($bill = $sth->fetchObject())
 	$filename = $bill->year . '.json';
 
 	$file_contents = json_encode($header) . "\n" . $json . "\n";
-	if (!file_put_contents($filename, $file_contents, FILE_APPEND))
+	if (!file_put_contents($dir_name . '/' . $filename, $file_contents, FILE_APPEND))
 	{
 		$log->put($bill->number . ' (' .$bill->year . ') could not be exported as JSON for indexing.', 3);
 		return FALSE;
