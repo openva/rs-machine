@@ -220,4 +220,4 @@ if (($type == 'all') || ($type == 'photosynthesis'))
 	}
 }
 
-echo 'Done updating ' . $type . "\n";
+$log->put('Updated ' . $type, 3);
