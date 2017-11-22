@@ -74,6 +74,9 @@ define('PUSHOVER_KEY', '');
 # Slack Webhook
 define('SLACK_WEBHOOK', '');
 
+# Define our logging verbosity level, on a scale of 1 to 8.
+define('LOG_VERBOSITY', 3);
+
 # The list of words that, when used, will lead to instant blacklisting. They're rot 13ed here.
 $GLOBALS['banned_words'] = array('fuvg','shpx','nffubyr','chffl','phag','shpxre','zbgureshpxre',
 	'shpxvat','pbpxfhpxre','gjng','qvpxurnq');
