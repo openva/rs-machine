@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ~/rs-machine/
+
 # Set up the crontab
 crontab deploy/crontab.txt
 
