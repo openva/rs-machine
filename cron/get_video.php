@@ -158,7 +158,7 @@ foreach ($sources as $chamber => $url)
 			    'Bucket' => 'video.richmondsunlight.com',
 			    'Key'    => $s3_key
 			));
-			
+
 			## ON SUCCESS, DELETE
 
 			/*
@@ -178,6 +178,25 @@ foreach ($sources as $chamber => $url)
 			$log->put('Action required: Found and stored new ' . ucfirst($chamber)
 					. ' video, for ' . $date . '.', 5);
 
+		}
+
+		/*
+		 * Start up the video-processing EC2 instance.
+		 */
+		use Aws\Ec2\Ec2Client;
+
+		$ec2Client = new Ec2Client([
+		    'region' => 'us-east-1',
+		    'version' => '2016-11-15',
+		    'profile' => 'default'
+		]);
+		$action = 'START';
+		$instanceIds = array('i-0397ede5c09ce236e');
+		if ($action == 'START')
+		{
+		    $result = $ec2Client->startInstances(array(
+		        'InstanceIds' => $instanceIds,
+		    ));
 		}
 
 	}
