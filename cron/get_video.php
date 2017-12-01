@@ -125,7 +125,7 @@ foreach ($sources as $chamber => $url)
 		foreach ($videos as $date => $url)
 		{
 
-			$filename = $_SERVER['DOCUMENT_ROOT'] . 'video/' . $chamber . '/floor/' . $date . '.mp4';
+			$filename = $chamber . '-' . $date . '.mp4';
 			if (file_exists($filename) == TRUE)
 			{
 				continue;
@@ -138,25 +138,45 @@ foreach ($sources as $chamber => $url)
 			curl_close($ch);
 			fclose($fp);
 
-			$log->put('Action required: Found and stored new ' . ucfirst($chamber)
-					. ' video, for ' . $date . '.', 5);
+			/*
+			 * Move the file to S3.
+			 */
+			$s3_key = '/'  . $chamber . '/' . 'floor/' . $date . '.mp4';
+			$s3_url = 'https://s3.amazon.com' . $s3_key;
+
+			use Aws\S3\S3Client;
+			$client = S3Client::factory(array(
+			    'profile' => 'default'
+			));
+			$result = $client->putObject(array(
+			    'Bucket'     => 'video.richmondsunlight.com',
+			    'Key'        => $s3_key,
+			    'SourceFile' => $filename
+			));
+
+			$client->waitUntil('ObjectExists', array(
+			    'Bucket' => 'video.richmondsunlight.com',
+			    'Key'    => $s3_key
+			));
+			
+			## ON SUCCESS, DELETE
 
 			/*
-			 * Process the video.
+			 * Log this to SQS.
 			 */
-			exec('cd ' . $_SERVER['DOCUMENT_ROOT'] . 'video/' . $chamber . '/floor/; '
-				. '/vol/www/richmondsunlight.com/process-video ' . $date . ' ' . $chamber,
-				$output, $status);
-			if ($status === 0)
-			{
-				$log->put('Action required: Processed video for ' . ucfirst($chamber)
+			use Aws\Sqs\SqsClient;
+
+			$client = SqsClient::factory(array(
+			    'profile' => 'default',
+			    'region'  => 'us-east-1'
+			));
+			$client->sendMessage(array(
+			    'QueueUrl'    => 'https://sqs.us-east-1.amazonaws.com/947603853016/rs-video-harvester.fifo',
+			    'MessageBody' => $s3_url,
+			));
+
+			$log->put('Action required: Found and stored new ' . ucfirst($chamber)
 					. ' video, for ' . $date . '.', 5);
-			}
-			else
-			{
-				$log->put('Error: Could not process video for ' . ucfirst($chamber)
-					. ' video, for ' . $date . '.', 5);
-			}
 
 		}
 
