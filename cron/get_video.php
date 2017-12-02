@@ -5,8 +5,23 @@
 # page to function.
 include_once(__DIR__ . '/../includes/settings.inc.php');
 include_once(__DIR__ . '/../includes/functions.inc.php');
+include_once(__DIR__ . '/../includes/vendor/autoload.php');
 
 $log = new Log;
+
+/*
+ * Instantiate methods for AWS.
+ */
+use Aws\S3\S3Client;
+$s3_client = new S3Client([
+    'profile' => 'default'
+]);
+
+use Aws\Sqs\SqsClient;
+$sqs_client = new SqsClient([
+    'profile' => 'default',
+    'region'  => 'us-east-1'
+]);
 
 $sources = array(
 			'house' => 'http://virginia-house.granicus.com/VPodcast.php?view_id=3',
@@ -144,36 +159,26 @@ foreach ($sources as $chamber => $url)
 			$s3_key = '/'  . $chamber . '/' . 'floor/' . $date . '.mp4';
 			$s3_url = 'https://s3.amazon.com' . $s3_key;
 
-			use Aws\S3\S3Client;
-			$client = S3Client::factory(array(
-			    'profile' => 'default'
-			));
-			$result = $client->putObject(array(
+			$result = $s3_client->putObject([
 			    'Bucket'     => 'video.richmondsunlight.com',
 			    'Key'        => $s3_key,
 			    'SourceFile' => $filename
-			));
+			]);
 
-			$client->waitUntil('ObjectExists', array(
+			$s3_client->waitUntil('ObjectExists', [
 			    'Bucket' => 'video.richmondsunlight.com',
 			    'Key'    => $s3_key
-			));
+			]);
 
-			## ON SUCCESS, DELETE
+## ON SUCCESS, DELETE THE VIDEO FROM THE FILESYSTEM
 
 			/*
 			 * Log this to SQS.
 			 */
-			use Aws\Sqs\SqsClient;
-
-			$client = SqsClient::factory(array(
-			    'profile' => 'default',
-			    'region'  => 'us-east-1'
-			));
-			$client->sendMessage(array(
+			$sqs_client->sendMessage([
 			    'QueueUrl'    => 'https://sqs.us-east-1.amazonaws.com/947603853016/rs-video-harvester.fifo',
 			    'MessageBody' => $s3_url,
-			));
+			]);
 
 			$log->put('Action required: Found and stored new ' . ucfirst($chamber)
 					. ' video, for ' . $date . '.', 5);
@@ -183,9 +188,7 @@ foreach ($sources as $chamber => $url)
 		/*
 		 * Start up the video-processing EC2 instance.
 		 */
-		use Aws\Ec2\Ec2Client;
-
-		$ec2Client = new Ec2Client([
+		$ec2_client = new Aws\Ec2\Ec2Client([
 		    'region' => 'us-east-1',
 		    'version' => '2016-11-15',
 		    'profile' => 'default'
@@ -194,10 +197,11 @@ foreach ($sources as $chamber => $url)
 		$instanceIds = array('i-0397ede5c09ce236e');
 		if ($action == 'START')
 		{
-		    $result = $ec2Client->startInstances(array(
+		    $result = $ec2_client->startInstances([
 		        'InstanceIds' => $instanceIds,
-		    ));
+		    ]);
 		}
+
 
 	}
 
