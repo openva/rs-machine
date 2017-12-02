@@ -170,7 +170,10 @@ foreach ($sources as $chamber => $url)
 			    'Key'    => $s3_key
 			]);
 
-## ON SUCCESS, DELETE THE VIDEO FROM THE FILESYSTEM
+			/*
+			 * Delete our local copy of the video.
+			 */
+			unlink($filename);
 
 			/*
 			 * Log this to SQS.
