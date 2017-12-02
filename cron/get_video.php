@@ -159,16 +159,25 @@ foreach ($sources as $chamber => $url)
 			$s3_key = '/'  . $chamber . '/' . 'floor/' . $date . '.mp4';
 			$s3_url = 'https://s3.amazon.com' . $s3_key;
 
-			$result = $s3_client->putObject([
-			    'Bucket'     => 'video.richmondsunlight.com',
-			    'Key'        => $s3_key,
-			    'SourceFile' => $filename
-			]);
+			try
+			{
+				$result = $s3_client->putObject([
+				    'Bucket'     => 'video.richmondsunlight.com',
+				    'Key'        => $s3_key,
+				    'SourceFile' => $filename
+				]);
 
-			$s3_client->waitUntil('ObjectExists', [
-			    'Bucket' => 'video.richmondsunlight.com',
-			    'Key'    => $s3_key
-			]);
+				$s3_client->waitUntil('ObjectExists', [
+				    'Bucket' => 'video.richmondsunlight.com',
+				    'Key'    => $s3_key
+				]);
+			}
+			catch (S3Exception $e)
+			{
+				$log->put('Could not upload video ' . $filename . ' to S3. Error reported: '
+					. $e->getMessage(), 7);
+				continue;
+			}
 
 			/*
 			 * Delete our local copy of the video.
