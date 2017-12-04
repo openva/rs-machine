@@ -16,7 +16,7 @@ permissions:
        - directory
 hooks:
   BeforeInstall:
-    - location: /home/ubuntu/rs-machine/deploy/predeploy.sh
+    - location: rs-machine/deploy/predeploy.sh
   AfterInstall:
-    - location: /home/ubuntu/rs-machine/deploy/postdeploy.sh
-    - location: php /home/ubuntu/rs-machine/deploy/log_deployment.php
+    - location: rs-machine/deploy/postdeploy.sh
+    - location: php rs-machine/deploy/log_deployment.php
