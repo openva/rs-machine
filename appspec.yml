@@ -14,7 +14,7 @@ permissions:
         - "d:o::rwx"
       type:
        - directory
-hooks:
-  AfterInstall:
-    - location: rs-machine/deploy/postdeploy.sh
-    - location: php rs-machine/deploy/log_deployment.php
+#hooks:
+#  AfterInstall:
+#    - location: rs-machine/deploy/postdeploy.sh
+#    - location: php rs-machine/deploy/log_deployment.php
