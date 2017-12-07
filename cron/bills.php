@@ -290,7 +290,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	
 	if ($result === FALSE)
 	{
-		$log->put('Adding' . $bill['number'] . ' failed.', 7);
+		$log->put('Adding ' . $bill['number'] . ' failed. SQL: ' . $sql, 7);
 		unset($hashes[$number]);
 	}
 	
