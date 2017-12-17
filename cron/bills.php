@@ -292,8 +292,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	{
 		$log->put('Adding ' . $bill['number'] . ' failed. Almost certainly, this means that '
 			. 'the legislator (' . $bill['chief_patron_id'] . ', '
-			. strtolower($bill['chief_patron']) . ') who filed this bill isn’t in the database. '
-			. 'SQL: ' . $sql, 7);
+			. strtolower($bill['chief_patron']) . ') who filed this bill isn’t in the database.', 7);
 		unset($hashes[$number]);
 	}
 	
