@@ -226,4 +226,4 @@ if (($type == 'all') || ($type == 'photosynthesis'))
 	}
 }
 
-$log->put('Updated ' . $type, 3);
+$log->put('Updated ' . $type, 2);
