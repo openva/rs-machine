@@ -156,6 +156,12 @@ if (($type == 'all') || ($type == 'cleanup'))
 	require 'cleanup.php';
 }
 
+# Check for missing / excess legislators.
+if ($type == 'legislators')
+{
+	require 'legislators.php';
+}
+
 # Run cache.php, which has a bunch of functions that preemptively load data into the in-memory
 # cache.
 if (($type == 'all') || ($type == 'cache'))

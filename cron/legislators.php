@@ -1,17 +1,5 @@
 <?php
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-# INCLUDES
-# Include any files or libraries that are necessary for this specific
-# page to function.
-include_once('../includes/settings.inc.php');
-include_once('../includes/functions.inc.php');
-
-# Connect to the database via PDO.
-$db = connect_to_db('pdo');
-
 /*
  * Retrieve a list of all active legislators' names and IDs.
  */
@@ -19,7 +7,7 @@ $sql = 'SELECT name, chamber, lis_id
 		FROM representatives
 		WHERE date_ended IS NULL OR date_ended > now()
 		ORDER BY chamber ASC';
-$stmt = $db->prepare($sql);
+$stmt = $dbh->prepare($sql);
 $stmt->execute();
 $known_legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
 foreach ($known_legislators as &$known_legislator)
@@ -37,7 +25,11 @@ foreach ($known_legislators as &$known_legislator)
 	}
 }
 
-echo '<p>Loaded ' . count($known_legislators) . ' from local database.</p>';
+$log->put('Loaded ' . count($known_legislators) . ' from local database.', 1);
+if (count($known_legislators) > 140)
+{
+	$log->put('There are ' . count($known_legislators) . ' legislators in the database—too many.', 5);
+}
 
 /*
  * Get senators. Their Senate ID (e.g., "S100") is the key, their name is the value.
@@ -54,7 +46,7 @@ foreach ($senators[1] as $senator)
 $senators = $tmp;
 unset($tmp);
 
-echo '<p>Retrieved ' . count($senators) . ' senators from senate.virginia.gov.</p>';
+$log->put('Retrieved ' . count($senators) . ' senators from senate.virginia.gov.', 1);
 
 /*
  * Get delegates. Their House ID (e.g., "H0200") is the key, their name is the value.
@@ -71,7 +63,7 @@ foreach ($delegates[1] as $delegate)
 $delegates = $tmp;
 unset($tmp);
 
-echo '<p>Retrieved ' . count($delegates) . ' delegates from virginiageneralassembly.gov.</p>';
+$log->put('Retrieved ' . count($delegates) . ' delegates from virginiageneralassembly.gov.', 1);
 
 /*
  * First see if we have records of any representatives that are not currently in office.
@@ -88,7 +80,7 @@ foreach ($known_legislators as $known_legislator)
 	{
 		if (!isset($senators[$id]))
 		{
-			echo '<li>Remove Sen. ' . $known_legislator->name . '</li>';
+			$log->put('Error: Sen. ' . $known_legislator->name . ' is no longer in office, but is still listed in the database.', 5);
 		}
 	}
 	
@@ -99,7 +91,7 @@ foreach ($known_legislators as $known_legislator)
 	{
 		if (!isset($delegates[$id]))
 		{
-			echo '<li>Remove Del. ' . $known_legislator->name . '</li>';
+			$log->put('Error: Del. ' . $known_legislator->name . ' is no longer in office,  but is still listed in the database.', 5);
 		}
 	}
 	
@@ -126,8 +118,7 @@ foreach ($senators as $lis_id => $name)
 	
 	if ($match == FALSE)
 	{
-		echo '<li>Add <a href="http://apps.senate.virginia.gov/Senator/memberpage.php?id='
-			. $lis_id . '">' . $name . '</a></li>';
+		$log->put('Senator missing from the database: ' . $name . ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
 	}
 
 }
@@ -150,8 +141,7 @@ foreach ($delegates as $lis_id => $name)
 	
 	if ($match == FALSE)
 	{
-		echo '<li>Add <a href="http://virginiageneralassembly.gov/house/members/members.php?id='
-			. $lis_id . '">' . $name . '</a></li>';
+		$log->put('Delegate missing from the database: ' . $name . ' (http://virginiageneralassembly.gov/house/members/members.php?id='. $lis_id . ')', 6);
 	}
 
 }
