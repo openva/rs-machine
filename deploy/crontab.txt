@@ -31,6 +31,9 @@
 # Update the PDF mirror.
 41 02,16 * * * /usr/bin/php rs-machine/cron/update.php download_pdfs
 
+# Perform a sanity-check for legislators.
+41 12 * * * /usr/bin/php rs-machine/cron/update.php legislators
+
 # Updates the sections of the code referred to within each bill.
 5,15,25,35,45,55 * * 1-3,10-12 * /usr/bin/php rs-machine/cron/update.php code_sections
 
