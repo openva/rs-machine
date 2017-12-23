@@ -51,7 +51,7 @@ $log->put('Retrieved ' . count($senators) . ' senators from senate.virginia.gov.
 /*
  * Get delegates. Their House ID (e.g., "H0200") is the key, their name is the value.
  */
-$html = get_content('http://virginiageneralassembly.gov/house/members/members.php');
+$html = get_content('http://virginiageneralassembly.gov/house/members/members.php?ses=' . SESSION_YEAR);
 preg_match_all('/id=\'member\[H([0-9]+)\]\'><td width="190px"><a class="bioOpener" href="#">(.*?)<\/a>/m', $html, $delegates);
 $tmp = array();
 $i=0;
