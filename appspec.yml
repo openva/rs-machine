@@ -7,7 +7,7 @@ permissions:
     - object: /home/ubuntu/rs-machine/
       owner: ubuntu
       group: ubuntu
-      mode: 755
+      mode: 775
       acls:
         - "d:u::rwx"
         - "d:g::rwx"
@@ -15,6 +15,6 @@ permissions:
       type:
        - directory
 #hooks:
-#  AfterInstall:
+# AfterInstall:
 #    - location: rs-machine/deploy/postdeploy.sh
 #    - location: php rs-machine/deploy/log_deployment.php
