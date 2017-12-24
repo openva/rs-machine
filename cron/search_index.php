@@ -59,7 +59,7 @@ while ($bill = $sth->fetchObject())
 	$bill->tags = $tmp;
 
 	/*
-	 * Set up the JSON preamble header, as instructinos for ElasticSearch.
+	 * Set up the JSON preamble header, as instructions for ElasticSearch.
 	 */
 	$header = array();
 	$header['index'] = array();
@@ -73,7 +73,7 @@ while ($bill = $sth->fetchObject())
 	$json = json_encode($bill);
 
 	/*
-	 * Create a single file for each session.
+	 * Use a single file for each session.
 	 */
 	$filename = $bill->year . '.json';
 

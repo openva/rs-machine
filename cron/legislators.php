@@ -1,6 +1,40 @@
 <?php
 
 /*
+ * Use a DOM parser for the screen-scraper.
+ */
+use Sunra\PhpSimple\HtmlDomParser;
+
+function get_legislator_data($chamber, $lis_id)
+{
+	if ( empty($chamber) || empty($lis_id) )
+	{
+		return FALSE;
+	}
+
+	if ($chamber == 'house')
+	{
+		$url = 'http://virginiageneralassembly.gov/house/members/members.php?ses=2018&id='
+			. $lis_id;
+		$html = file_get_contents($url);
+		$dom = HtmlDomParser::str_get_html($html);
+		// REQUIRED FIELDS
+		//name_formal
+		//name
+		//name_formatted (incl. placename)
+		//shortname
+		//lis_shortname
+		//chamber
+		//district_id
+		//date_started
+		//party
+		//race
+		//sex
+	}
+
+}
+
+/*
  * Retrieve a list of all active legislators' names and IDs.
  */
 $sql = 'SELECT name, chamber, lis_id

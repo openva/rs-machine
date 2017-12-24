@@ -6,6 +6,7 @@
         "elasticsearch/elasticsearch": "~0.4",
         "PHPMailer/PHPMailer": "~6.0",
         "ezyang/htmlpurifier":"dev-master",
-        "aws/aws-sdk-php": "~3.0"
+        "aws/aws-sdk-php": "~3.0",
+        "sunra/php-simple-html-dom-parser": "1.5.2"
     }
 }
