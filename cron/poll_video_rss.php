@@ -137,8 +137,10 @@ foreach ($sources as $chamber => $url)
 			 */
 			$video_metadata = ['date' => $date, 'url' => $url, 'chamber' => $chamber];
 			$sqs_client->sendMessage([
-			    'QueueUrl'    => 'https://sqs.us-east-1.amazonaws.com/947603853016/rs-video-harvester.fifo',
-			    'MessageBody' => $video_metadata
+				'MessageGroupId'			=> '1',
+				'MessageDeduplicationId'	=> mt_rand(),
+			    'QueueUrl'    				=> 'https://sqs.us-east-1.amazonaws.com/947603853016/rs-video-harvester.fifo',
+			    'MessageBody' 				=> json_encode($video_metadata)
 			]);
 
 			$log->put('Found new video, for ' . $date . ', at: ' . $url, 5);
