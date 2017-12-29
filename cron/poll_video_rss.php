@@ -14,8 +14,10 @@ $log = new Log;
  */
 use Aws\Sqs\SqsClient;
 $sqs_client = new SqsClient([
-    'profile' => 'default',
-    'region'  => 'us-east-1'
+    'profile'	=> 'default',
+    'region'	=> 'us-east-1',
+  	'key'		=> AWS_ACCESS_KEY,
+  	'secret'	=> AWS_SECRET_KEY
 ]);
 
 $sources = array(
@@ -147,9 +149,11 @@ foreach ($sources as $chamber => $url)
 		 * Start up the video-processing EC2 instance.
 		 */
 		$ec2_client = new Aws\Ec2\Ec2Client([
-		    'region' => 'us-east-1',
-		    'version' => '2016-11-15',
-		    'profile' => 'default'
+		    'region'	=> 'us-east-1',
+		    'version'	=> '2016-11-15',
+		    'profile'	=> 'default',
+		  	'key'		=> AWS_ACCESS_KEY,
+		  	'secret'	=> AWS_SECRET_KEY
 		]);
 		$action = 'START';
 		$instanceIds = array('i-076d0d5ee323c4e83');
