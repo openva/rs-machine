@@ -2,7 +2,7 @@
 
 The scrapers, parsers, etc. that drive the backend of [Richmond Sunlight](/openva/richmondsunlight.com/).
 
-[![Code Climate](https://codeclimate.com/github/openva/rs-machine/badges/gpa.svg)](https://codeclimate.com/github/openva/rs-machine) [![Build Status](https://travis-ci.org/openva/rs-machine.svg?branch=master)](https://travis-ci.org/openva/rs-machine)
+<a href="https://codeclimate.com/github/openva/rs-machine/maintainability"><img src="https://api.codeclimate.com/v1/badges/243cb50e4c1f976987d5/maintainability" /></a> [![Build Status](https://travis-ci.org/openva/rs-machine.svg?branch=master)](https://travis-ci.org/openva/rs-machine)
 
 ## Purpose
 A couple of dozen cron jobs drive Richmond Sunlight. They fetch updates to legislation, perform routine maintenence on data, export bulk downloads, etc. This tends to create problematic spikes on server resources, which can interfere with serving up web pages. So they're run on a separate instance.
