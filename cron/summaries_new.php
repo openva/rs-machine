@@ -196,7 +196,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 		 * Look up the bill ID for this bill number.
 		 */
 		$bill_id = $bills[strtolower($summary{number})];
-		if (is_empty($bill_id))
+		if (empty($bill_id))
 		{
 			$log->put('Summary found for '. $summary['number']
 				. ', but we have no record of that bill.', 2);
