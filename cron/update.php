@@ -122,11 +122,6 @@ if (($type == 'all') || ($type == 'summaries'))
 	require 'summaries.php';
 }
 
-if ($type == 'summaries_new')
-{
-	require 'summaries_new.php';
-}
-
 # Run full_text.php, which contains the functionality that gathers and stores the full text of each
 # bill.
 if (($type == 'all') || ($type == 'full_text'))
