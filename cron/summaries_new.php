@@ -84,8 +84,7 @@ if (mysql_num_rows($result) > 0)
 	$bills = array();
 	while ($bill = mysql_fetch_array($result))
 	{
-		$tmp = array($bill['number'] => $bill['id']);
-		$bills[] = $tmp;
+		$bills[$bill{number}] = $bill['id'];
 	}
 }
 
@@ -111,12 +110,12 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 	 * Rename each field to something reasonable.
 	 */
 	$new_headers = array(
-			'number' => 'SUM_BILNO',
-			'doc_id' => 'SUMMARY_DOCID',
-			'type' => 'SUMMARY_TYPE',
-			'text' => 'SUMMARY_TEXT'
+			'number',
+			'doc_id',
+			'type',
+			'text'
 		);
-	foreach ($new_headers as $new => $old)
+	foreach ($new_headers as $old => $new)
 	{
 		$summary[$new] = $summary[$old];
 		unset($summary[$old]);
@@ -126,8 +125,8 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 	 * Change the format of the bill number. In this file, the numeric portions are left-padded
 	 * with zeros, so that e.g. HB1 is rendered as HB0001. Here we change them to e.g. HB1.
 	 */
-	$suffix = substr($bill['number'], 2, -1) + 0;
-	$bill['number'] = substr($bill['number'], 0, 2) . $suffix;
+    $suffix = substr($summary['number'], 2) + 0;
+    $summary['number'] = substr($summary['number'], 0, 2) . $suffix;
 
 
 	/*
@@ -135,7 +134,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 	 * time that we examined it.
 	 */
 	$hash = md5(serialize($summary));
-	$number = strtolower(trim($summary[0]));
+	$number = strtolower($bill['number']);
 	
 	if ( isset($hashes[$number]) && ($hash == $hashes[$number]) )
 	{
@@ -187,13 +186,29 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$summary['text'] = substr($summary['text'], 0, -8);
 	}
 		
-	# Put the data back into the database.
+	/*
+	 * If we have any summary text, store it in the database.
+	 */
 	if (!empty($summary['text']))
 	{
 
+		/*
+		 * Look up the bill ID for this bill number.
+		 */
+		$bill_id = $bills[strtolower($summary{number})];
+		if (is_empty($bill_id))
+		{
+			$log->put('Summary found for '. $summary['number']
+				. ', but we have no record of that bill.', 4);
+			continue;
+		}
+
+		/*
+		 * Commit this to the database.
+		 */
 		$sql = 'UPDATE bills
 				SET summary="' . mysql_real_escape_string($summary['text']) . '"
-				WHERE id="' . $bills[$bill{number}] . '"
+				WHERE id="' . $bill_id . '"
 				AND session_id = ' . $session_id;
 		$result = mysql_query($sql);
 		if (!$result)
