@@ -199,7 +199,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 		if (is_empty($bill_id))
 		{
 			$log->put('Summary found for '. $summary['number']
-				. ', but we have no record of that bill.', 4);
+				. ', but we have no record of that bill.', 2);
 			continue;
 		}
 
