@@ -1,8 +1,3 @@
-<html>
-<head>
-	<meta http-equiv="refresh" content="2" />
-</head>
-<body>
 <?php
 
 /*
@@ -15,8 +10,8 @@ that's probably something we'll want to prevent.
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
-include_once(__DIR__ . '/../includes/settings.inc.php');
-include_once(__DIR__ . '/../includes/functions.inc.php');
+include_once('../includes/settings.inc.php');
+include_once('../includes/functions.inc.php');
 
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
@@ -43,7 +38,7 @@ $sql = 'SELECT bills.id, bills.number, bills.full_text, sessions.year
 		AND bills.session_id=' . SESSION_ID . '
 		AND bills.date_created >= (CURDATE() - INTERVAL 3 DAY)
 		ORDER BY RAND()
-		LIMIT 5';
+		LIMIT 10';
 $result = mysql_query($sql);
 if (mysql_num_rows($result) > 0)
 {
@@ -57,22 +52,46 @@ if (mysql_num_rows($result) > 0)
 	# Set up cURL for the queries to follow.
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_HEADER, 0);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, 'Authorization: apiKey ' . GEOPARSER_KEY);
 	curl_setopt($ch, CURLOPT_POST, 1);
 	
+	/*
+	 * Iterate through the bills.
+	 */
 	while ($bill = mysql_fetch_array($result))
 	{
 		
 		$bill = array_map('stripslashes', $bill);		
-		$url = 'http://wherein.yahooapis.com/v1/document';
+		$url = 'https://geoparser.io/api/geoparser';
 		
-		# Define our fields.
+		/*
+		 * Get bill information from the API, take all of the text that's changing, and put it into
+		 * a single string. If there's no diff of changed text, then use the bill's full text.
+		 */
+		$bill_info = file_get_contents('https://api.richmondsunlight.com/1.1/bill/' . $bill['year'] . '/' . $bill['number'] . '.json');
+		if ($bill_info == FALSE)
+		{
+			continue;
+		}
+		$bill_info = json_decode($bill_info);
+		if ( empty($bill_info->changes) || count($bill_info->changes == 0) )
+		{
+			$bill_place_text = strip_tags($bill_info->full_text);
+		}
+		else
+		{
+			$bill_place_text = '';
+			foreach ($bill_info->changes as $change)
+			{
+				$bill_place_text .= $change->text .= "\n";
+			}	
+		}
+
+		/*
+		 * Define our fields.
+		 */
 		$fields = array(
-			'documentURL' => 'http://www.richmondsunlight.com/downloads/bills/' . $bill['year'] . '/' . $bill['number'] . '.html',
-			'autoDisambiguate' => 'true',
-			'focusWoeId' => '12590337',
-			'confidence' => '8',
-			'outputType' => 'json',
-			'appid' => YAHOO_KEY
+			'inputText' => $bill_place_text,
 		);
 		foreach ($fields as $key=>$value)
 		{
@@ -80,16 +99,24 @@ if (mysql_num_rows($result) > 0)
 			rtrim($fields_string,'&');
 		}
 		
-		# Tell cURL the URL to which we'll be POSTing.
-		curl_setopt ($ch, CURLOPT_URL, $url);
+		/*
+		 * Tell cURL the URL to which we'll be POSTing.
+		 */
+		curl_setopt($ch, CURLOPT_URL, $url);
 		
-		# Indicate the number of fields that we'll be providing content for.
-		curl_setopt($ch,CURLOPT_POST, count($fields));
+		/*
+		 * Indicate the number of fields that we'll be providing content for.
+		 */
+		curl_setopt($ch, CURLOPT_POST, count($fields));
 		
-		# Pass the POST data.
-		curl_setopt($ch,CURLOPT_POSTFIELDS, $query_string);
+		/*
+		 * Pass the POST data.
+		 */
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $query_string);
 		
-		# Get the data from cURL.
+		/*
+		 * Get the data from cURL.
+		 */
 		ob_start();
 		curl_exec($ch);
 		curl_close($ch);
@@ -172,7 +199,3 @@ if (mysql_num_rows($result) > 0)
 	curl_close($ch);
 	
 }
-	
-?>
-</body>
-</html>
