@@ -14,10 +14,11 @@ $log = new Log;
  */
 use Aws\Sqs\SqsClient;
 $sqs_client = new SqsClient([
-    'profile'	=> 'default',
-    'region'	=> 'us-east-1',
-  	'key'		=> AWS_ACCESS_KEY,
-  	'secret'	=> AWS_SECRET_KEY
+	'profile'	=> 'default',
+	'region'	=> 'us-east-1',
+    'version'	=> '2012-11-05',
+	'key'		=> AWS_ACCESS_KEY,
+	'secret'	=> AWS_SECRET_KEY
 ]);
 
 $sources = array(
