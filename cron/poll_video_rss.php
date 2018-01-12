@@ -29,7 +29,7 @@ $sources = array(
 foreach ($sources as $chamber => $url)
 {
 
-	$cache_file = CACHE_DIR . 'video_rss_' . $chamber;
+	$cache_file = '.video_rss_' . $chamber;
 
 	/*
 	 * Retrieve the RSS.
