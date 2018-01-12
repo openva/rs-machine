@@ -14,7 +14,7 @@
 #sudo apt-get -y upgrade
 
 # Install necessary packages.
-#sudo apt-get install -y php5.6-cli php5.6-mysql php5.6-curl php5.6-memcached composer zip ruby awscli
+#sudo apt-get install -y php5.6-cli php5.6-mysql php5.6-curl php5.6-memcached php5.6-xml composer zip ruby awscli
 
 #cd ~
 #wget https://aws-codedeploy-us-east-1.s3.amazonaws.com/latest/install
