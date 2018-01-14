@@ -121,22 +121,19 @@ foreach ($chambers as $chamber => $listing_url)
 				}
 				$minutes = trim($minutes);
 
+				# Clean up some known House-minutes problems.
 				if ($chamber == 'house')
 				{
 				
-					# Clean up some known problems.
 					$minutes = str_replace('<i class="fa fa-times"></i>', '', $minutes);
 					$minutes = str_replace('<i class="fa fa-ellipsis-v"></i>', '', $minutes);
-					$minutes = ereg_replace("/\n([[:space:]]{1,})/", "!!!", $minutes);
-					$minutes = preg_replace("/[\r\n]+/", "\n", $minutes);
+					$minutes = preg_replace("/[\r\n][[:space:]]+/", "\n\n", $minutes);
 					$minutes = str_replace(' - Agreed to', " - Agreed to<br>\n", $minutes);
+
 				}
 				
 				# Run the minutes thorugh HTML Purifier again.
 				$minutes = $purifier->purify($minutes);
-				
-echo $minutes;
-die('done');
 
 				# Prepare them for MySQL.
 				$minutes = mysql_real_escape_string($minutes);
