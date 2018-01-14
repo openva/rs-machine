@@ -4,7 +4,7 @@
 # Retrieve and Store Minutes
 # 
 # PURPOSE
-# Retrieves the minutes from every meeting of the House and Senate and strores them.
+# Retrieves the minutes from every meeting of the House and Senate and stores them.
 # 
 ###
 
@@ -20,12 +20,12 @@ if (mysql_num_rows($result) > 0)
 	}
 }
 
-$chambers['house'] = 'http://vacap.legis.virginia.gov/chamber.nsf/' . SESSION_LIS_ID . 'HMinutes?OpenForm';
+$chambers['house'] = 'http://virginiageneralassembly.gov/house/minutes/list.php?ses=' . SESSION_LIS_ID;
 $chambers['senate'] = 'http://leg1.state.va.us/cgi-bin/legp504.exe?ses=' . SESSION_LIS_ID . '&typ=lnk&val=07';
 
 foreach ($chambers as $chamber => $listing_url)
 {
-	
+
 	# Begin by connecting to the appropriate session page.
 	$raw_html = get_content($listing_url);
 	$raw_html = explode("\n", $raw_html);
@@ -37,7 +37,7 @@ foreach ($chambers as $chamber => $listing_url)
 		# Check if this line contains a link to the minutes for a given date.
 		if ($chamber == 'house')
 		{
-			ereg('<a href="/chamber.nsf/([a-z0-9]{32})/([a-z0-9]{32})\?OpenDocument">([A-Za-z]+), ([A-Za-z]+) ([0-9]+), ([0-9]{4})</a>', $line, $regs);
+			preg_match('|<a href="minutes.php\?mid=([0-9]+)">(.+)</a>|', $line, $regs);
 		}
 		elseif ($chamber == 'senate')
 		{
@@ -45,14 +45,14 @@ foreach ($chambers as $chamber => $listing_url)
 		}
 		
 		# We've found a match.
-		if (isset($regs))
+		if (count($regs) > 0)
 		{
 			
 			# Pull out the source URL and the date from the matched string.
 			if ($chamber == 'house')
 			{
-				$source_url = 'http://vacap.legis.virginia.gov/chamber.nsf/'.$regs[1].'/'.$regs[2].'?OpenDocument';
-				$date = date('Y-m-d', strtotime($regs[4].' '.$regs[5].' '.$regs[6]));
+				$source_url = 'https://hod-minutes.herokuapp.com/vga_day/' . $regs[1];
+				$date = date('Y-m-d', strtotime($regs[2]));
 			}
 			elseif ($chamber == 'senate')
 			{
@@ -87,33 +87,57 @@ foreach ($chambers as $chamber => $listing_url)
 			# If the query was successful.
 			if ($minutes != FALSE)
 			{
+
+				# Run the minutes through HTML Purifier, just to make sure they're clean.
+				$config = HTMLPurifier_Config::createDefault();
+				$purifier = new HTMLPurifier($config);
+				$minutes = $purifier->purify($minutes);
 				
 				# Strip out the bulk of the markup. We allow the HR tag because we sometimes use
 				# it as a marker for where the page content concludes.
-				$minutes = strip_tags($minutes, '<b><i><hr>');
+				$minutes = strip_tags($minutes, '<b><i><hr><br>');
 				
 				# Start the minutes with the call to order.
 				$minutes = stristr($minutes, 'called to order');
 				
 				# Determine where to end the minutes. We have three versions of this strpos() to
 				# accomodation variations in the data, primarily between the house and senate.
-				$strpos = strpos($minutes, 'KEY: A');
-				if ($strpos == FALSE)
+				$end = strpos($minutes, 'KEY: A');
+				if ($end == FALSE)
 				{
-					$strpos = strpos($minutes, 'KEY:  A');
-					if ($strpos == FALSE)
+					$end = strpos($minutes, 'KEY:  A');
+					if ($end == FALSE)
 					{
-						$strpos = strpos($minutes, '<hr>');
+						$end = strpos($minutes, '<hr>');
+					}
+					if ($end == FALSE)
+					{
+						$end = strpos($minutes, '<hr>');
 					}
 				}
-				$minutes = substr($minutes, 0, $strpos);
+				if ($end != FALSE)
+				{
+					$minutes = substr($minutes, 0, $end);
+				}
 				$minutes = trim($minutes);
+
+				if ($chamber == 'house')
+				{
 				
-				# Run the minutes through HTML Purifier, just to make sure they're clean.
-				$config = HTMLPurifier_Config::createDefault();
-				$purifier = new HTMLPurifier($config);
+					# Clean up some known problems.
+					$minutes = str_replace('<i class="fa fa-times"></i>', '', $minutes);
+					$minutes = str_replace('<i class="fa fa-ellipsis-v"></i>', '', $minutes);
+					$minutes = ereg_replace("/\n([[:space:]]{1,})/", "!!!", $minutes);
+					$minutes = preg_replace("/[\r\n]+/", "\n", $minutes);
+					$minutes = str_replace(' - Agreed to', " - Agreed to<br>\n", $minutes);
+				}
+				
+				# Run the minutes thorugh HTML Purifier again.
 				$minutes = $purifier->purify($minutes);
 				
+echo $minutes;
+die('done');
+
 				# Prepare them for MySQL.
 				$minutes = mysql_real_escape_string($minutes);
 				
@@ -128,7 +152,6 @@ foreach ($chambers as $chamber => $listing_url)
 					$result = mysql_query($sql);
 					if (!$result)
 					{
-						echo '<p>'.$date.' '.$chamber.' <font color="red">failed</font>.</p>';
 						$log->put('Inserting the minutes for ' . $date . ' in ' . $chamber
 							. ' failed. ' . $sql, 8);
 					}
@@ -144,9 +167,11 @@ foreach ($chambers as $chamber => $listing_url)
 				unset($repeat);
 				unset($date);
 				unset($strpos);
-			}
 			
-			sleep(1);
+				sleep(1);
+
+			}
+
 		}
 	}
 	
