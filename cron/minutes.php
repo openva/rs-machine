@@ -152,6 +152,11 @@ foreach ($chambers as $chamber => $listing_url)
 						$log->put('Inserting the minutes for ' . $date . ' in ' . $chamber
 							. ' failed. ' . $sql, 8);
 					}
+					else
+					{
+
+						$log->put('Inserted the minutes for ' . $date . ' in ' . $chamber '.', 2);
+					}
 				}
 			
 				# Unset our variables to prevent them from being reused on the next line.
