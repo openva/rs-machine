@@ -155,7 +155,7 @@ foreach ($chambers as $chamber => $listing_url)
 					else
 					{
 
-						$log->put('Inserted the minutes for ' . $date . ' in ' . $chamber '.', 2);
+						$log->put('Inserted the minutes for ' . $date . ' in ' . $chamber . '.', 2);
 					}
 				}
 			
