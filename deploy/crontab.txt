@@ -53,7 +53,7 @@
 0 * * * * csvtojson --ignoreEmpty=true rs-machine/cron/bills.csv > rs-machine/downloads/bills.json
 
 # Download legislative video
-44 12-20 * * * rs-machine/cron/poll_video_rss.php
+44 12-20 * * * /usr/bin/php rs-machine/cron/poll_video_rss.php
 
 # Store exports on S3.
 5 * * * * aws s3 sync rs-machine/downloads s3://downloads.richmondsunlight.com --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers --storage-class REDUCED_REDUNDANCY >/dev/null 2>&1
