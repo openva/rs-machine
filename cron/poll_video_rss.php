@@ -104,6 +104,10 @@ foreach ($sources as $chamber => $url)
 				/*
 				 * Figure out the date of this video.
 				 */
+
+				/* If there's no hyphen (found in the date
+				 * separator), then this isn't a video, and we can skip it.
+				 */
 				$pos = strpos($item->title, '-');
 				if ($pos === FALSE)
 				{
@@ -113,10 +117,17 @@ foreach ($sources as $chamber => $url)
 				$timestamp = strtotime($date);
 				$date = date('Ymd', $timestamp);
 
+				$type = 'floor';
+
 				/*
-				 * Save this video date and URL.
+				 * Save data about this video.
 				 */
-				$videos[$date] = (string) $item->enclosure['url'];
+				$videos[] = array(
+					'date' => $date,
+					'url' => (string) $item->enclosure['url'],
+					'chamber' => $chamber,
+					'type' => $type
+				);
 
 			}
 
@@ -130,21 +141,21 @@ foreach ($sources as $chamber => $url)
 	if (count($videos) > 0)
 	{
 
-		foreach ($videos as $date => $url)
+		foreach ($videos as $video)
 		{
 
 			/*
 			 * Log this to SQS.
 			 */
-			$video_metadata = ['date' => $date, 'url' => $url, 'chamber' => $chamber];
 			$sqs_client->sendMessage([
 				'MessageGroupId'			=> '1',
 				'MessageDeduplicationId'	=> mt_rand(),
 			    'QueueUrl'    				=> 'https://sqs.us-east-1.amazonaws.com/947603853016/rs-video-harvester.fifo',
-			    'MessageBody' 				=> json_encode($video_metadata)
+			    'MessageBody' 				=> json_encode($video)
 			]);
 
-			$log->put('Found new video, for ' . $date . ', at: ' . $url, 5);
+			$log->put('Machine found new video, for ' . $video->date . ', at ' . $video->url
+				. '. Starting video processor.', 5);
 
 		}
 
