@@ -206,6 +206,16 @@ foreach ($csv as &$meeting)
 			.' adjourns';
 		unset($meeting['time']);
 	}
+	elseif (
+			stristr($meeting['description'], '15 min aft')
+			||
+			stristr($meeting['description'], '15 minutes after')
+		)
+	{
+		$meeting['timedesc'] = 'Fifteen minutes after the '.ucfirst($meeting['chamber'])
+			.' adjourns';
+		unset($meeting['time']);
+	}
 	elseif (stristr($meeting['description'], '1 and 1/2 hours after'))
 	{
 		$meeting['timedesc'] = 'An hour and a half after the '.ucfirst($meeting['chamber'])
