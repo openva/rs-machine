@@ -104,30 +104,62 @@ foreach ($sources as $chamber => $url)
 				/*
 				 * Figure out the date of this video.
 				 */
-
-				/* If there's no hyphen (found in the date
-				 * separator), then this isn't a video, and we can skip it.
-				 */
-				$pos = strpos($item->title, '-');
-				if ($pos === FALSE)
+				$timestamp = strtotime(end(explode(' - ', $item->title)));
+				if ($timestamp === FALSE)
 				{
 					continue;
 				}
-				$date = substr($item->title, 0, $pos);
-				$timestamp = strtotime($date);
 				$date = date('Ymd', $timestamp);
 
-				$type = 'floor';
+				/*
+				 * Figure out if this is a committee meeting or a floor session.
+				 */
+				if (stripos($item->title, 'Regular Session') !== FALSE)
+				{
+					$type = 'floor';
+				}
+				else
+				{
+					$type = 'committee';
+				}
 
 				/*
-				 * Save data about this video.
+				 * If it's a committee, get the committee name.
+				 * 
+				 * Here is an example of the contents of the title tag, for a committee:
+				 * 
+				 * Finance (Comm Room B) - January 17, 2018 - 9:00 AM - Jan 17, 2018
 				 */
-				$videos[] = array(
+				if ($type == 'committee')
+				{
+					$title_parts = explode(' - ', $item->title);
+					$committee = $title_parts[0];
+					$meeting_time = $title_parts[2];
+				}
+
+				/*
+				 * Put together our final array of data about this video.
+				 */
+				$video_data =  array(
 					'date' => $date,
 					'url' => (string) $item->enclosure['url'],
 					'chamber' => $chamber,
 					'type' => $type
 				);
+
+				/*
+				 * Append commitee information.
+				 */
+				if ($type == 'committee')
+				{
+					$video_data['committee'] = $committee;
+					$video_data['meeting_time'] = $meeting_time;
+				}
+
+				/*
+				 * Append our array of video information to the list of all videos.
+				 */
+				$videos[] = $video_data;
 
 			}
 
@@ -136,7 +168,7 @@ foreach ($sources as $chamber => $url)
 	}
 
 	/*
-	 * If we found any videos, retrieve them.
+	 * If we found any videos, record them to SQS for later processing.
 	 */
 	if (count($videos) > 0)
 	{
