@@ -189,7 +189,7 @@ foreach ($sources as $chamber => $url)
 			    'MessageBody' 				=> json_encode($video)
 			]);
 
-			$log->put('Machine found new video, for ' . $video->date . ', at ' . $video->url
+			$log->put('Machine found new video, for ' . $video['date'] . ', at ' . $video['url']
 				. '. Starting video processor.', 5);
 
 		}
