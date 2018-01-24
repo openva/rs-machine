@@ -137,7 +137,7 @@ foreach ($sources as $chamber => $url)
 				{
 					$title_parts = explode(' - ', $item->title);
 					$committee = $title_parts[0];
-					$meeting_time = $title_parts[2];
+					$meeting_time = end($title_parts);
 				}
 
 				/*
