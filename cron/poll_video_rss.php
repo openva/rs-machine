@@ -72,10 +72,9 @@ foreach ($sources as $chamber => $url)
 	}
 
 	/*
-	 * See which GUIDs are new.
+	 * If no GUIDs are new, then skip to the next chamber.
 	 */
 	$new_guids = array_diff($guids, $guid_cache);
-
 	if (count($new_guids) == 0)
 	{
 		continue;
@@ -129,6 +128,10 @@ foreach ($sources as $chamber => $url)
 				 * Here is an example of the contents of the title tag, for a committee:
 				 * 
 				 * Finance (Comm Room B) - January 17, 2018 - 9:00 AM - Jan 17, 2018
+				 *
+				 * Though be warned that titles can also be like this:
+				 * 
+				 * January 10, 2018 - Governor Terry McAuliffe&apos;s address to the 2018 Joint General Assembly - Jan 10, 2018
 				 */
 				if ($type == 'committee')
 				{
