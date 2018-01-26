@@ -151,7 +151,7 @@ foreach ($sources as $chamber => $url)
 				);
 
 				/*
-				 * Append commitee information.
+				 * Append committee information.
 				 */
 				if ($type == 'committee')
 				{
