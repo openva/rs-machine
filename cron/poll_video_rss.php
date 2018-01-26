@@ -171,57 +171,105 @@ foreach ($sources as $chamber => $url)
 	}
 
 	/*
-	 * If we found any videos, record them to SQS for later processing.
+	 * If we found no videos, we're done.
 	 */
-	if (count($videos) > 0)
+	if (count($videos) == 0)
+	{
+		exit;
+	}
+
+	/*
+	 * But if we did find videos, iterate through them, see which are needed, and queue them in
+	 * SQS.
+	 */
+
+	$sql = 'SELECT chamber, date,
+			CASE
+				WHEN committee_id IS NULL THEN "floor"
+				WHEN committee_id IS NOT NULL THEN "committee" END
+			AS type
+			FROM files';
+	$result = mysql_query($sql);
+	if (mysql_num_rows($result) == 0)
+	{
+		$log->put('Could not get a list of existing videos to know if ' . $video['date'] . ', at '
+			. $video['url'] . ', is new. Ending.', 5);
+		exit(1);
+	}
+
+	$existing_videos = array();
+	while ($existing_video = mysql_fetch_array($result))
+	{
+		$existing_videos[] = $existing_video;
+	}
+
+	foreach ($videos as &$video)
 	{
 
-		foreach ($videos as $video)
+		/*
+		 * If we have this same video in the database already, don't save it again.
+		 * 
+		 * IMPORTANT NOTE
+		 * As written, this will get no more than one committee video per chamber per day.
+		 * THAT'S DUMB. It's important to modify this to accommodate more.
+		 */
+		foreach ($existing_videos as $existing_video)
 		{
-
-			/*
-			 * Log this to SQS.
-			 */
-			$sqs_client->sendMessage([
-				'MessageGroupId'			=> '1',
-				'MessageDeduplicationId'	=> mt_rand(),
-			    'QueueUrl'    				=> 'https://sqs.us-east-1.amazonaws.com/947603853016/rs-video-harvester.fifo',
-			    'MessageBody' 				=> json_encode($video)
-			]);
-
-			$log->put('Machine found new video, for ' . $video['date'] . ', at ' . $video['url']
-				. '. Starting video processor.', 5);
-
+			if (
+				($video['date'] == $existing_video['date'])
+				&&
+				($video['chamber'] == $existing_video['chamber'])
+				&&
+				($video['type'] == $existing_video['type'])
+			)
+			{
+				break(2);
+			}
 		}
 
 		/*
-		 * Start up the video-processing EC2 instance.
-		 */
-		$ec2_client = new Aws\Ec2\Ec2Client([
-		    'region'	=> 'us-east-1',
-		    'version'	=> '2016-11-15',
-		    'profile'	=> 'default',
-		  	'key'		=> AWS_ACCESS_KEY,
-		  	'secret'	=> AWS_SECRET_KEY
+		* Log this to SQS.
+		*/
+		$sqs_client->sendMessage([
+			'MessageGroupId'			=> '1',
+			'MessageDeduplicationId'	=> mt_rand(),
+			'QueueUrl'    				=> 'https://sqs.us-east-1.amazonaws.com/947603853016/rs-video-harvester.fifo',
+			'MessageBody' 				=> json_encode($video)
 		]);
-		$action = 'START';
-		$instanceIds = array('i-076d0d5ee323c4e83');
-		if ($action == 'START')
-		{
-		    $result = $ec2_client->startInstances([
-		        'InstanceIds' => $instanceIds,
-		    ]);
-		}
 
+		$log->put('Machine found new video, for ' . $video['date'] . ', at ' . $video['url']
+			. ', for the ' . ucfirst($video['chamber']) . '. Starting video processor.', 5);
 
 	}
 
 	/*
-	 * Write all item GUIDs back to the cache file.
-	 */ 
-	if (file_put_contents($cache_file, serialize($guids)) === FALSE)
+	* Start up the video-processing EC2 instance.
+	*/
+	$ec2_client = new Aws\Ec2\Ec2Client([
+		'region'	=> 'us-east-1',
+		'version'	=> '2016-11-15',
+		'profile'	=> 'default',
+		'key'		=> AWS_ACCESS_KEY,
+		'secret'	=> AWS_SECRET_KEY
+	]);
+	$action = 'START';
+	$instanceIds = array('i-076d0d5ee323c4e83');
+	if ($action == 'START')
 	{
-		echo 'Could not cache GUIDs.';
+		$result = $ec2_client->startInstances([
+			'InstanceIds' => $instanceIds,
+		]);
 	}
 
+	$log->put('Starting video processor.', 5);
+
+
+}
+
+/*
+* Write all item GUIDs back to the cache file.
+*/ 
+if (file_put_contents($cache_file, serialize($guids)) === FALSE)
+{
+	echo 'Could not cache GUIDs.';
 }
