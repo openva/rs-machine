@@ -8,6 +8,7 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
  * Connect to the database.
  */
 $db = new Database;
+$db->connect_old();
 
 /*
  * Instantiate the logging class.
@@ -187,7 +188,6 @@ foreach ($sources as $chamber => $url)
 	 * But if we did find videos, iterate through them, see which are needed, and queue them in
 	 * SQS.
 	 */
-
 	$sql = 'SELECT chamber, date,
 			CASE
 				WHEN committee_id IS NULL THEN "floor"
@@ -243,7 +243,7 @@ foreach ($sources as $chamber => $url)
 		]);
 
 		$log->put('Machine found new video, for ' . $video['date'] . ', at ' . $video['url']
-			. ', for the ' . ucfirst($video['chamber']) . '. Starting video processor.', 5);
+			. ', for the ' . ucfirst($video['chamber']) . '.', 5);
 
 	}
 
