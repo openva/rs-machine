@@ -141,9 +141,19 @@ foreach ($sources as $chamber => $url)
 				 */
 				if ($type == 'committee')
 				{
+
 					$title_parts = explode(' - ', $item->title);
-					$committee = $title_parts[0];
+					$committee_name = $title_parts[0];
 					$meeting_time = end($title_parts);
+
+					/*
+					 * Figure out the committee ID.
+					 */
+					$committee = new Committee;
+					$committee->chamber = $chamber;
+					$committee->name = $committee_name;
+					$committee_id = $committee->get_id();
+
 				}
 
 				/*
@@ -161,7 +171,8 @@ foreach ($sources as $chamber => $url)
 				 */
 				if ($type == 'committee')
 				{
-					$video_data['committee'] = $committee;
+					$video_data['committee'] = $committee_name;
+					$video_data['committee_id'] = $committee_id;
 					$video_data['meeting_time'] = $meeting_time;
 				}
 
