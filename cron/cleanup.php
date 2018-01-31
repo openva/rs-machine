@@ -28,7 +28,7 @@
 # introduced (see next query) and correct them.
 ###
 $sql = $dbh->prepare('UPDATE bills
-						SET date_introduced = 
+						SET date_introduced =
 							(SELECT date
 							FROM bills_status
 							WHERE bills_status.bill_id = bills.id
@@ -51,7 +51,7 @@ $result = $sql->execute();
 # sense to meet that minimum data level and move on.
 ###
 $sql = $dbh->prepare('UPDATE bills
-						SET date_introduced = DATE_FORMAT( date_created, "%Y-%m-%d" ) 
+						SET date_introduced = DATE_FORMAT( date_created, "%Y-%m-%d" )
 						WHERE date_introduced IS NULL
 						AND session_id= :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -75,7 +75,7 @@ if (@mysql_num_rows($result) > 0)
 {
 	while ($status = @mysql_fetch_array($result))
 	{
-		
+
 	}
 }*/
 
@@ -442,14 +442,14 @@ if (mysql_num_rows($result) > 0)
 	while ($bill = mysql_fetch_array($result))
 	{
 		$bill = array_map('stripslashes', $bill);
-		
+
 		# Extract the target bill number from the incorporation text.
 		preg_match('/(hb|sb|hr|sr|hjr|sjr)([0-9]+)/', $bill['incorporated'], $regs);
 		if (isset($regs[0]))
 		{
 			$bill['incorporated_into'] = strtolower($regs[0]);
 		}
-		
+
 		# If we successfully got a target bill number, then we can update the source bill with
 		# its ID.
 		if (!empty($bill['incorporated_into']))
@@ -463,7 +463,7 @@ if (mysql_num_rows($result) > 0)
 			{
 				$tmp = mysql_fetch_array($result2);
 				$bill['incorporated_into'] = $tmp['id'];
-	
+
 				$sql = 'UPDATE bills
 						SET incorporated_into = '.$bill['incorporated_into'].'
 						WHERE id='.$bill['id'];
@@ -480,7 +480,7 @@ if (mysql_num_rows($result) > 0)
 ###
 $sql = 'SELECT bills.summary_hash AS hash, bills.id,
 			GROUP_CONCAT( tags.tag
-			ORDER BY tag ASC 
+			ORDER BY tag ASC
 			SEPARATOR "," ) AS tags
 		FROM bills LEFT JOIN tags
 		ON bills.id = tags.bill_id
@@ -494,7 +494,7 @@ if (mysql_num_rows($result) > 0)
 {
 	# Initialize the array.
 	$hash = array();
-	
+
 	# Iterate through the bills and build up an array of them.
 	while ($bill = mysql_fetch_array($result))
 	{
@@ -508,11 +508,11 @@ if (mysql_num_rows($result) > 0)
 			$hash[$bill{'hash'}][$bill{'id'}] = array();
 		}
 	}
-	
+
 	# Iterate through each grouping of identical bills.
 	foreach ($hash as $bill)
 	{
-		
+
 		// This sucks, because it's only comparing the first two bills in the array. But we've got
 		// to, because the rest of this is dependent on that construct. At some point this will
 		// really need to be rewritten to deal with this problem.
@@ -523,40 +523,40 @@ if (mysql_num_rows($result) > 0)
 				unset($bill[$i]);
 			}
 		}
-		
+
 		# It's possible for bills to slip through that are not, in fact, identical to others. That's
 		# a problem in the SQL query, but as a double check, we avoid that sort of thing here.
 		elseif (count($bill) == 1)
 		{
 			continue;
 		}
-	
+
 		# Save the keys to this array, because we'll need them later.
 		$keys = array_keys($bill);
-		
+
 		# Convert this from an associative array to an indexed array.
 		$bill = array_values($bill);
-		
+
 		# If neither bill has any tags, we might as well stop now.
 		if ((count($bill[0]) == 0) && (count($bill[1]) == 0))
 		{
 			unset($hash);
 			continue;
 		}
-		
+
 		else
 		{
-			
+
 			# Check if there's any difference between these two tag sets. You'd think that we only
 			# need to do a single array diff, rather than alternating. But you'd be wrong.
 			$tmp = array_diff($bill[0], $bill[1]);
 			$tmp2 = array_diff($bill[1], $bill[0]);
 			$diff = array_merge($tmp, $tmp2);
-			
+
 			# If there's any difference between the tags, then we need to synch them.
 			if (count($diff) > 0)
 			{
-				
+
 				# If this is a simple case of one bill having tags and the other one not, just
 				# assign the tags to the other bill and be done with it.
 				if ((count($bill[0]) == 0) && (count($bill[1]) > 0))
@@ -569,38 +569,38 @@ if (mysql_num_rows($result) > 0)
 					$bill[1] = array_merge($bill[0], $bill[1]);
 					$bill[0] = array();
 				}
-				
+
 				# But if both bills are tagged, but not identically, then we need to join
 				# them.
 				else
 				{
-					
+
 					# Save a copy of the original bill tags; we'll need them later.
 					$original = $bill;
-					
+
 					# Merge the values together.
 					$merge = array_merge($bill[0], $bill[1]);
-					
+
 					# Calculate the intersection between these two bills' tags.
 					$intersection = array_intersect($bill[0], $bill[1]);
-					
+
 					# Now unset any tag that's already present in both bills.
 					$bill[0] = array_diff($bill[0], $intersection);
 					$bill[1] = array_diff($bill[1], $intersection);
-					
+
 					# Make each bill's tag the product of the two of them.
 					$bill[0] = array_merge($bill[0], $bill[1]);
 					$bill[1] = array_merge($bill[0], $bill[1]);
-					
+
 					# Unset any tag that was present initially.
 					$bill[0] = array_diff($bill[0], $original[0]);
 					$bill[1] = array_diff($bill[1], $original[1]);
-					
+
 					# Just in case, make sure that these are unique.
 					$bill[0] = array_unique($bill[0]);
 					$bill[1] = array_unique($bill[1]);
 				}
-				
+
 				# Convert this indexed array back to an associative array by restoring its original
 				# keys.
 				for ($i=0; $i<count($keys); $i++)
@@ -609,14 +609,14 @@ if (mysql_num_rows($result) > 0)
 					unset($bill[$i]);
 				}
 			}
-		
+
 			# If there's no difference between the tags, we can give up.
 			else
 			{
 				unset($hash);
 				continue;
 			}
-			
+
 			# Iterate through the bills.
 			foreach ($bill as $bill_id => $tags)
 			{
@@ -625,7 +625,7 @@ if (mysql_num_rows($result) > 0)
 				{
 					foreach ($tags as $tag)
 					{
-						# Assemble the insertion SQL. The tags table assumes that we'll always have a user id, 
+						# Assemble the insertion SQL. The tags table assumes that we'll always have a user id,
 						# but that's not true here. So we employ a user ID of 0.
 						$sql = 'INSERT INTO tags
 								SET bill_id='.$bill_id.', tag="'.$tag.'",
@@ -633,9 +633,9 @@ if (mysql_num_rows($result) > 0)
 						mysql_query($sql);
 					}
 				}
-			}		
+			}
 		}
-	}	
+	}
 }
 
 
@@ -742,7 +742,7 @@ if (mysql_num_rows($result) > 0)
 {
 	while ($vote = mysql_fetch_array($result))
 	{
-		
+
 		# If the vote is more than XX-YY (such as XX-YY-ZZ, or XX-YY-ZZ-AA), then we hack off
 		# everything after XX-YY.
 		if (substr_count($vote['tally'], '-') > 1)
@@ -750,17 +750,17 @@ if (mysql_num_rows($result) > 0)
 			# Disassemble the tally and hack off any final bit.
 			$tmp = explode('-', $vote['tally']);
 			$tmp = array_slice($tmp, 0, 2);
-			
+
 			# We get the vote total from adding up the results of the Ys and the Ns. Though the
 			# total number of votes cast is stored in the database, that includes the absentions
 			# and absent votes, which isn't helpful here.
 			$vote['total'] = array_sum($tmp);
-			
+
 			# Put the tally back together.
 			$vote['tally'] = implode('-', $tmp);
-			
+
 		}
-		
+
 		# If either the first (Ys) or second (Ns) element of that temporary array is a zero, then
 		# we know that this vote wasn't contested at all. Also, we know the same thing if the vote
 		# total is zero. One would think that the first two conditions would obviate the third,
@@ -769,7 +769,7 @@ if (mysql_num_rows($result) > 0)
 		{
 			$vote['contested'] = 0;
 		}
-		
+
 		# If the vote was contested, then proceed to do the math to determine how contested that it
 		# was.
 		else
@@ -777,7 +777,7 @@ if (mysql_num_rows($result) > 0)
 			# We need to eval() the tally in order to treat the string like an algorithm.
 			eval("\$vote[contested] = $vote[tally];");
 			$vote['contested'] = round((abs($vote['contested']) / $vote['total']), 2);
-			
+
 			# Reverse this number on the 0-1 scale.
 			if ($vote['contested'] < .5)
 			{
@@ -788,7 +788,7 @@ if (mysql_num_rows($result) > 0)
 				$vote['contested'] = 0 + (1 - $vote['contested']);
 			}
 		}
-		
+
 		# Update the votes table with this contested rating.
 		$sql = 'UPDATE votes
 				SET contested='.$vote['contested'];

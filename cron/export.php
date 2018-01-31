@@ -48,7 +48,7 @@ if (mysql_num_rows($result) > 0)
 			.strtolower($change['bill_number']).'/';
 		$changes[] = $change;
 	}
-	
+
 	$changes = json_encode($changes);
 	if (is_writeable($downloads_dir . 'law-changes.json'))
 	{
@@ -82,13 +82,13 @@ if (mysql_num_rows($result) > 0)
 		return FALSE;
 	}
 	fputcsv($fp, $csv_header);
-	
+
 	while ($bill = mysql_fetch_array($result, MYSQL_ASSOC))
 	{
 		$bill = array_map('stripslashes', $bill);
 		fputcsv($fp, $bill);
 	}
-	
+
 	# Close the file.
 	fclose($fp);
 }
@@ -113,13 +113,13 @@ if (mysql_num_rows($result) > 0)
 	# Open a handle to write a file.
 	$fp = fopen($downloads_dir . 'bills.csv', 'w');
 	fputcsv($fp, $csv_header);
-	
+
 	while ($bill = mysql_fetch_array($result, MYSQL_ASSOC))
 	{
 		$bill = array_map('stripslashes', $bill);
 		fputcsv($fp, $bill);
 	}
-	
+
 	# Close the file.
 	fclose($fp);
 }
@@ -145,13 +145,13 @@ if (mysql_num_rows($result) > 0)
 	# Open a handle to write a file.
 	$fp = fopen($downloads_dir . 'sections.csv', 'w');
 	fputcsv($fp, $csv_header);
-	
+
 	while ($bill = mysql_fetch_array($result, MYSQL_ASSOC))
 	{
 		$bill = array_map('stripslashes', $bill);
 		fputcsv($fp, $bill);
 	}
-	
+
 	# Close the file.
 	fclose($fp);
 }
@@ -185,7 +185,7 @@ if (mysql_num_rows($result) > 0)
 	}
 	$committees = json_encode($committees);
 	file_put_contents($downloads_dir . 'committees.json' , $committees);
-	
+
 }
 
 
@@ -215,12 +215,12 @@ if (mysql_num_rows($result) > 0)
 
 	# Rather than check each time if the year's directory exists, just keep track here.
 	$exists = array();
-	
+
 	while ($bill = mysql_fetch_array($result, MYSQL_ASSOC))
 	{
-		
+
 		$bill = array_map('stripslashes', $bill);
-		
+
 		# Neaten up the bill text.
 		$bill['text'] = preg_replace("/\n\s+/", "\n", $bill['text']);
 		$bill['text'] = preg_replace("/\s\n/", " ", $bill['text']);
@@ -228,15 +228,15 @@ if (mysql_num_rows($result) > 0)
 		$bill['text'] = str_replace('<p> ', '<p>', $bill['text']);
 		$bill['text'] = str_replace('  ', ' ', $bill['text']);
 		$bill['text'] = str_replace("</p>\n<p>", "</p>\n\n<p>", $bill['text']);
-		
+
 		# Convert the bill number to lowercase.
 		$bill['number'] = strtolower($bill['number']);
-		
+
 		# If we're encountering this year for the first time in this process, then check if the
 		# directory already exists. If it doesn't exist, create it.
 		if (!in_array($bill['year'], $exists))
 		{
-		
+
 			if (file_exists($downloads_dir . 'bills/' . $bill['year']) === FALSE)
 			{
 				$success = mkdir($downloads_dir . 'bills/' . $bill['year']);
@@ -246,20 +246,20 @@ if (mysql_num_rows($result) > 0)
 					return FALSE;
 				}
 			}
-			
+
 			# Make a note that this year's directory already exists.
 			$exists[] = $bill['year'];
-			
+
 		}
-		
+
 		# If the file doesn't already exist, save it.
 		if (file_exists($downloads_dir . 'bills/' . $bill['year'] . '/' . $bill['number'] . '.html') === FALSE)
 		{
 			file_put_contents($downloads_dir . 'bills/' . $bill['year'] . '/' . $bill['number'] . '.html', $bill['text']);
 		}
-		
+
 	}
-	
+
 }
 
 
@@ -268,11 +268,11 @@ if (mysql_num_rows($result) > 0)
 $filename = $downloads_dir . 'video-index.json';
 if (is_writeable($filename))
 {
-	
+
 	# There's too much data to hold in a single array, so we output our JSON piecemeal. Start things
 	# off by writing an opening bracket.
 	file_put_contents($filename, '[');
-	
+
 	# Get a listing of every clip.
 	$sql = 'SELECT files.path, files.date, files.chamber, video_clips.time_start, video_clips.time_end,
 				representatives.shortname AS legislator, UPPER(bills.number) AS bill
@@ -296,9 +296,9 @@ if (is_writeable($filename))
 			}
 			# Write this clip, as JSON, to our file.
 			file_put_contents($downloads_dir . 'video-index.json', json_encode($clip).',', FILE_APPEND);
-		}	
+		}
 	}
-	
+
 	# Wrap up by hacking off the last character (an extraneous comma) and adding a closing bracket.
 	$fp = fopen($filename, 'r+');
 	ftruncate($fp, filesize($filename)-1);

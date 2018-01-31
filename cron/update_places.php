@@ -24,7 +24,7 @@ $sql = 'SELECT bills.id, bills.number, bills.full_text, sessions.year
 		FROM bills
 		LEFT JOIN sessions
 			ON bills.session_id=sessions.id
-		WHERE 
+		WHERE
 			(
 				(full_text LIKE "% Town of%") OR (full_text LIKE "% City of%")
 				OR (full_text LIKE "% County of%") OR (full_text LIKE "% Towns of%")
@@ -54,16 +54,16 @@ if (mysql_num_rows($result) > 0)
 	curl_setopt($ch, CURLOPT_HEADER, 0);
 	curl_setopt($ch, CURLOPT_HTTPHEADER, 'Authorization: apiKey ' . GEOPARSER_KEY);
 	curl_setopt($ch, CURLOPT_POST, 1);
-	
+
 	/*
 	 * Iterate through the bills.
 	 */
 	while ($bill = mysql_fetch_array($result))
 	{
-		
-		$bill = array_map('stripslashes', $bill);		
+
+		$bill = array_map('stripslashes', $bill);
 		$url = 'https://geoparser.io/api/geoparser';
-		
+
 		/*
 		 * Get bill information from the API, take all of the text that's changing, and put it into
 		 * a single string. If there's no diff of changed text, then use the bill's full text.
@@ -84,7 +84,7 @@ if (mysql_num_rows($result) > 0)
 			foreach ($bill_info->changes as $change)
 			{
 				$bill_place_text .= $change->text .= "\n";
-			}	
+			}
 		}
 
 		/*
@@ -98,22 +98,22 @@ if (mysql_num_rows($result) > 0)
 			$query_string .= $key.'='.urlencode($value).'&';
 			rtrim($fields_string,'&');
 		}
-		
+
 		/*
 		 * Tell cURL the URL to which we'll be POSTing.
 		 */
 		curl_setopt($ch, CURLOPT_URL, $url);
-		
+
 		/*
 		 * Indicate the number of fields that we'll be providing content for.
 		 */
 		curl_setopt($ch, CURLOPT_POST, count($fields));
-		
+
 		/*
 		 * Pass the POST data.
 		 */
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $query_string);
-		
+
 		/*
 		 * Get the data from cURL.
 		 */
@@ -122,34 +122,34 @@ if (mysql_num_rows($result) > 0)
 		curl_close($ch);
 		$json = ob_get_contents();
 		ob_end_clean();
-		
+
 		if ($json == FALSE)
 		{
 			continue;
 		}
-		
+
 		$yahoo_response = json_decode($json, true);
-		
+
 		if ( ($yahoo_response == FALSE) || !isset($yahoo_response['document']) )
 		{
 			continue;
 		}
-		
+
 		echo '<h1>'.$bill['year'].' '.$bill['number'].'</h1>';
-		
+
 		foreach ($yahoo_response['document'] as $key => $response)
 		{
-		
+
 			# Mixed in with the named keys are numbered keys, and the numbered keys contain the
 			# useful results. We just skip the non-numbered keys.
 			if (!is_numeric($key))
 			{
 				continue;
 			}
-			
+
 			echo '<h2>'.$key.'</h2>';
 			echo '<pre>'.print_r($response, true).'</pre>';
-			
+
 			# If this found place isn't in the state of Virginia, we have no interest in it. Or if
 			# it's the phrase "Commonwealth of Virginia" resulting in the town of Commonwealth being
 			# looked up. Or if it's the town of Marshall, that's just a bill introduced by Bob
@@ -164,15 +164,15 @@ if (mysql_num_rows($result) > 0)
 			{
 				continue;
 			}
-			
+
 			echo '<p>Extracting location from response.</p>';
-			
+
 			$place['latitude'] = $response['placeDetails']['place']['centroid']['latitude'];
 			$place['longitude'] = $response['placeDetails']['place']['centroid']['longitude'];
 			$place['name'] = str_replace(', VA, US', '', $response['placeDetails']['place']['name']);
-			
+
 			echo '<pre>'.print_r($place, true).'</pre>';
-			
+
 			////////////////////////
 			// * Duplicates happen. You'd think Yahoo would filter them out, but they do not. Either
 			//   unique the data that's going to be stored pre-storage or modify the DB to be OK
@@ -183,19 +183,19 @@ if (mysql_num_rows($result) > 0)
 					latitude='.$place['latitude'].', longitude='.$place['longitude'];
 			mysql_query($sql);
 			echo '<p>'.$sql.'</p>';
-			
+
 			/*
 			 * Clear the bill from Memcached.
 			 */
 			$mc->delete('bill-' . $bill['id']);
-			
+
 			unset($place);
-			
+
 		}
-		
+
 	}
-	
+
 	# Shut down the cURL connection.
 	curl_close($ch);
-	
+
 }

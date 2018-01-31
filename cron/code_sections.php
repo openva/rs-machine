@@ -44,7 +44,7 @@ if (mysql_num_rows($result) > 0)
 		$bill['text'] = str_replace("\r", ' ', $bill['text']);
 		$bill['text'] = str_replace("\n", ' ', $bill['text']);
 		$bill['text'] = preg_replace('/\s+/', ' ', $bill['text']);
-		
+
 		# Just test to see if this is even a bill that affects the state code. If it doesn't,
 		# then we can quit our work on this bill and move onto the next one.
 		if ( (stristr($bill['text'], 'the Code of Virginia is amended') === FALSE)
@@ -53,7 +53,7 @@ if (mysql_num_rows($result) > 0)
 		{
 			continue;
 		}
-		
+
 		# Now we know that this bill amends the code.
 		# Let's explode the entire bill into paragraphs, so that we can isolate the paragraph
 		# that contains the list of sections that this bill proposes to affect.
@@ -68,15 +68,15 @@ if (mysql_num_rows($result) > 0)
 				break;
 			}
 		}
-		
+
 		# We have now identified the paragraph that specifies the section(s) to be amended.
 		# Now we've got to pull out every string that matches.
 		preg_match_all('/([[0-9]{1,})([0-9A-Za-z\-\.]{0,3})-([0-9A-Za-z\-\.:]*)([0-9A-Za-z]{1,})/', $bill['paragraph'], $matches);
-		
+
 		# preg_match_all() stores matches in sub-arrays, which isn't useful to us, so we pull
 		# the matches up a level.
 		$matches = $matches[0];
-		
+
 		# We may have a trailing period on some matches, which makes trouble. Check every match
 		# to see if it ends in a period, and, if so, hack it off.
 		foreach ($matches as &$match)
@@ -86,11 +86,11 @@ if (mysql_num_rows($result) > 0)
 				$match = substr($match, 0, -1);
 			}
 		}
-		
+
 		# Sometimes the same section is mentioned twice in a single paragraph, but we obviously
 		# don't want two records of that.
 		$matches = array_unique($matches);
-		
+
 		# We have to pass this array by reference to work around a bug in PHP that sometimes
 		# causes the pointer to fail to advance.
 		foreach ($matches as &$match)
@@ -103,7 +103,7 @@ if (mysql_num_rows($result) > 0)
 					SET full_text_id=' . $bill['full_text_id'] . ', bill_id=' . $bill['id'] . ',
 					section_number="' . $match . '", date_created=now()';
 			mysql_query($sql);
-			
+
 		}
 	}
 }

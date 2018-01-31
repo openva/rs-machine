@@ -2,10 +2,10 @@
 
 ###
 # Update Database
-# 
+#
 # PURPOSE
 # Parses CSV files and updates the database with their content.
-# 
+#
 # NOTES
 # * The $session_id variable must be manually set when importing bills from old sessions.
 # * Requests to LIS' server must not exceed 15 within a 30-second window, or else the server will
@@ -16,7 +16,7 @@
 #	updated annually.  Right now it's set to February 1, 2008, because all bills currently flagged
 #	as "continued" have actually been killed, but bills will be able to continued after the '08
 #	session.
-# 
+#
 ###
 
 error_reporting(E_ERROR);

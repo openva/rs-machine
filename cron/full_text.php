@@ -40,13 +40,13 @@ while ($text = mysql_fetch_array($result))
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 	$full_text = curl_exec($ch);
 	curl_close($ch);
-	
+
 	# Convert the legislature's Windows-1252 text to UTF-8.
 	$full_text = iconv('windows-1252', 'UTF-8', $full_text);
-	
+
 	# Convert into an array.
 	$full_text = explode("\n", $full_text);
-	
+
 	# Clean up the bill's full_text.
 	$full_text_clean = '';
 	for ($i=0; $i<count($full_text); $i++)
@@ -61,7 +61,7 @@ while ($text = mysql_fetch_array($result))
 			elseif (stristr($full_text[$i], 'HOUSE RESOLUTION NO. ')) $start = TRUE;
 			elseif (stristr($full_text[$i], 'VIRGINIA ACTS OF ASSEMBLY')) $start = TRUE;
 		}
-			
+
 		# Finally, we're at the text of the bill.
 		if (isset($start))
 		{
@@ -70,23 +70,23 @@ while ($text = mysql_fetch_array($result))
 			{
 				break;
 			}
-			
+
 			# Otherwise, add this line to our bill text.
 			else
 			{
-				
+
 				# Determine where the header text ends and the actual law begins.
 				if (stristr($full_text[$i], 'Be it enacted by'))
 				{
 					$law_start = TRUE;
 				}
-				
+
 				if ( isset($law_start) && ($law_start == TRUE) )
 				{
 					$full_text[$i] = str_replace('<i>', '<ins>', $full_text[$i]);
 					$full_text[$i] = str_replace('</i>', '</ins>', $full_text[$i]);
 				}
-				
+
 				# Finally, append this line to our cleaned-up, stripped-down text.
 				$full_text_clean .= $full_text[$i].' ';
 			}
@@ -95,28 +95,28 @@ while ($text = mysql_fetch_array($result))
 	unset($full_text);
 	unset($start);
 	unset($law_start);
-	
+
 	# Strip out unacceptable tags and prefix the description with its two prefix
 	# tags.  Then provide a domain name for all links.
 	$full_text = trim(strip_tags($full_text_clean, '<p><b><i><em><strong><u><a><br><center><s><strike><ins>'));
-	
+
 	if (!empty($full_text))
 	{
-		
+
 		# Replace relative links with absolute ones.
 		$full_text = str_ireplace('href="/', 'href="http://lis.virginia.gov/', $full_text);
 
 		# Replace links to the state code with links to Virginia Decoded.
 		$full_text = str_ireplace('href="http://law.lis.virginia.gov/vacode', 'href="https://vacode.org', $full_text);
-		
+
 		# Any time that we've just got a question mark hanging out, that should be a section
 		# symbol.
 		$full_text = str_replace(' ? ', ' §&nbsp;', $full_text);
-		
+
 		# Put the data back into the database, but clean it up first.
 		$full_text = trim($full_text);
 		$full_text = mysql_real_escape_string($full_text);
-		
+
 		if (!empty($full_text))
 		{
 			# We store the bill's text, and also reset the counter that tracks failed attempts
@@ -134,25 +134,25 @@ while ($text = mysql_fetch_array($result))
 				$log->put('Insertion of  ' . strtoupper($text['number']) . ' bill text succeeded.', 2);
 			}
 		}
-		
+
 		# Unset the variables that we used here.
 		unset($start);
 		unset($full_text);
 		unset($full_text_clean);
-		
+
 		sleep(3);
-		
+
 	}
 	else
 	{
-	
+
 		# Increment the failed retrievals counter.
 		$sql = 'UPDATE bills_full_text
 				SET failed_retrievals = failed_retrievals+1
 				WHERE id='.$text['id'];
 		mysql_query($sql);
-		
+
 		$log->put('Full text of ' . $text['number'] . ' came up blank.', 5);
-		
+
 	}
 }

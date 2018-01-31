@@ -2,12 +2,12 @@
 
 /**
  * Preemptively cache data
- * 
+ *
  * Loads data into Memcached preemptively.
  *
  * @usage	Must be invoked from within update_db.php.
  */
- 
+
 /*
  * Connect to Memcached.
  */
@@ -23,7 +23,7 @@ $sql = 'SELECT id, number
 $result = mysql_query($sql);
 if (mysql_num_rows($result) > 0)
 {
-	
+
 	while ($bill = mysql_fetch_array($result))
 	{
 
@@ -31,7 +31,7 @@ if (mysql_num_rows($result) > 0)
 		 * Cache this bill ID and number in Memcached, setting a far-off expiry date.
 		 */
 		$mc->set('bill-' . $bill['number'], $bill['id'], (60 * 60 * 24 * 180) );
-		
+
 		/*
 		 * Cache all data about this bill in Memcached. (We merely have to request the bill
 		 * for the method to cache it).
@@ -39,8 +39,8 @@ if (mysql_num_rows($result) > 0)
 		$bill2 = new Bill2;
 		$bill2->id = $bill['id'];
 		unset($bill2);
-		
-		
+
+
 	}
-	
+
 }

@@ -2,20 +2,20 @@
 
 ###
 # Retrieve and Store the Meeting Schedule
-# 
+#
 # PURPOSE
 # Retrieves the CSV file of upcoming meetings, parses it, and stores it in the database.
-# 
+#
 # NOTES
 # This has an odd three-step process. First we retrieve the HTML page. Then we use the link to
 # the CSV within there to retrieve a dynamic redirect page. Then we use a link within there to
 # retrieve the actual CSV. After those steps comes the slicing, dicing, and inserting.
-# 
+#
 # TODO
 # Deal with the problem of duplicates that result from events changing after they've been
 # syndicated. We have no process for updating existing events, only for adding unrecognized
 # ones.
-# 
+#
 ###
 
 # Build up an array of committee names and IDs, which we'll use later on to match the calendar
@@ -33,9 +33,9 @@ if (mysql_num_rows($result) == 0)
 }
 while ($committee = mysql_fetch_array($result))
 {
-	
+
 	$committee = array_map('stripslashes', $committee);
-	
+
 	# If this is a subcommittee, shuffle around the array keys.
 	if (!empty($committee['parent']))
 	{
@@ -43,11 +43,11 @@ while ($committee = mysql_fetch_array($result))
 		$committee['name'] = $committee['parent'];
 		unset($committee['parent']);
 	}
-	
+
 	# Begin to establish the plain text description that we'll use to try to match the
 	# meeting description.
 	$tmp = ucfirst($committee['chamber']) . ' ' . $committee['name'];
-	
+
 	# If this is a subcommittee, then we have to deal with a series of naming possibilities,
 	# since legislative staff are hugely inconsistent in their naming practices. Any of the
 	# following is viable:
@@ -59,7 +59,7 @@ while ($committee = mysql_fetch_array($result))
 		$committees[] = array($committee['id'] => $tmp . ' - ' . $committee['sub']);
 		$committees[] = array($committee['id'] => $tmp . ' - Subcommittee ' . $committee['sub']);
 		$committees[] = array($committee['id'] => $tmp . ' ' . $committee['sub'] . ' Subcommittee');
-		
+
 		# If the word "and" is used in this subcommittee name, then we need to also create
 		# versions of it with an ampersand in place of the word "and," because LIS can't decide
 		# which they want to use to name committees.
@@ -80,7 +80,7 @@ while ($committee = mysql_fetch_array($result))
 			$committees[] = array($committee['id'] => $tmp);
 		}
 	}
-	
+
 	unset($tmp);
 }
 
@@ -144,31 +144,31 @@ foreach ($csv as &$meeting)
 
 	# Strip out any carriage returns lying around.
 	$meeting = str_replace("\r", '', $meeting);
-	
+
 	# Turn the CSV into an array.
 	$meeting = explode('","', $meeting);
-	
+
 	# Trim every column of its whitespace.
 	foreach ($meeting as &$column)
 	{
 		$column = trim($column);
 	}
-	
+
 	# Name each element in the array.
 	$meeting['date'] = $meeting[0];
 	$meeting['time'] = $meeting[1];
 	$meeting['description'] = $meeting[3];
-	
+
 	# Unset every numbered element.
 	unset($meeting[0]);
 	unset($meeting[1]);
 	unset($meeting[2]);
 	unset($meeting[3]);
-	
+
 	# Eliminate the quotation marks left over from the CSV.
 	$meeting['date'] = str_replace('"', '', $meeting['date']);
 	$meeting['description'] = str_replace('"', '', $meeting['description']);
-	
+
 	# Determine which chamber that this meeting pertains to.
 	if (eregi('house', $meeting['description']) !== true)
 	{
@@ -182,7 +182,7 @@ foreach ($csv as &$meeting)
 	{
 		continue;
 	}
-	
+
 	# This notice is to point out that a committee isn't meeting, that the senate has adjourned,
 	# or that the house has adjourned, then we can safely ignore it.
 	if (
@@ -193,7 +193,7 @@ foreach ($csv as &$meeting)
 	{
 		continue;
 	}
-	
+
 	# If an approximate time is listed in the committee information (something like "1/2 hr aft"
 	# or "TBA"), then we've got to a) turn it into plain English and b) ignore the claimed time.
 	if (
@@ -233,7 +233,7 @@ foreach ($csv as &$meeting)
 		$meeting['timedesc'] = 'To be announced';
 		unset($meeting['time']);
 	}
-	
+
 	# If the time is approximate, then we want to establish a meeting date. (But not a time.)
 	if (isset($meeting['timedesc']))
 	{
@@ -243,7 +243,7 @@ foreach ($csv as &$meeting)
 		unset($meeting['time']);
 		unset($meeting['datetime']);
 	}
-	
+
 	# But if we've got a trustworthy time, format the date and the time properly.
 	else
 	{
@@ -253,7 +253,7 @@ foreach ($csv as &$meeting)
 		$meeting['time'] = date('H:i', $meeting['datetime']) . ':00';
 		unset($meeting['datetime']);
 	}
-	
+
 	# Clean up the meeting description
 	$tmp = explode(';', $meeting['description']);
 	if (strstr($tmp[count($tmp)-1], '-'))
@@ -263,12 +263,12 @@ foreach ($csv as &$meeting)
 	}
 	$meeting['description'] = trim($tmp[0]);
 	$meeting['location'] = trim($tmp[1]);
-	
+
 	# Attempt to match the committee with a known committee. Start by stepping through every
 	# committee.
 	for ($i=0; $i<count($committees); $i++)
 	{
-		
+
 		# Since each committee can have multiple names, we now step through each name for this
 		# committee and try to match it.
 		foreach ($committees[$i] as $id => $committee)
@@ -283,9 +283,9 @@ foreach ($csv as &$meeting)
 			}
 		}
 	}
-	
+
 	// check to see if we already know about this meeting by comparing it to data in the DB
-	
+
 	# If this meeting has gone by, then we can safely ignore it.
 	if (isset($meeting['time']))
 	{
@@ -299,7 +299,7 @@ foreach ($csv as &$meeting)
 	{
 		continue;
 	}
-	
+
 	# If we've already got a record of this meeting then, again, we can safely ignore it.
 	if (!empty($upcoming))
 	{
@@ -333,7 +333,7 @@ foreach ($csv as &$meeting)
 			continue;
 		}
 	}
-	
+
 	# Prepare and insert the data into the DB.
 	$meeting = array_map('mysql_real_escape_string', $meeting);
 	$sql = 'INSERT INTO meetings
@@ -363,7 +363,7 @@ foreach ($csv as &$meeting)
 	{
 		$log->put('Added meeting '.$meeting['description'].' on ' . $meeting['date'] . '.', 1);
 	}
-	
+
 }
 
 # Delete all of the duplicate meetings. We end up with the same meeting recorded over and over

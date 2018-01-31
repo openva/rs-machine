@@ -86,28 +86,28 @@ $first = 'yes';
  */
 while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 {
-	
+
 	# If this is something other than a header row, parse it.
 	if (isset($first))
 	{
 		unset($first);
 		continue;
 	}
-	
+
 	###
 	# Before we proceed any farther, see if this record is either new or different than last
 	# time that we examined it.
 	###
 	$hash = md5(serialize($bill));
 	$number = strtolower(trim($bill[0]));
-	
+
 	if ( isset($hashes[$number]) && ($hash == $hashes[$number]) )
 	{
 		continue;
 	}
 	else
 	{
-	
+
 		$hashes[$number] = $hash;
 		if (!isset($hashes[$number]))
 		{
@@ -117,9 +117,9 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		{
 			$log->put('Updating ' . strtoupper($number) . '.', 1);
 		}
-		
+
 	}
-	
+
 	# Provide friendlier array element names.
 	$bill['number'] = strtolower(trim($bill[0]));
 	$bill['catch_line'] = trim($bill[1]);
@@ -136,7 +136,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	$bill['continued'] = trim($bill[19]);
 	$bill['approved'] = trim($bill[20]);
 	$bill['vetoed'] = trim($bill[21]);
-	
+
 	# The following are versions of the bill's full text. Only the first pair need be
 	# present. But the remainder are there to deal with the possibility that the bill is
 	# amended X times.
@@ -152,7 +152,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	if (!empty($bill[31])) $bill['text'][4]['date'] = date('Y-m-d', strtotime(trim($bill[31])));
 	if (!empty($bill[32])) $bill['text'][5]['number'] = trim($bill[32]);
 	if (!empty($bill[33])) $bill['text'][5]['date'] = date('Y-m-d', strtotime(trim($bill[33])));
-	
+
 	# Determine if this was introduced in the House or the Senate.
 	if ($bill['number']{0} == 'h')
 	{
@@ -162,7 +162,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	{
 		$bill['chamber'] = 'senate';
 	}
-	
+
 	# Set the last committee to be the committee in the chamber in which there was most recently
 	# activity.
 	if (empty($bill['last_house_date']))
@@ -183,7 +183,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$bill['last_committee'] = substr($bill['last_senate_committee'], 1);
 		$bill['last_committee_chamber'] = 'senate';
 	}
-	
+
 	# Determine the latest status.
 	if ($bill['approved'] == 'Y')
 	{
@@ -223,13 +223,13 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	# Create an instance of HTML Purifier to clean up the text.
 	$config = HTMLPurifier_Config::createDefault();
 	$purifier = new HTMLPurifier($config);
-	
+
 	# Purify the HTML and trim off the surrounding whitespace.
 	$bill['catch_line'] = trim($purifier->purify($bill['catch_line']));
-	
+
 	# Prepare the data for the database.
 	$bill = array_map_multi('mysql_real_escape_string', $bill);
-	
+
 	# Check to see if the bill is already in the database.
 	$sql = 'SELECT id
 			FROM bills
@@ -242,17 +242,17 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$sql = 'UPDATE bills SET ';
 		$existing_bill = mysql_fetch_array($result);
 		$sql_suffix = ' WHERE id=' . $existing_bill['id'];
-		
+
 		# Now that we know we're updating a bill, rather than adding a new one, delete the bill from
 		# Memcached.
 		$mc->delete('bill-' . $existing_bill['id']);
-		
+
 	}
 	else
 	{
 		$sql = 'INSERT INTO bills SET date_created=now(), ';
 	}
-	
+
 	# Now create the code to insert the bill or update the bill, depending
 	# on what the last query established for the preamble.
 	$sql .= 'number="'.$bill['number'].'", session_id="'.$session_id.'",
@@ -282,9 +282,9 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	{
 		$sql = $sql . $sql_suffix;
 	}
-	
+
 	$result = mysql_query($sql);
-	
+
 	if ($result === FALSE)
 	{
 		$log->put('Adding ' . $bill['number'] . ' failed. Almost certainly, this means that '
@@ -292,10 +292,10 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 			. strtolower($bill['chief_patron']) . ') who filed this bill isn’t in the database.', 7);
 		unset($hashes[$number]);
 	}
-	
+
 	else
 	{
-		
+
 		# Get the last bill insert ID.
 		if (!isset($existing_bill['id']))
 		{
@@ -305,7 +305,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		{
 			$bill['id'] = $existing_bill['id'];
 		}
-		
+
 		# Create a bill full text record for every version of the bill text that's filed.
 		for ($i=0; $i<count($bill['text']); $i++)
 		{
@@ -319,12 +319,12 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 			}
 		}
 	}
-		
+
 	# Unset those variables to avoid reuse.
 	unset($sql_suffix);
 	unset($bill['id']);
 	unset($existing_bill);
-	
+
 } // end looping through lines in this CSV file
 
 # Close the CSV file.

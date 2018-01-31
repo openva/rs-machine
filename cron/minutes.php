@@ -2,10 +2,10 @@
 
 ###
 # Retrieve and Store Minutes
-# 
+#
 # PURPOSE
 # Retrieves the minutes from every meeting of the House and Senate and stores them.
-# 
+#
 ###
 
 # PAGE CONTENT
@@ -29,11 +29,11 @@ foreach ($chambers as $chamber => $listing_url)
 	# Begin by connecting to the appropriate session page.
 	$raw_html = get_content($listing_url);
 	$raw_html = explode("\n", $raw_html);
-	
+
 	# Iterate through every line in the HTML.
 	foreach ($raw_html as &$line)
 	{
-		
+
 		# Check if this line contains a link to the minutes for a given date.
 		if ($chamber == 'house')
 		{
@@ -43,11 +43,11 @@ foreach ($chambers as $chamber => $listing_url)
 		{
 			ereg('<a href="/cgi-bin/legp504.exe\?([0-9]{3})\+min\+([A-Za-z0-9]+)">([A-Za-z]+) ([0-9]+), ([0-9]{4})</a>', $line, $regs);
 		}
-		
+
 		# We've found a match.
 		if (count($regs) > 0)
 		{
-			
+
 			# Pull out the source URL and the date from the matched string.
 			if ($chamber == 'house')
 			{
@@ -59,7 +59,7 @@ foreach ($chambers as $chamber => $listing_url)
 				$source_url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?'.$regs[1].'+min+'.$regs[2];
 				$date = date('Y-m-d', strtotime($regs[3].' '.$regs[4].' '.$regs[5]));
 			}
-			
+
 			# Determines if this is a duplicate. If a match is found, the "repeat" flag is set.
 			for ($i=0; $i<count($past_minutes); $i++)
 			{
@@ -69,7 +69,7 @@ foreach ($chambers as $chamber => $listing_url)
 					break;
 				}
 			}
-			
+
 			# If the repeat flag is set then we've seen these minutes before, in which case continue
 			# to the next line in the minutes listing.
 			if ($repeat === TRUE)
@@ -80,10 +80,10 @@ foreach ($chambers as $chamber => $listing_url)
 				unset($regs);
 				continue;
 			}
-			
+
 			# Retrieve and clean up the minutes.
 			$minutes = get_content($source_url);
-			
+
 			# If the query was successful.
 			if ($minutes != FALSE)
 			{
@@ -92,14 +92,14 @@ foreach ($chambers as $chamber => $listing_url)
 				$config = HTMLPurifier_Config::createDefault();
 				$purifier = new HTMLPurifier($config);
 				$minutes = $purifier->purify($minutes);
-				
+
 				# Strip out the bulk of the markup. We allow the HR tag because we sometimes use
 				# it as a marker for where the page content concludes.
 				$minutes = strip_tags($minutes, '<b><i><hr><br>');
-				
+
 				# Start the minutes with the call to order.
 				$minutes = stristr($minutes, 'called to order');
-				
+
 				# Determine where to end the minutes. We have three versions of this strpos() to
 				# accomodation variations in the data, primarily between the house and senate.
 				$end = strpos($minutes, 'KEY: A');
@@ -124,20 +124,20 @@ foreach ($chambers as $chamber => $listing_url)
 				# Clean up some known House-minutes problems.
 				if ($chamber == 'house')
 				{
-				
+
 					$minutes = str_replace('<i class="fa fa-times"></i>', '', $minutes);
 					$minutes = str_replace('<i class="fa fa-ellipsis-v"></i>', '', $minutes);
 					$minutes = preg_replace("/[\r\n][[:space:]]+/", "\n\n", $minutes);
 					$minutes = str_replace(' - Agreed to', " - Agreed to<br>\n", $minutes);
 
 				}
-				
+
 				# Run the minutes thorugh HTML Purifier again.
 				$minutes = $purifier->purify($minutes);
 
 				# Prepare them for MySQL.
 				$minutes = mysql_real_escape_string($minutes);
-				
+
 				# If, after all that, we still have any text in these minutes, picking an arbitrary
 				# length of 30 characters.
 				if (strlen($minutes) > 30)
@@ -158,7 +158,7 @@ foreach ($chambers as $chamber => $listing_url)
 						$log->put('Inserted the minutes for ' . $date . ' in ' . $chamber . '.', 2);
 					}
 				}
-			
+
 				# Unset our variables to prevent them from being reused on the next line.
 				unset($regs);
 				unset($source_url);
@@ -169,14 +169,14 @@ foreach ($chambers as $chamber => $listing_url)
 				unset($repeat);
 				unset($date);
 				unset($strpos);
-			
+
 				sleep(1);
 
 			}
 
 		}
 	}
-	
+
 	# Don't accidentally reuse the HTML for the next chamber.
 	unset ($raw_html);
 }

@@ -27,7 +27,7 @@ if (mysql_num_rows($result) == 0)
 
 while ($legislator = mysql_fetch_array($result))
 {
-	
+
 	# COPATRONING STATS
 	# Calculate the percentage of the bills copatroned by this legislator that were introduced by
 	# each party.
@@ -49,7 +49,7 @@ while ($legislator = mysql_fetch_array($result))
 	if ($total > 0)
 	{
 		arsort($tmp);
-		
+
 		# Populate an array that we use to determine overall partisanship. 0 = Democratic and 100 =
 		# Republican. Because our number is based on the majority support, we need to rescale it.
 		if (key($tmp) == 'D')
@@ -66,7 +66,7 @@ while ($legislator = mysql_fetch_array($result))
 		}
 		$partisanship[] = $tmp;
 	}
-	
+
 	# Calculate the percentages of the legislators' party memberships who have cosponsored any bill
 	# introduced by this legislator.
 	// Using this "IN" clause is just ridiculous. The query takes a good .2 seconds, which is way
@@ -91,7 +91,7 @@ while ($legislator = mysql_fetch_array($result))
 	if ($total > 0)
 	{
 		arsort($tmp);
-		
+
 		# Populate an array that we use to determine overall partisanship. 0 = Democratic and 100 =
 		# Republican. Because our number is based on the majority support, we need to rescale it.
 		if (key($tmp)=='D')
@@ -108,7 +108,7 @@ while ($legislator = mysql_fetch_array($result))
 		}
 		$partisanship[] = $tmp;
 	}
-	
+
 	# Calculate the percentages of the legislators' party memberships who are in the overall pool
 	# of bills copatroned by this legislator. Meaning, look at every bill that this legislator has
 	# copatroned, and look at every other copatron of those bills, and calculate the percentage of
@@ -135,7 +135,7 @@ while ($legislator = mysql_fetch_array($result))
 	if ($total > 0)
 	{
 		arsort($tmp);
-		
+
 		# Populate an array that we use to determine overall partisanship. 0 = Democratic and 100 =
 		# Republican. Because our number is based on the majority support, we need to rescale it.
 		if (key($tmp) == 'D')
@@ -152,8 +152,8 @@ while ($legislator = mysql_fetch_array($result))
 		}
 		$partisanship[] = $tmp;
 	}
-	
-	
+
+
 	# Calculate how partisan that this legislator's record is, in light of his copatroning habits.
 	if ( isset($partisanship) && is_array($partisanship) )
 	{
@@ -162,8 +162,8 @@ while ($legislator = mysql_fetch_array($result))
 		# partisan.
 		$sql = 'SELECT party, COUNT(*) AS number
 				FROM representatives
-				WHERE date_ended IS NULL 
-				OR date_ended >= NOW( ) 
+				WHERE date_ended IS NULL
+				OR date_ended >= NOW( )
 				GROUP BY party';
 		$result2 = mysql_query($sql);
 		if (mysql_num_rows($result2) > 0)
@@ -177,7 +177,7 @@ while ($legislator = mysql_fetch_array($result))
 			arsort($tmp);
 			$chamber_makeup = round(current($tmp) / $total * 100);
 			$partisanship = round(array_sum($partisanship) / count($partisanship));
-			
+
 			$sql = 'UPDATE representatives
 					SET partisanship=' . $partisanship . '
 					WHERE id=' . $legislator['id'];
@@ -186,4 +186,3 @@ while ($legislator = mysql_fetch_array($result))
 		}
 	} // end parsing $partisanship array
 } // end legislators while loop
-

@@ -104,9 +104,9 @@ $log->put('Retrieved ' . count($delegates) . ' delegates from virginiageneralass
  */
 foreach ($known_legislators as $known_legislator)
 {
-	
+
 	$id = $known_legislator->lis_id;
-	
+
 	/*
 	 * Check senators.
 	 */
@@ -117,7 +117,7 @@ foreach ($known_legislators as $known_legislator)
 			$log->put('Error: Sen. ' . $known_legislator->name . ' is no longer in office, but is still listed in the database.', 5);
 		}
 	}
-	
+
 	/*
 	 * Check delegates.
 	 */
@@ -128,7 +128,7 @@ foreach ($known_legislators as $known_legislator)
 			$log->put('Error: Del. ' . $known_legislator->name . ' is no longer in office,  but is still listed in the database.', 5);
 		}
 	}
-	
+
 }
 
 /*
@@ -136,20 +136,20 @@ foreach ($known_legislators as $known_legislator)
  */
 foreach ($senators as $lis_id => $name)
 {
-	
+
 	$match = FALSE;
 
 	foreach ($known_legislators as $known_legislator)
 	{
-		
+
 		if ($known_legislator->lis_id == $lis_id)
 		{
 			$match = TRUE;
 			continue(2);
 		}
-		
+
 	}
-	
+
 	if ($match == FALSE)
 	{
 		$log->put('Senator missing from the database: ' . $name . ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
@@ -159,20 +159,20 @@ foreach ($senators as $lis_id => $name)
 
 foreach ($delegates as $lis_id => $name)
 {
-	
+
 	$match = FALSE;
 
 	foreach ($known_legislators as $known_legislator)
 	{
-		
+
 		if ($known_legislator->lis_id == $lis_id)
 		{
 			$match = TRUE;
 			continue(2);
 		}
-		
+
 	}
-	
+
 	if ($match == FALSE)
 	{
 		$log->put('Delegate missing from the database: ' . $name . ' (http://virginiageneralassembly.gov/house/members/members.php?id='. $lis_id . ')', 6);

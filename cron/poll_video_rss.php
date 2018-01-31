@@ -96,7 +96,7 @@ foreach ($sources as $chamber => $url)
 	 */
 	foreach ($new_guids as $guid)
 	{
-		
+
 		/*
 		 * Iterate through each XML item, to find this GUID.
 		 */
@@ -130,13 +130,13 @@ foreach ($sources as $chamber => $url)
 
 				/*
 				 * If it's a committee, get the committee name.
-				 * 
+				 *
 				 * Here is an example of the contents of the title tag, for a committee:
-				 * 
+				 *
 				 * Finance (Comm Room B) - January 17, 2018 - 9:00 AM - Jan 17, 2018
 				 *
 				 * Though be warned that titles can also be like this:
-				 * 
+				 *
 				 * January 10, 2018 - Governor Terry McAuliffe&apos;s address to the 2018 Joint General Assembly - Jan 10, 2018
 				 */
 				if ($type == 'committee')
@@ -224,7 +224,7 @@ foreach ($sources as $chamber => $url)
 
 		/*
 		 * If we have this same video in the database already, don't save it again.
-		 * 
+		 *
 		 * IMPORTANT NOTE
 		 * As written, this will get no more than one committee video per chamber per day.
 		 * THAT'S DUMB. It's important to modify this to accommodate more.
@@ -284,7 +284,7 @@ foreach ($sources as $chamber => $url)
 
 /*
 * Write all item GUIDs back to the cache file.
-*/ 
+*/
 if (file_put_contents($cache_file, serialize($guids)) === FALSE)
 {
 	echo 'Could not cache GUIDs.';

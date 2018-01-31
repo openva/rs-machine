@@ -98,7 +98,7 @@ $first = 'yes';
  */
 while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 {
-	
+
 	# If this is something other than a header row, parse it.
 	if (isset($first))
 	{
@@ -135,14 +135,14 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 	 */
 	$hash = md5(serialize($summary));
 	$number = strtolower($bill['number']);
-	
+
 	if ( isset($hashes[$number]) && ($hash == $hashes[$number]) )
 	{
 		continue;
 	}
 	else
 	{
-	
+
 		$hashes[$number] = $hash;
 		if (!isset($hashes[$number]))
 		{
@@ -152,7 +152,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 		{
 			$log->put('Updating summary ' . strtoupper($number) . '.', 1);
 		}
-		
+
 	}
 
 	/*
@@ -163,7 +163,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 	$summary['text'] = str_replace('&nbsp;', ' ', $summary['text']);
 	$summary['text'] = str_replace('  ', ' ', $summary['text']);
 	$summary['text'] = str_replace('\u00a0', ' ', $summary['text']);
-		
+
 	# There is often an HTML mistake in this tag, so we perform this replacement after
 	# running HTML Purifier, not before.
 	$summary['text'] = str_replace('<br clear="all" /> ', ' ', $summary['text']);
@@ -173,19 +173,19 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 	$config = HTMLPurifier_Config::createDefault();
 	$purifier = new HTMLPurifier($config);
 	$summary['text'] = $purifier->purify($summary['text']);
-	
+
 	# Clean up the bolding, so that we don't bold a blank space.
 	$summary['text'] = str_replace(' </b>', '</b> ', $summary['text']);
-	
+
 	# Trim off any whitespace.
 	$summary['text'] = trim($summary['text']);
-		
+
 	# Hack off a hanging non-breaking space, if there is one.
 	if (substr($summary['text'], -7) == ' &nbsp;')
 	{
 		$summary['text'] = substr($summary['text'], 0, -8);
 	}
-		
+
 	/*
 	 * If we have any summary text, store it in the database.
 	 */

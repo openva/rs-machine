@@ -2,7 +2,7 @@
 
 ###
 # Download PDFs of legislation
-# 
+#
 # PURPOSE
 # Downloads PDFs from the legislature's website to store locally.
 #
@@ -64,10 +64,10 @@ $bills = array_diff($bills, $mirrored);
  */
 foreach ($bills as $bill)
 {
-	
+
 	$pdf_url = 'http://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+ful+'
 		. strtoupper($bill) . '+pdf';
 	$pdf_contents = file_get_contents($pdf_url);
 	file_put_contents($dir . $bill . '.pdf', $pdf_contents);
-	
+
 }

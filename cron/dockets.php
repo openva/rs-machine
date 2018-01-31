@@ -2,19 +2,19 @@
 
 ###
 # Retrieve and Store Dockets
-# 
+#
 # PURPOSE
 # Retrieves the dockets from every planned meeting of the Senate and stores them.
-# 
+#
 # NOTES
 # None.
-# 
+#
 # TODO
 # Add House dockets. Every House committee's docket is available, though not in an obvious
 # location. At <http://leg1.state.va.us/cgi-bin/legp504.exe?111+doc+DOCH01>, for example, are
 # the Agriculture dockets. The format involves updating "111" with the LIS session ID and "H01"
 # with the LIS committee ID ("H" with a left-padded lis_id).
-# 
+#
 ###
 
 # Build up an array of subcommittee IDs.
@@ -46,10 +46,10 @@ while ($committee = mysql_fetch_array($result))
 		# Specify how much padding to place on the LIS ID for the URL.
 		$padding = 2;
 	}
-	
+
 	# Pad out the LIS ID for use in the URL.
 	$committee['lis_id'] = str_pad($committee['lis_id'], $padding, 0, STR_PAD_LEFT);
-	
+
 	# We only care about the first letter of the chamber.
 	if ($committee['chamber'] == 'senate')
 	{
@@ -87,7 +87,7 @@ foreach ($committees as $committee)
 					. $committee['chamber'] . $committee['parent_lis_id'] . $committee['lis_id'] . $date['url'];
 				$raw_html = get_content($url);
 			}
-			
+
 			else
 			{
 				# Get the docket for a committee.
@@ -100,12 +100,12 @@ foreach ($committees as $committee)
 				$raw_html = get_content($url);
 			}
 		}
-		
+
 		# If the resulting page is longer than 1,000 bytes and we have a match, iterate through those
 		# matches.
 		if ((strlen($raw_html) > 1000) && (preg_match_all('#[H|S].[B|J|R].[[:space:]]*([0-9]+)#', $raw_html, $bill)))
 		{
-			
+
 			# We start by clearing out the old docket data, since we're replacing it with new
 			# data. This is necessary to avoid continuing to list bills that were once on the
 			# docket, but are no longer. (If we only ever add new bills, then we have no
@@ -113,15 +113,15 @@ foreach ($committees as $committee)
 			$sql = 'DELETE FROM dockets
 					WHERE date="' . $date['full'] . '" AND committee_id=' . $committee['id'];
 			mysql_query($sql);
-			
+
 			foreach ($bill[0] as $bill)
 			{
-				
+
 				# Convert the bills to the simplest form.
 				$bill = str_replace('.', '', $bill);
 				$bill = str_replace(' ', '', $bill);
 				$bill = strtolower($bill);
-				
+
 				# Insert the meeting data into the dockets table.
 				$sql = 'INSERT INTO dockets
 						SET date="' . $date['full'] . '", committee_id=' . $committee['id'] . ',
@@ -134,7 +134,7 @@ foreach ($committees as $committee)
 				mysql_query($sql);
 			}
 		}
-	
+
 		# Sleep for one second to avoid overwhelming LIS' server. This is important -- without
 		# this, the server will start rejecting these queries, and rightly so.
 		sleep(1);

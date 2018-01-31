@@ -66,22 +66,22 @@ while ($bill = mysql_fetch_array($result))
 	{
 		$bill['copatrons'] = explode(',', $bill['copatrons']);
 	}
-	
+
 	# Get the HTML of the page for this bill's copatrons.
 	$html = get_content('leg1.state.va.us/cgi-bin/legp504.exe?'.$bill['session_lis_id']
 		.'+mbr+'.strtoupper($bill['number']));
 	# Turn the HTML into an array.
 	$html = explode("\r", $html);
-	
+
 	# Step through every line of that HTML and, if it contains a string present in the URL for
 	# copatron IDs, use a regular expression to pull out that copatron's ID. It would be faster to
-	# use PCRE for this, but only knowing regular expressions, I've used this more laborious 
+	# use PCRE for this, but only knowing regular expressions, I've used this more laborious
 	# approach.
 	foreach ($html as $line)
 	{
 		if (stristr($line, 'legp504') !== false)
 		{
-			
+
 			//ereg('href="/cgi-bin/legp504\.exe\?'.$bill['session_lis_id'].'\+mbr\+([A-Z]{1}[0-9]*)"', $line, $copatron);
 			preg_match('/href="\/cgi-bin\/legp504\.exe\?' . $bill['session_lis_id'] . '\+mbr\+([A-Z]{1}[0-9]*)"/', $line, $copatron);
 
@@ -99,13 +99,13 @@ while ($bill = mysql_fetch_array($result))
 			}
 		}
 	}
-	
+
 	if ( isset($copatrons) && is_array($copatrons) && (count($copatrons) > 0) )
 	{
-		
+
 		# Sometimes leg1 reports duplicates, and we want to strip those out.
 		$copatrons = array_unique($copatrons);
-		
+
 		# If we already knew about some copatrons for this bill, determine how this new knowledge
 		# compares to that old knowledge.
 		if (is_array($bill['copatrons']))
@@ -113,17 +113,17 @@ while ($bill = mysql_fetch_array($result))
 			# Identify all of the elements of $copatrons that aren't also present in
 			# $bill['copatrons']. These are the copatrons that we already know about.
 			$new_copatrons = array_diff($copatrons, $bill['copatrons']);
-			
+
 			# Identify all of the elements of $bill['copatrons'] that aren't present in $copatrons
 			# to remove from the database. These are legislators who were copatrons of this bill,
 			# but no longer are.
 			$expired_copatrons = array_diff($copatrons, $bill['copatrons']);
-			
+
 			# We can now reassign $new_copatrons as $copatrons to be added below.
 			$copatrons = $new_copatrons;
 			unset($new_copatrons);
 		}
-		
+
 		# If we've identifed any new copatrons, step through each of them and insert them.
 		if (count($copatrons) > 0)
 		{
@@ -135,11 +135,11 @@ while ($bill = mysql_fetch_array($result))
 				$sql .= '('.$bill['id'].', '.$copatron.', now()), ';
 			}
 			$sql = substr($sql, 0, -2);
-			
+
 			# Insert these copatrons.
 			mysql_query($sql);
 		}
-		
+
 		# If we've identified any expired copatrons, step through each of them and delete them.
 		if ( isset($expired_copatrons) && (count($expired_copatrons) > 0) )
 		{
@@ -147,14 +147,14 @@ while ($bill = mysql_fetch_array($result))
 			{
 				$sql = 'DELETE FROM bills_copatrons
 						WHERE bill_id='.$bill['id'].' AND legislator_id='.$patron;
-			
+
 				# Delete this expired copatron.
 				mysql_query($sql);
 			}
 		}
-		
+
 	}
-					
+
 	# And update the bills table to reflect the number of copatrons.
 	if ( isset($copatrons) && is_array($copatrons) && (count($copatrons) > 0) )
 	{
@@ -169,7 +169,7 @@ while ($bill = mysql_fetch_array($result))
 			WHERE id='.$bill['id'];
 	mysql_query($sql);
 	unset($copatron_count);
-	
+
 	# We don't want these variables gumming things up next time we loop through.
 	unset($copatrons);
 	unset($expired_copatrons);

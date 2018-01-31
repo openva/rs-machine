@@ -30,19 +30,19 @@ $sql = 'SELECT bills_full_text.id, bills_full_text.text
 $result = mysql_query($sql);
 if (mysql_num_rows($result) > 0)
 {
-	
+
 	# Fire up HTML Purifier.
 	$purifier = new HTMLPurifier();
-	
+
 	while ($bill = mysql_fetch_array($result))
 	{
-		
+
 		die(mb_detect_encoding($bill['text']));
-		
-		# Put the data back into the database, but clean it up first.			
+
+		# Put the data back into the database, but clean it up first.
 		# Run the text through HTML Purifier.
 		$bill['text'] = $purifier->purify($bill['text']);
-		
+
 		# We store the bill's text, and also reset the counter that tracks failed attempts
 		# to retrieve the text from the legislature's website.
 		$sql = 'UPDATE bills_full_text

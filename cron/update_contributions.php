@@ -23,32 +23,32 @@ $result = mysql_query($sql);
 # Iterate through each legislator, getting the data from the API and saving it for each one.
 while ($legislator = mysql_fetch_array($result))
 {
-	
+
 	# Create the URL for this committee query.
 	$url = 'http://openva.com/campaign-finance/committees/' . $legislator['sbe_id'] . '.json';
-	
+
 	# Get the JSON from the remote URL.
 	$json = get_content($url);
-	
+
 	# If that failed, go to the next legislator.
 	if ($json === FALSE)
 	{
 		continue;
 	}
-	
+
 	$contributions = json_decode($json);
-	
+
 	# Then get the list of individual contributions.
 	$url = 'http://openva.com/campaign-finance/contributions/' . $legislator['sbe_id'] . '.json';
-	
+
 	# Get the JSON from the remote URL.
 	$json = get_content($url);
-	
+
 	if ($json !== FALSE)
 	{
 		$contributions->List = json_decode($json);
 	}
-	
+
 	# Insert it into the database.
 	$sql = 'UPDATE representatives
 			SET contributions="' . addslashes(serialize($contributions)) . '"
@@ -62,5 +62,5 @@ while ($legislator = mysql_fetch_array($result))
 	{
 		echo '<p>Legislator ' . $legislator['name'] . ' unaffected.</p>';
 	}
-	
+
 }

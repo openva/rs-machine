@@ -2,11 +2,11 @@
 
 ###
 # Mirror the "Current Item" Functionality
-# 
+#
 # PURPOSE
 # Periodically copies the content of the legislature's page where they indicate the current status
 # of each chamber, updated every minute or so.
-# 
+#
 # NOTES
 # This should do a couple of things differently. For instance, when the legislature is recessed
 # for the day, it should at a minimum not record that fact. Better still, it should stop querying
@@ -17,7 +17,7 @@
 # all of the HTML, but only the body content.
 #
 ###
-	
+
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
@@ -41,7 +41,7 @@ if ( (date('G') >= 10) && (date('G') <= 16) )
 
 	$house = get_content('http://leg5.state.va.us/currentitem/house.htm');
 	$senate = get_content('http://leg5.state.va.us/currentitem/senate.htm');
-	
+
 	if (!empty($house))
 	{
 		$house = trim($house);
@@ -50,7 +50,7 @@ if ( (date('G') >= 10) && (date('G') <= 16) )
 				date=now(), text = "' . addslashes($house) . '"';
 		mysql_query($sql);
 	}
-	
+
 	if (!empty($senate))
 	{
 		$house = trim($senate);
@@ -59,5 +59,5 @@ if ( (date('G') >= 10) && (date('G') <= 16) )
 				date=now(), text = "' . addslashes($senate) . '"';
 		mysql_query($sql);
 	}
-	
+
 }

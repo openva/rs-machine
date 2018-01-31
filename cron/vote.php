@@ -25,10 +25,10 @@ $dlas_session_id = SESSION_LIS_ID;
 # Look up a legislator's ID.
 function lookup_leg_id($lis_id)
 {
-	
+
 	# Localize the list of legislators.
 	$legislators = $GLOBALS['legislators'];
-	
+
 	# Determine the chamber.
 	if ($lis_id{0} == 'H')
 	{
@@ -38,7 +38,7 @@ function lookup_leg_id($lis_id)
 	{
 		$chamber = 'senate';
 	}
-	
+
 	# Bizarrely, LIS often (but not always) identifies the House speaker
 	# as "Mr. Speaker" and uses the ID of "H0000," regardless of the real
 	# ID of that delegate.  Translate that ID here.
@@ -46,11 +46,11 @@ function lookup_leg_id($lis_id)
 	{
 		$lis_id = HOUSE_SPEAKER_LIS_ID;
 	}
-	
+
 	# Translate the LIS ID, stripping letters and removing leading 0s.
 	$lis_id = ereg_replace('[A-Z]', '', $lis_id);
 	$lis_id = round($lis_id);
-	
+
 	for ($i=0; $i<count($legislators); $i++)
 	{
 		if (($legislators[$i]['lis_id'] == $lis_id) && ($legislators[$i]['chamber'] == $chamber))
@@ -59,16 +59,16 @@ function lookup_leg_id($lis_id)
 		}
 	}
 	return FALSE;
-	
+
 }
 
 # Look up a committee's ID.
 function lookup_com_id($lis_id)
 {
-	
+
 	# Localize the list of legislators.
 	$committees = $GLOBALS['committees'];
-	
+
 	# Determine the chamber.
 	if ($lis_id{0} == 'H')
 	{
@@ -78,11 +78,11 @@ function lookup_com_id($lis_id)
 	{
 		$chamber = 'senate';
 	}
-	
+
 	# Translate the LIS ID, stripping letters and removing leading 0s.
 	$lis_id = substr($lis_id, 1, 2);
 	$lis_id = round($lis_id);
-	
+
 	for ($i=0; $i<count($committees); $i++)
 	{
 		if (($committees[$i]['lis_id'] == $lis_id) && ($committees[$i]['chamber'] == $chamber))
@@ -91,7 +91,7 @@ function lookup_com_id($lis_id)
 		}
 	}
 	return FALSE;
-	
+
 }
 
 # DECLARATIVE FUNCTIONS
@@ -102,7 +102,7 @@ $db = new PDO( PDO_DSN, PDO_USERNAME, PDO_PASSWORD, array(PDO::ATTR_ERRMODE => P
 # LEGISLATOR ID TRANSLATION
 $sql = 'SELECT id, lis_id, chamber
 		FROM representatives
-		WHERE date_ended IS NULL AND lis_id IS NOT NULL 
+		WHERE date_ended IS NULL AND lis_id IS NOT NULL
 		ORDER BY id ASC';
 $result = $db->query($sql);
 if ( ($result === FALSE) || ($result->rowCount() == 0) )
@@ -203,7 +203,7 @@ while (($vote = fgetcsv($fp, 2500, ',')) !== FALSE)
 		# If our list of votes for which we have no record doesn't contain this vote, then
 		# skip to the next line in the CSV file.
 		if (in_array($vote[0], $empty_votes))
-		{	
+		{
 			# Buld up an array of votes.
 			$votes[] = $vote;
 		}
@@ -224,10 +224,10 @@ if (!isset($votes) || count($votes) == 0)
 
 foreach ($votes as $vote)
 {
-		
+
 	# Get the LIS vote ID.
 	$lis_vote_id = $vote[0];
-	
+
 	# Get the chamber.
 	if ($lis_vote_id{0} == 'H')
 	{
@@ -237,12 +237,12 @@ foreach ($votes as $vote)
 	{
 		$chamber = 'senate';
 	}
-	
+
 	# Set some default variables.
 	$tally['Y'] = 0;
 	$tally['N'] = 0;
 	$tally['X'] = 0;
-	
+
 	# Iterate through the votes cast on this one bill.
 	for ($i=1; $i<count($vote); $i++)
 	{
@@ -267,7 +267,7 @@ foreach ($votes as $vote)
 			}
 		}
 	}
-	
+
 	# Turn the individual counts into a traditional representation of a vote
 	# count.
 	$final_tally = $tally['Y'].'-'.$tally['N'];
@@ -287,9 +287,9 @@ foreach ($votes as $vote)
 		$outcome = 'fail';
 	}
 	$tally = $final_tally;
-	
+
 	$vote_prefix = substr($lis_vote_id, 0, 3);
-	
+
 	# If there's a committee's LIS ID in the vote prefix then figure out
 	# the internal committee ID.  But LIS often provides a committee ID
 	# for floor votes, for no apparent reason.  For this reason, only assign
@@ -305,7 +305,7 @@ foreach ($votes as $vote)
 			$committee_id = lookup_com_id($vote_prefix);
 		}
 	}
-	
+
 	# Create a record for this vote.
 	$sql = 'INSERT INTO votes
 			SET lis_id="' . $lis_vote_id . '", tally="' . $tally . '", session_id="' . $session_id . '",
@@ -324,31 +324,31 @@ foreach ($votes as $vote)
 		$sql .= ' ON DUPLICATE KEY update total=total';
 	}
 	$result = $db->exec($sql);
-	
+
 	if ($result === FALSE)
 	{
 		$log->put('New vote could not be inserted into the database.' . $sql, 9);
 	}
-	
+
 	else
 	{
-		
+
 		# Get the ID for that vote.
 		$vote_id = $db->lastInsertID();
-		
+
 		# Iterate through the legislators' votes and insert them after reindexing the array.
 		$legislator = array_values($legislator);
 		for ($i=0; $i<count($legislator); $i++)
 		{
 			if (!empty($legislator[$i]['id']) && !empty($legislator[$i]['vote']))
 			{
-				
+
 				# Convert blank votes into the abstensions that they represent.
 				if ($legislator[$i]['vote'] == ' ')
 				{
 					$legislator[$i]['vote'] = 'A';
 				}
-				
+
 				$sql = 'INSERT DELAYED INTO representatives_votes
 						SET representative_id=' . $legislator[$i]['id'] . ',
 						vote="' . $legislator[$i]['vote'] . '", vote_id=' . $vote_id . ',
@@ -363,7 +363,7 @@ foreach ($votes as $vote)
 			}
 		}
 	}
-	
+
 	# Clear out the variables
 	unset($final_tally);
 	unset($outcome);
@@ -371,7 +371,7 @@ foreach ($votes as $vote)
 	unset($legislator);
 	unset($chamber);
 	unset($vote_id);
-	
+
 } // end looping the array of votes
 
 # Make sure that no floor votes have wrongly been tallied as committee votes.  This
