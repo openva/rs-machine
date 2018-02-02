@@ -35,7 +35,8 @@ $sources = array(
 foreach ($sources as $chamber => $url)
 {
 
-	$cache_file = '.video_rss_' . $chamber;
+	$cached_guids = '.video_guids_' . $chamber;
+	$cached_xml = '.video_xml_' . $chamber;
 
 	/*
 	 * Retrieve the RSS.
@@ -49,6 +50,20 @@ foreach ($sources as $chamber => $url)
 	}
 
 	/*
+	 * Compare this file to the cached XML.
+	 */
+	if ( file_exists($cached_xml) && ( md5($xml) == md5(file_get_contents($cached_xml)) ) )
+	{
+		$log->put('Video RSS for ' . ucfirst($chamber) . ' is unchanged.', 1);
+		exit();
+	}
+
+	/*
+	 * Save the XML to our cache.
+	 */
+	file_put_contents($cached_xml, $xml);
+
+	/*
 	 * Turn the XML into an object.
 	 */
 	$xml = simplexml_load_string($xml);
@@ -57,10 +72,10 @@ foreach ($sources as $chamber => $url)
 	 * Get the cached GUIDs.
 	 */
 	$guid_cache = array();
-	if (file_exists($cache_file))
+	if (file_exists($cached_guids))
 	{
 
-		$raw_cache = file_get_contents($cache_file);
+		$raw_cache = file_get_contents($cached_guids);
 		if ($raw_cache !== FALSE)
 		{
 			$guid_cache = unserialize($raw_cache);
@@ -92,7 +107,7 @@ foreach ($sources as $chamber => $url)
 	$videos = array();
 
 	/*
-	 * Iterate through each new GUID, to find it in the XML.
+	 * Iterate through each new GUID, to find in the XML.
 	 */
 	foreach ($new_guids as $guid)
 	{
@@ -152,8 +167,13 @@ foreach ($sources as $chamber => $url)
 					$committee = new Committee;
 					$committee->chamber = $chamber;
 					$committee->name = $committee_name;
-					$committee_id = $committee->get_id();
-
+					if ($committee->info() === FALSE)
+					{
+						break(2);
+					}
+					$committee_id = $committee->id;
+					print_r($committee);
+					die();
 				}
 
 				/*
@@ -192,14 +212,15 @@ foreach ($sources as $chamber => $url)
 	 */
 	if (count($videos) == 0)
 	{
+		$log->put('No new legislative videos found.', 1);
 		exit;
 	}
 
 	/*
-	 * But if we did find videos, iterate through them, see which are needed, and queue them in
-	 * SQS.
+	 * But if we did find probably-new videos, iterate through them, see which are needed, and
+	 * queue them in SQS.
 	 */
-	$sql = 'SELECT chamber, date,
+	$sql = 'SELECT chamber, date, committee_id,
 			CASE
 				WHEN committee_id IS NULL THEN "floor"
 				WHEN committee_id IS NOT NULL THEN "committee" END
@@ -214,7 +235,7 @@ foreach ($sources as $chamber => $url)
 	}
 
 	$existing_videos = array();
-	while ($existing_video = mysql_fetch_array($result))
+	while ($existing_video = mysql_fetch_assoc($result))
 	{
 		$existing_videos[] = $existing_video;
 	}
@@ -224,22 +245,28 @@ foreach ($sources as $chamber => $url)
 
 		/*
 		 * If we have this same video in the database already, don't save it again.
-		 *
-		 * IMPORTANT NOTE
-		 * As written, this will get no more than one committee video per chamber per day.
-		 * THAT'S DUMB. It's important to modify this to accommodate more.
 		 */
 		foreach ($existing_videos as $existing_video)
 		{
 			if (
-				($video['date'] == $existing_video['date'])
+				($video['date'] == str_replace('-', '', $existing_video['date']))
 				&&
 				($video['chamber'] == $existing_video['chamber'])
 				&&
 				($video['type'] == $existing_video['type'])
 			)
 			{
-				break(2);
+				if ($video['type'] == 'committee')
+				{
+					if ($video['committee_id'] == $existing_video['committee_id'])
+					{
+						break(2);
+					}
+				}
+				else
+				{
+					break(2);
+				}
 			}
 		}
 
@@ -253,8 +280,9 @@ foreach ($sources as $chamber => $url)
 			'MessageBody' 				=> json_encode($video)
 		]);
 
-		$log->put('Machine found new video, for ' . $video['date'] . ', at ' . $video['url']
-			. ', for the ' . ucfirst($video['chamber']) . '.', 5);
+		$log->put('Machine found new ' . (!empty($video['committee_id']) ? 'committee ' : '')
+			. 'video, for ' . $video['date'] . ', for the ' . ucfirst($video['chamber'])
+			. ', at: ' . $video['url']. '', 5);
 
 	}
 
@@ -285,7 +313,7 @@ foreach ($sources as $chamber => $url)
 /*
 * Write all item GUIDs back to the cache file.
 */
-if (file_put_contents($cache_file, serialize($guids)) === FALSE)
+if (file_put_contents($cached_guids, serialize($guids)) === FALSE)
 {
-	echo 'Could not cache GUIDs.';
+	$log->put('Could not cache video GUIDs.', 4);
 }
