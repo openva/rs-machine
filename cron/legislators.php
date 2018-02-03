@@ -44,6 +44,7 @@ $sql = 'SELECT name, chamber, lis_id
 $stmt = $dbh->prepare($sql);
 $stmt->execute();
 $known_legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
+
 foreach ($known_legislators as &$known_legislator)
 {
 	if ( ($known_legislator->lis_id[0] != 'S') && ($known_legislator->lis_id[0] != 'H') )
@@ -68,7 +69,7 @@ if (count($known_legislators) > 140)
 /*
  * Get senators. Their Senate ID (e.g., "S100") is the key, their name is the value.
  */
-$html = get_content('http://apps.senate.virginia.gov/Senator/index.php');
+$html = get_content('https://apps.senate.virginia.gov/Senator/index.php');
 preg_match_all('/id=S([0-9]{2,3})(?:.*)<u>(.+)<\/u>/', $html, $senators);
 $tmp = array();
 $i=0;
