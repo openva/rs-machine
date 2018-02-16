@@ -176,23 +176,23 @@ if ($vote === FALSE)
 }
 
 # If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
-if (file_exists('vote.csv'))
+if (file_exists(__DIR__ . '/vote.csv'))
 {
-	if (md5($vote) == md5_file('vote.csv'))
+	if (md5($vote) == md5_file(__DIR__ . '/vote.csv'))
 	{
 		$log->put('vote.csv was unchanged since the last update.', 2);
 		return FALSE;
 	}
 }
 
-if (!file_put_contents('vote.csv', $vote))
+if (!file_put_contents(__DIR__ . '/vote.csv', $vote))
 {
 	$log->put('Could not save vote.csv.', 9);
 	return FALSE;
 }
 
 # Open the resulting file.
-$fp = fopen('vote.csv','r');
+$fp = fopen(__DIR__ . '/vote.csv','r');
 
 # Step through each row in the CSV file, one by one.
 while (($vote = fgetcsv($fp, 2500, ',')) !== FALSE)
