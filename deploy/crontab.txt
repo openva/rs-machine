@@ -4,8 +4,8 @@
 # The update script that handles the advancing of bills. This runs hourly at 2 after, 2 minutes after DLAS outputs their data.
 02 6-23 * * * /usr/bin/php rs-machine/cron/update.php history
 
-# The daily script that collects and tallies votes. This runs at 2:05, 5 minutes after DLAS outputs their data.
-05 2 * * * /usr/bin/php rs-machine/cron/update.php vote
+# The daily script that collects and tallies votes. This runs at 3:00, an hour after DLAS outputs their data.
+0 3 * * * /usr/bin/php rs-machine/cron/update.php vote
 
 # Collects scheduled meetings and hearings.
 09 6-15 * * * /usr/bin/php rs-machine/cron/update.php dockets
@@ -14,7 +14,7 @@
 0 6,9,12,15,18,21 * * * /usr/bin/php rs-machine/cron/update.php minutes
 
 # Update the bill summaries.
-10,20,30,40,50 * * * * /usr/bin/php rs-machine/cron/update.php summaries
+10,20,30,40,50 6-23 * * * /usr/bin/php rs-machine/cron/update.php summaries
 
 # Update the bill full text.
 11,21,31,41,51 * * * * /usr/bin/php rs-machine/cron/update.php full_text
