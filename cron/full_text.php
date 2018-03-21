@@ -152,7 +152,12 @@ while ($text = mysql_fetch_array($result))
 				WHERE id='.$text['id'];
 		mysql_query($sql);
 
-		$log->put('Full text of ' . $text['number'] . ' came up blank.', 5);
+		# Ignore bills that have been codified into law -- we don't need to be
+		# told about those.
+		if (strpos($text['number'], 'CHAP') !== FALSE)
+		{
+			$log->put('Full text of ' . $text['number'] . ' came up blank.', 5);
+		}
 
 	}
 }
