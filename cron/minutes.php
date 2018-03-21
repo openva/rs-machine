@@ -41,7 +41,7 @@ foreach ($chambers as $chamber => $listing_url)
 		}
 		elseif ($chamber == 'senate')
 		{
-			ereg('<a href="/cgi-bin/legp504.exe\?([0-9]{3})\+min\+([A-Za-z0-9]+)">([A-Za-z]+) ([0-9]+), ([0-9]{4})</a>', $line, $regs);
+			preg_match('#<a href="/cgi-bin/legp504.exe\?([0-9]{3})\+min\+([A-Za-z0-9]+)">([A-Za-z]+) ([0-9]+), ([0-9]{4})</a>#D', $line, $regs);
 		}
 
 		# We've found a match.

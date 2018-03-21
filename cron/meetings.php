@@ -107,7 +107,7 @@ if (mysql_num_rows($result) > 0)
 $html = get_content('http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+oth+MTG');
 
 # Extract the redirection URL.
-eregi('<a href="/cgi-bin/legp507.exe\?([0-9]{3})\+([a-z0-9]{3})">csv file</a>', $html, $regs);
+preg_match('#<a href="/cgi-bin/legp507.exe\?([0-9]{3})\+([a-z0-9]{3})">csv file</a>#Di', $html, $regs);
 if (!isset($regs) || !is_array($regs))
 {
 	return FALSE;
@@ -120,7 +120,7 @@ $redirect = get_content('http://leg1.state.va.us/cgi-bin/legp507.exe?'.$regs[1].
 unset($regs);
 
 # Extract the CSV URL.
-eregi('<a href="(.*)">here</a>', $redirect, $regs);
+preg_match('#<a href="(.*)">here</a>#Di', $redirect, $regs);
 if (!isset($regs) || !is_array($regs))
 {
 	return FALSE;
@@ -170,11 +170,11 @@ foreach ($csv as &$meeting)
 	$meeting['description'] = str_replace('"', '', $meeting['description']);
 
 	# Determine which chamber that this meeting pertains to.
-	if (eregi('house', $meeting['description']) !== true)
+	if (preg_match('/house/Di', $meeting['description']) !== true)
 	{
 		$meeting['chamber'] = 'house';
 	}
-	elseif (eregi('senate', $meeting['description']) !== true)
+	elseif (preg_match('/senate/Di', $meeting['description']) !== true)
 	{
 		$meeting['chamber'] = 'senate';
 	}
