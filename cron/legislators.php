@@ -60,7 +60,7 @@ foreach ($known_legislators as &$known_legislator)
 	}
 }
 
-$log->put('Loaded ' . count($known_legislators) . ' from local database.', 1);
+$log->put('Loaded ' . count($known_legislators) . ' legislators from local database.', 1);
 if (count($known_legislators) > 140)
 {
 	$log->put('There are ' . count($known_legislators) . ' legislators in the database—too many.', 5);
