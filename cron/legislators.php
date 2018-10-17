@@ -14,7 +14,7 @@ function get_legislator_data($chamber, $lis_id)
 
 	if ($chamber == 'house')
 	{
-		$url = 'http://virginiageneralassembly.gov/house/members/members.php?ses=2018&id='
+		$url = 'https://virginiageneralassembly.gov/house/members/members.php?ses=' . SESSION_YEAR . '&id='
 			. $lis_id;
 		$html = file_get_contents($url);
 		$dom = HtmlDomParser::str_get_html($html);
@@ -86,7 +86,7 @@ $log->put('Retrieved ' . count($senators) . ' senators from senate.virginia.gov.
 /*
  * Get delegates. Their House ID (e.g., "H0200") is the key, their name is the value.
  */
-$html = get_content('http://virginiageneralassembly.gov/house/members/members.php?ses=' . SESSION_YEAR);
+$html = get_content('https://virginiageneralassembly.gov/house/members/members.php?ses=' . SESSION_YEAR);
 preg_match_all('/id=\'member\[H([0-9]+)\]\'><td width="190px"><a class="bioOpener" href="#">(.*?)<\/a>/m', $html, $delegates);
 $tmp = array();
 $i=0;

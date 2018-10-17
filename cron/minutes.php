@@ -20,7 +20,7 @@ if (mysql_num_rows($result) > 0)
 	}
 }
 
-$chambers['house'] = 'http://virginiageneralassembly.gov/house/minutes/list.php?ses=' . SESSION_LIS_ID;
+$chambers['house'] = 'https://virginiageneralassembly.gov/house/minutes/list.php?ses=' . SESSION_LIS_ID;
 $chambers['senate'] = 'http://leg1.state.va.us/cgi-bin/legp504.exe?ses=' . SESSION_LIS_ID . '&typ=lnk&val=07';
 
 foreach ($chambers as $chamber => $listing_url)
