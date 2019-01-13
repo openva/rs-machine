@@ -29,7 +29,7 @@ $sqs_client = new SqsClient([
 
 $today = date('Ymd');
 
-$chamber = 'senate';
+$chamber = 'house';
 $url = 'https://sg001-harmony.sliq.net/00304/Harmony/en/View/EventListView/' . $today . '/-1';
 
 
@@ -43,8 +43,8 @@ $json = get_content($url);
 
 if ($json === FALSE)
 {
-	echo 'JSON could not be retrieved';
-	continue;
+	$log->put('Video JSON for ' . ucfirst($chamber) . ' could not be retrieved.', 4);
+	exit;
 }
 
 /*
@@ -53,7 +53,7 @@ if ($json === FALSE)
 if ( file_exists($cached_json) && ( md5($json) == md5(file_get_contents($cached_json)) ) )
 {
 	$log->put('Video RSS for ' . ucfirst($chamber) . ' is unchanged.', 1);
-	continue;
+	exit;
 }
 
 /*
@@ -118,7 +118,7 @@ foreach ($video_list->Weeks as $week)
 	foreach ($week->ContentEntitityDatas as $video)
     {
 		
-		if (in_array($video->Id, $new_guids)
+		if (in_array($video->Id, $new_guids))
 		{
 
 			/*
