@@ -28,7 +28,6 @@ $sqs_client = new SqsClient([
 ]);
 
 $sources = array(
-			'house' => 'http://virginia-house.granicus.com/VPodcast.php?view_id=3',
 			'senate' => 'http://virginia-senate.granicus.com/VPodcast.php?view_id=3'
 			);
 
