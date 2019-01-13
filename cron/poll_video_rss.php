@@ -55,7 +55,7 @@ foreach ($sources as $chamber => $url)
 	if ( file_exists($cached_xml) && ( md5($xml) == md5(file_get_contents($cached_xml)) ) )
 	{
 		$log->put('Video RSS for ' . ucfirst($chamber) . ' is unchanged.', 1);
-		exit();
+		continue;
 	}
 
 	/*
