@@ -30,7 +30,7 @@ $sqs_client = new SqsClient([
 $today = date('Ymd');
 
 $chamber = 'house';
-$url = 'https://sg001-harmony.sliq.net/00304/Harmony/en/View/EventListView/' . $today . '/-1';
+$html_url = 'https://sg001-harmony.sliq.net/00304/Harmony/en/api/Data/GetListViewData?categoryId=-1&fromDate=' . $today;
 
 
 $cached_guids = '.video_guids_' . $chamber;
@@ -39,7 +39,7 @@ $cached_json = '.video_json_' . $chamber;
 /*
  * Retrieve the JSON for the main listing.
  */
-$json = get_content($url);
+$json = get_content($html_url);
 
 if ($json === FALSE)
 {
@@ -62,7 +62,7 @@ if ( file_exists($cached_json) && ( md5($json) == md5(file_get_contents($cached_
 file_put_contents($cached_json, $json);
 
 /*
- * Turn the XML into an object.
+ * Turn the JSON into an object.
  */
 $video_list = json_decode($json);
 
@@ -88,9 +88,9 @@ $guids = array();
 foreach ($video_list->Weeks as $week)
 {
 
-	foreach ($week->ContentEntitityDatas as $video)
+	foreach ($week->ContentEntityDatas as $video)
     {
-        $guids[] = $item->Id;
+        $guids[] = $video->Id;
 	}
 	
 }
@@ -115,7 +115,7 @@ $videos = array();
 foreach ($video_list->Weeks as $week)
 {
 
-	foreach ($week->ContentEntitityDatas as $video)
+	foreach ($week->ContentEntityDatas as $video)
     {
 		
 		if (in_array($video->Id, $new_guids))
@@ -160,7 +160,8 @@ foreach ($video_list->Weeks as $week)
 				$committee = new Committee;
 				$committee->chamber = $chamber;
 				$committee->name = $committee_name;
-				if ($committee->info() === FALSE)
+				$committee_id = $committee->get_id();
+				if ($committee_id === FALSE)
 				{
 					$log->put('Could not identify committee “' . $committee_name
 						. '” — skipping this video.', 3);
@@ -171,11 +172,26 @@ foreach ($video_list->Weeks as $week)
 			}
 
 			/*
+			 * Figure out the video's URL.
+			 */
+			$video_url = 'https://sg001-harmony.sliq.net/00304/Harmony/en/PowerBrowser/PowerBrowserV2/' . $date . '/-1/' . $video->Id;
+			$video_html = get_content($video_url);
+
+			$pattern_match = '/.*"Url":"(.+).mp4".*/';
+			if (preg_match($pattern_match, $video_html, $matches) != true)
+			{
+				$log->put('Skipping video, because no video URL could be found on the web page: '
+					. $video_url , 3);
+                continue;
+            }
+			$url = $matches[1];
+
+			/*
 			 * Put together our final array of data about this video.
 			 */
 			$video_data =  array(
 				'date' => $date,
-				'url' => (string) $item->enclosure['url'],
+				'url' => $url,
 				'chamber' => $chamber,
 				'type' => $type
 			);
