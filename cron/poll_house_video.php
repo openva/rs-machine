@@ -174,17 +174,29 @@ foreach ($video_list->Weeks as $week)
 			/*
 			 * Figure out the video's URL.
 			 */
-			$video_url = 'https://sg001-harmony.sliq.net/00304/Harmony/en/PowerBrowser/PowerBrowserV2/' . $date . '/-1/' . $video->Id;
-			$video_html = get_content($video_url);
+			$video_url = 'https://sg001-harmony.sliq.net/00304/Harmony/en/PowerBrowser/PowerBrowserV2/'
+				. $date . '/-1/' . $video->Id;
+			
+			/*
+			 * We use cURL directly, instead of our get_content() function, so that we can fake a
+			 * user agent here.
+			 */
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)');
+			curl_setopt($ch, CURLOPT_URL, $video_url);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			$video_html = curl_exec($ch);
+			curl_close($ch);
 
-			$pattern_match = '/.*"Url":"(.+).mp4".*/';
+			$pattern_match = '/"Url":"(.+.mp4)"/';
+			preg_match($pattern_match, $video_html, $matches);
+			$url = $matches[1];
 			if (preg_match($pattern_match, $video_html, $matches) != true)
 			{
 				$log->put('Skipping video, because no video URL could be found on the web page: '
 					. $video_url , 3);
                 continue;
             }
-			$url = $matches[1];
 
 			/*
 			 * Put together our final array of data about this video.
@@ -296,9 +308,6 @@ foreach ($videos as &$video)
 		. ', at: ' . $video['url']. '', 5);
 
 }
-///////////////
-die();
-///////////////
 
 /*
 * Start up the video-processing EC2 instance.
