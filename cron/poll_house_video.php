@@ -300,6 +300,7 @@ foreach ($videos as &$video)
 		'MessageDeduplicationId'	=> mt_rand(),
 		'QueueUrl'    				=> 'https://sqs.us-east-1.amazonaws.com/947603853016/rs-video-harvester.fifo',
 		'MessageBody' 				=> json_encode($video)
+	]);
 
 	$log->put('Machine found new ' . (!empty($video['committee_id']) ? 'committee ' : '')
 		. 'video, for ' . $video['date'] . ', for the ' . ucfirst($video['chamber'])
