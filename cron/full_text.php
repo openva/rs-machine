@@ -154,7 +154,7 @@ while ($text = mysql_fetch_array($result))
 
 		# Ignore bills that have been codified into law -- we don't need to be
 		# told about those.
-		if (strpos($text['number'], 'CHAP') !== FALSE)
+		if (mb_stripos($text['number'], 'CHAP') === FALSE)
 		{
 			$log->put('Full text of ' . $text['number'] . ' came up blank.', 5);
 		}
