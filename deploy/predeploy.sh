@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Change the timezone to Eastern
-sudo cp /usr/share/zoneinfo/US/Eastern /etc/localtime
+sudo timedatectl set-timezone EST
 
 # Remove all PHP packages (they may well be PHP 7)
 #sudo apt-get -y purge `dpkg -l | grep php| awk '{print $2}' |tr "\n" " "`
