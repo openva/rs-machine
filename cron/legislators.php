@@ -151,7 +151,7 @@ foreach ($senators as $lis_id => $name)
 
 	}
 
-	if ($match == FALSE)
+	if ($match == FALSE && $name != 'Vacant')
 	{
 		$log->put('Senator missing from the database: ' . $name . ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
 	}
@@ -174,7 +174,7 @@ foreach ($delegates as $lis_id => $name)
 
 	}
 
-	if ($match == FALSE)
+	if ($match == FALSE && $name != 'Vacant')
 	{
 		$log->put('Delegate missing from the database: ' . $name . ' (http://virginiageneralassembly.gov/house/members/members.php?id='. $lis_id . ')', 6);
 	}
