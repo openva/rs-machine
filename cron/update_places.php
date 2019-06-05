@@ -95,8 +95,8 @@ if (mysql_num_rows($result) > 0)
 		);
 		foreach ($fields as $key=>$value)
 		{
-			$query_string .= $key.'='.urlencode($value).'&'
-		};
+			$query_string .= $key.'='.urlencode($value).'&';
+		}
 		$query_string = rtrim($query_string,'&');
 
 		/*
