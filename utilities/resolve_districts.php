@@ -1,6 +1,8 @@
+<!doctype html>
 <html>
 <head>
 	<meta http-equiv="refresh" content="5" />
+	<title>Resolve Districts</title>
 </head>
 <body>
 

@@ -1,5 +1,7 @@
+<!doctype html>
 <html>
 <head>
+	<title>Resolve ZIPs</title>
 </head>
 <body>
 

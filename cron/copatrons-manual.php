@@ -1,8 +1,10 @@
+<!doctype html>
 <html>
 <head>
 	<meta http-equiv="refresh" content="30" />
 	<meta http-equiv="cache-control" content="no-cache" />
 	<meta http-equiv="pragma" content="no-cache" />
+	<title>Manually Update Copatrons</title>
 </head>
 <body>
 <?php
