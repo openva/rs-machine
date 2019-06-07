@@ -96,8 +96,8 @@ if (mysql_num_rows($result) > 0)
 		foreach ($fields as $key=>$value)
 		{
 			$query_string .= $key.'='.urlencode($value).'&';
-			rtrim($fields_string,'&');
 		}
+		$query_string = rtrim($query_string,'&');
 
 		/*
 		 * Tell cURL the URL to which we'll be POSTing.
