@@ -228,19 +228,21 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	$bill['catch_line'] = trim($purifier->purify($bill['catch_line']));
 
 	# Prepare the data for the database.
-	$bill = array_map_multi('mysql_real_escape_string', $bill);
+	$bill = array_map(function ($field) {
+		return mysqli_real_escape_string($GLOBALS['db'], $field);
+	}, bill);
 
 	# Check to see if the bill is already in the database.
 	$sql = 'SELECT id
 			FROM bills
 			WHERE number="'.$bill['number'].'" AND session_id='.$session_id;
-	$result = mysql_query($sql);
+	$result = mysqli_query($GLOBALS['db'], $sql);
 
-	if (mysql_num_rows($result) > 0)
+	if (mysqli_num_rows($result) > 0)
 	{
 
 		$sql = 'UPDATE bills SET ';
-		$existing_bill = mysql_fetch_array($result);
+		$existing_bill = mysqli_fetch_assoc($result);
 		$sql_suffix = ' WHERE id=' . $existing_bill['id'];
 
 		# Now that we know we're updating a bill, rather than adding a new one, delete the bill from
@@ -283,7 +285,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$sql = $sql . $sql_suffix;
 	}
 
-	$result = mysql_query($sql);
+	$result = mysqli_query($GLOBALS['db'], $sql);
 
 	if ($result === FALSE)
 	{
@@ -299,7 +301,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 		# Get the last bill insert ID.
 		if (!isset($existing_bill['id']))
 		{
-			$bill['id'] = mysql_insert_id();
+			$bill['id'] = mysqli_insert_id($GLOBALS['db']);
 		}
 		else
 		{
@@ -315,7 +317,7 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 						SET bill_id = ' . $bill['id'] . ', number="' . $bill['text'][$i]['number'] . '",
 						date_introduced="' . $bill['text'][$i]['date'] . '", date_created=now()
 						ON DUPLICATE KEY UPDATE date_introduced=date_introduced';
-				mysql_query($sql);
+				mysqli_query($GLOBALS['db'], $sql);
 			}
 		}
 	}
