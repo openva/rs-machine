@@ -75,7 +75,7 @@ $tmp = array();
 $i=0;
 foreach ($senators[1] as $senator)
 {
-	$tmp['S'.$senator] = $senators[2][$i];
+	$tmp['S'.$senator] = trim($senators[2][$i]);
 	$i++;
 }
 $senators = $tmp;
@@ -92,7 +92,7 @@ $tmp = array();
 $i=0;
 foreach ($delegates[1] as $delegate)
 {
-	$tmp['H'.$delegate] = $delegates[2][$i];
+	$tmp['H'.$delegate] = trim($delegates[2][$i]);
 	$i++;
 }
 $delegates = $tmp;
