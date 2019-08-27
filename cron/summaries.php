@@ -134,7 +134,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 	 * time that we examined it.
 	 */
 	$hash = md5(serialize($summary));
-	$number = strtolower($bill['number']);
+	$number = strtolower($summary['number']);
 
 	if ( isset($hashes[$number]) && ($hash == $hashes[$number]) )
 	{
@@ -146,11 +146,11 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$hashes[$number] = $hash;
 		if (!isset($hashes[$number]))
 		{
-			$log->put('Adding summary ' . strtoupper($number) . '.', 2);
+			$log->put('Adding summary ' . $summary['number'] . '.', 2);
 		}
 		else
 		{
-			$log->put('Updating summary ' . strtoupper($number) . '.', 1);
+			$log->put('Updating summary ' . $summary['number'] . '.', 1);
 		}
 
 	}
@@ -198,7 +198,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 		$bill_id = $bills[strtolower($summary{number})];
 		if (empty($bill_id))
 		{
-			$log->put('Summary found for '. $summary['number']
+			$log->put('Summary found for ' . $summary['number']
 				. ', but we have no record of that bill.', 2);
 			continue;
 		}
