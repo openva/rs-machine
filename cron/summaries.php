@@ -208,8 +208,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 		 */
 		$sql = 'UPDATE bills
 				SET summary="' . mysql_real_escape_string($summary['text']) . '"
-				WHERE id=' . $bill_id . '
-				AND session_id = ' . $session_id;
+				WHERE id=' . $bill_id;
 		$result = mysql_query($sql);
 		if (!$result)
 		{
