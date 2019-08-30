@@ -213,7 +213,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 		if (!$result)
 		{
 			$log->put('Insertion of '. strtoupper($summary['number']) . ' summary failed. '
-				. 'Error: ' . mysql_error($result) . ' SQL: ' . $sql, 6);
+				. 'Error: ' . mysql_error() . ' SQL: ' . $sql, 6);
 		}
 
 	}
