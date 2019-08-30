@@ -4,37 +4,102 @@
 # UPDATE BILL SUMMARIES
 ###
 
-/*
- * Fetch the CSV file.
- */
-$summaries = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
-	. '@legis.state.va.us/fromdlas/csv' . $dlas_session_id . '/Summaries.csv');
-if (!$summaries || empty($summaries))
+class Import_Temp
 {
-	$log->put('Summaries.csv doesn’t exist on legis.state.va.us.', 8);
+
+	/*
+	* Fetch the CSV file.
+	*/
+	function summaries_fetch_file()
+	{
+
+		global $log;
+		$this->summaries = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
+			. '@legis.state.va.us/fromdlas/csv' . $this->dlas_session_id . '/Summaries.csv');
+		if (!$this->summaries || empty($this->summaries))
+		{
+			$log->put('Summaries.csv doesn’t exist on legis.state.va.us.', 8);
+			return FALSE;
+		}
+
+		/*
+		* Remove any white space.
+		*/
+		$this->summaries = trim($this->summaries);
+
+		return TRUE;
+
+	}
+
+	/*
+	 * See if the summaries have changed since the file was last downloaded.
+	 * Returns true if they have changed, false if they have not.
+	 */
+	function summaries_changed()
+	{
+
+		global $log;
+
+		if (!isset($this->summaries_csv_file))
+		{
+			$this->summaries_csv_file = 'summaries.csv';
+		}
+
+		/*
+		 * If the MD5 value of the new file is the same as the saved file, then there's
+		 * nothing to update.
+		 */
+		if (md5($this->summaries) == md5_file($this->summaries_csv_file))
+		{
+			$log->put('Not updating summaries, because summaries.csv has not been modified since'
+				. ' it was last downloaded.', 2);
+			return FALSE;
+		}
+
+		return TRUE;
+
+	}
+
+	/*
+	* Save the summaries locally.
+	*/
+	function summaries_save_file()
+	{
+
+		global $log;
+
+		if (!isset($this->summaries_csv_file))
+		{
+			$this->summaries_csv_file = 'summaries.csv';
+		}
+
+		if (file_put_contents(__DIR__ . $this->summaries_csv_file, $this->summaries) === FALSE)
+		{
+			$log->put('Summaries CSV could not be saved to the filesystem.', 8);
+			return FALSE;
+		}
+
+		return TRUE;
+
+	}
+
+}
+
+$import = new Import_Temp;
+$import->dlas_session_id = $dlas_session_id;
+if (!$import->fetch_summaries_file())
+{
+	return FALSE;
+}
+if (!$import->summaries_changed())
+{
+	return FALSE;
+}
+if (!$import->summaries_save_file())
+{
 	return FALSE;
 }
 
-# If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
-if (md5($summaries) == md5_file('summaries.csv'))
-{
-	$log->put('Not updating summaries, because summaries.csv has not been modified since it was last downloaded.', 2);
-	return FALSE;
-}
-
-/*
- * Remove any white space.
- */
-$summaries = trim($summaries);
-
-/*
- * Save the summaries locally.
- */
-if (file_put_contents(__DIR__ . '/summaries.csv', $summaries) === FALSE)
-{
-	$log->put('summaries.csv could not be saved to the filesystem.', 8);
-	return FALSE;
-}
 
 /*
  * Open the resulting file.
