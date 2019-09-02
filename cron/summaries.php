@@ -94,6 +94,13 @@ if (mysql_num_rows($result) > 0)
 $first = 'yes';
 
 /*
+ * This script often hits the default lock wait timeout of 50 seconds, resulting in the summary not
+ * being updated. We double it to 100, since there's no hurry here.
+ */
+$sql = 'SET innodb_lock_wait_timeout=100';
+mysql_query($sql);
+
+/*
  * Step through each row in the CSV file, one by one.
  */
 while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
