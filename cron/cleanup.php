@@ -728,6 +728,18 @@ $sql = 'UPDATE bills
 mysql_query($sql);
 
 ###
+# DELETE ORPHANED FULL TEXT
+# Any full text entries that have no associated bills can be erased.
+###
+$sql = 'DELETE FROM bills_full_text
+		WHERE text IS NULL
+		AND 
+			(SELECT COUNT(*)
+			FROM bills
+			WHERE id=bills_full_text.bill_id) = 0';
+mysql_query($sql);
+
+###
 # UPDATE VOTES CONTENTION RANKING
 # Calculate how contested that each vote was, on a 0-1 scale. Zero means that it passed unanimously,
 # while one means that it was a 50/50 vote.
