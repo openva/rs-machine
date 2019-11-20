@@ -228,10 +228,8 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	//$bill['catch_line'] = trim($purifier->purify($bill['catch_line']));
 
 	# Prepare the data for the database.
-	$bill = array_map(function ($field) {
-		return mysqli_real_escape_string($GLOBALS['db'], $field);
-	}, bill);
-
+	array_walk_recursive($bill, function($field) { $field = mysqli_real_escape_string($GLOBALS['db'], $field); } );
+	
 	# Check to see if the bill is already in the database.
 	$sql = 'SELECT id
 			FROM bills
