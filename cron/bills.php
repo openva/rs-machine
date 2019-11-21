@@ -1,123 +1,46 @@
 <?php
 
-# Retrieve the CSV data and save it to a local file. We make sure that it's non-empty because
-# otherwise, if the connection fails, we end up with a zero-length file.
-$bills = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
-	. '@legis.state.va.us/fromdlas/csv' . $dlas_session_id . '/BILLS.CSV');
-if (!$bills || empty($bills))
-{
-	$log->put('BILLS.CSV doesn’t exist on legis.state.va.us.', 8);
-	echo 'No data found on DLAS’s FTP server.';
-	return FALSE;
-}
-
-# If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
-if (md5($bills) == md5_file('bills.csv'))
-{
-	$log->put('Not updating bills, because bills.csv has not been modified since it was last downloaded.', 2);
-	return FALSE;
-}
-
-/*
- * Remove any white space.
+/**
+ *	Fetch the latest bill CSV
  */
-$bills = trim($bills);
-
-/*
- * Save the bills locally.
- */
-if (file_put_contents(__DIR__ . '/bills.csv', $bills) === FALSE)
+function update_bills_csv($url)
 {
-	$log->put('bills.csv could not be saved to the filesystem.', 8);
-	echo 'bills.csv could not be saved to the filesystem.';
-	return FALSE;
-}
 
-/*
- * Open the resulting file.
- */
-$fp = fopen(__DIR__ . '/bills.csv','r');
-if ($fp === FALSE)
-{
-	$log->put('bills.csv could not be read from the filesystem.', 8);
-	echo 'bills.csv could not be read from the filesystem.';
-	return FALSE;
-}
-
-/*
- * Also, retrieve our saved serialized array of hash data, so that we can only update or insert
- * bills that have changed, or that are new.
- */
-$hash_path = __DIR__ . '/hashes/bills-' . SESSION_ID . '.md5';
-if (file_exists($hash_path))
-{
-	$hashes = file_get_contents($hash_path);
-	if ($hashes !== FALSE)
+	if (empty($url))
 	{
-		$hashes = unserialize($hashes);
-	}
-	else
-	{
-		$hashes = array();
-	}
-}
-else
-{
-	if (!file_exists(__DIR__ . '/hashes/'))
-	{
-		mkdir(__DIR__ . '/hashes');
-	}
-	$hashes = array();
-}
-
-/*
- * Connect to Memcached, as we may well be interacting with it during this session.
- */
-$mc = new Memcached();
-$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
-
-/*
- * Set a flag that will allow us to ignore the header row.
- */
-$first = 'yes';
-
-/*
- * Step through each row in the CSV file, one by one.
- */
-while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
-{
-
-	# If this is something other than a header row, parse it.
-	if (isset($first))
-	{
-		unset($first);
-		continue;
+		return FALSE;
 	}
 
-	###
-	# Before we proceed any farther, see if this record is either new or different than last
-	# time that we examined it.
-	###
-	$hash = md5(serialize($bill));
-	$number = strtolower(trim($bill[0]));
+	$bills = get_content($url);
 
-	if ( isset($hashes[$number]) && ($hash == $hashes[$number]) )
+	if (!$bills || empty($bills))
 	{
-		continue;
+		$log->put('BILLS.CSV doesn’t exist on legis.state.va.us.', 8);
+		echo 'No data found on DLAS’s FTP server.';
+		return FALSE;
 	}
-	else
+
+	# If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
+	if (md5($bills) == md5_file('bills.csv'))
 	{
+		echo 'unchanged';
+		$log->put('Not updating bills, because bills.csv has not been modified since it was last downloaded.', 2);
+		return FALSE;
+	}
 
-		$hashes[$number] = $hash;
-		if (!isset($hashes[$number]))
-		{
-			$log->put('Adding ' . strtoupper($number) . '.', 3);
-		}
-		else
-		{
-			$log->put('Updating ' . strtoupper($number) . '.', 1);
-		}
+	return $bills;
 
+}
+
+/***
+ * Turn the CSV array into well-formatted, well-named fields.
+ */
+function prepare_bill($bill)
+{
+
+	if (empty($bill))
+	{
+		return FALSE;
 	}
 
 	# Provide friendlier array element names.
@@ -227,13 +150,116 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	# Purify the HTML and trim off the surrounding whitespace.
 	//$bill['catch_line'] = trim($purifier->purify($bill['catch_line']));
 
+	return $bill;
+
+}
+
+
+# Retrieve the CSV data and save it to a local file. We make sure that it's non-empty because
+# otherwise, if the connection fails, we end up with a zero-length file.
+$url = 'ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@legis.state.va.us/fromdlas/csv'
+	. $dlas_session_id . '/BILLS.CSV';
+$bills = update_bills_csv($url);
+if (!$bills)
+{
+	exit;
+}
+
+/*
+ * Remove any white space.
+ */
+$bills = trim($bills);
+
+/*
+ * Save the bills locally.
+ */
+if (file_put_contents(__DIR__ . '/bills.csv', $bills) === FALSE)
+{
+	$log->put('bills.csv could not be saved to the filesystem.', 8);
+	echo 'bills.csv could not be saved to the filesystem.';
+	return FALSE;
+}
+
+/*
+ * Also, retrieve our saved serialized array of hash data, so that we can only update or insert
+ * bills that have changed, or that are new.
+ */
+$hash_path = __DIR__ . '/hashes/bills-' . SESSION_ID . '.md5';
+if (file_exists($hash_path))
+{
+	$hashes = file_get_contents($hash_path);
+	if ($hashes !== FALSE)
+	{
+		$hashes = unserialize($hashes);
+	}
+	else
+	{
+		$hashes = array();
+	}
+}
+else
+{
+	if (!file_exists(__DIR__ . '/hashes/'))
+	{
+		mkdir(__DIR__ . '/hashes');
+	}
+	$hashes = array();
+}
+
+/*
+ * Connect to Memcached, as we may well be interacting with it during this session.
+ */
+$mc = new Memcached();
+$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+
+/*
+ * Step through each row in the CSV, one by one.
+ */
+$bills = explode("\n", $bills);
+unset($bills[0]);
+foreach ($bills as $bill)
+{
+
+	$bill = str_getcsv($bill, ',', '"');
+
+	###
+	# Before we proceed any farther, see if this record is either new or different than last
+	# time that we examined it.
+	###
+	$hash = md5(serialize($bill));
+	$number = strtolower(trim($bill[0]));
+
+	if ( isset($hashes[$number]) && ($hash == $hashes[$number]) )
+	{
+		continue;
+	}
+	else
+	{
+
+		$hashes[$number] = $hash;
+		if (!isset($hashes[$number]))
+		{
+			$log->put('Adding ' . strtoupper($number) . '.', 3);
+		}
+		else
+		{
+			$log->put('Updating ' . strtoupper($number) . '.', 1);
+		}
+
+	}
+
+	/*
+	 * Clean up the bill CSV
+	 */
+	$bill = prepare_bill($bill);
+
 	# Prepare the data for the database.
 	array_walk_recursive($bill, function($field) { $field = mysqli_real_escape_string($GLOBALS['db'], $field); } );
 	
 	# Check to see if the bill is already in the database.
 	$sql = 'SELECT id
 			FROM bills
-			WHERE number="'.$bill['number'].'" AND session_id='.$session_id;
+			WHERE number="' . $bill['number'] . '" AND session_id=' . $session_id;
 	$result = mysqli_query($GLOBALS['db'], $sql);
 
 	if (mysqli_num_rows($result) > 0)
@@ -255,15 +281,15 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 
 	# Now create the code to insert the bill or update the bill, depending
 	# on what the last query established for the preamble.
-	$sql .= 'number="'.$bill['number'].'", session_id="'.$session_id.'",
-			chamber="'.$bill['chamber'].'", catch_line="'.$bill['catch_line'].'",
+	$sql .= 'number="' . $bill['number'] . '", session_id="' . $session_id.'",
+			chamber="' . $bill['chamber'] . '", catch_line="' . $bill['catch_line'].'",
 			chief_patron_id=
 				(SELECT id
 				FROM representatives
 				WHERE
-					(lis_id = "'.$bill['chief_patron_id'].'"
+					(lis_id = "' . $bill['chief_patron_id'] . '"
 					OR
-					lis_shortname = "'.strtolower($bill['chief_patron']).'")
+					lis_shortname = "' . strtolower($bill['chief_patron']) . '")
 				AND (
 						(date_ended IS NULL)
 						OR
@@ -271,12 +297,12 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 						OR
 						(YEAR(date_ended) = YEAR(now()))
 					)
-				AND chamber = "'.$bill['chamber'].'"),
+				AND chamber = "' . $bill['chamber'] . '"),
 			last_committee_id=
 				(SELECT id
 				FROM committees
-				WHERE lis_id = "'.$bill['last_committee'].'" AND parent_id IS NULL
-				AND chamber = "'.$bill['last_committee_chamber'].'"),
+				WHERE lis_id = "' . $bill['last_committee'] . '" AND parent_id IS NULL
+				AND chamber = "' . $bill['last_committee_chamber'] . '"),
 			status="'.$bill['status'].'"';
 	if (isset($sql_suffix))
 	{
@@ -326,9 +352,6 @@ while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
 	unset($existing_bill);
 
 } // end looping through lines in this CSV file
-
-# Close the CSV file.
-fclose($fp);
 
 # Store our per-bill hashes array to a file, so that we can open it up next time and see which
 # bills have changed.
