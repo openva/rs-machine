@@ -35,11 +35,14 @@ function get_legislator_data($chamber, $lis_id)
 }
 
 /*
- * Retrieve a list of all active legislators' names and IDs.
+ * Retrieve a list of all active legislators' names and IDs. Though that's not *quite* right.
+ * Within a couple of weeks of the election, the legislature's website pretends that the departing
+ * legislators are already out office. New legislators are listed, departing ones are gone. To
+ * avoid two solid months of errors, instead we get a list of legislators with no end date.
  */
 $sql = 'SELECT name, chamber, lis_id
 		FROM representatives
-		WHERE date_ended IS NULL OR date_ended > now() AND date_started < now()
+		WHERE date_ended IS NULL
 		ORDER BY chamber ASC';
 $stmt = $dbh->prepare($sql);
 $stmt->execute();
