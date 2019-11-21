@@ -39,7 +39,7 @@ function get_legislator_data($chamber, $lis_id)
  */
 $sql = 'SELECT name, chamber, lis_id
 		FROM representatives
-		WHERE date_ended IS NULL OR date_ended > now()
+		WHERE date_ended IS NULL OR date_ended > now() AND date_started < now()
 		ORDER BY chamber ASC';
 $stmt = $dbh->prepare($sql);
 $stmt->execute();
@@ -126,7 +126,7 @@ foreach ($known_legislators as $known_legislator)
 	{
 		if (!isset($delegates[$id]))
 		{
-			$log->put('Error: Del. ' . $known_legislator->name . ' is no longer in office,  but is still listed in the database.', 5);
+			$log->put('Error: Del. ' . $known_legislator->name . ' is no longer in office, but is still listed in the database.', 5);
 		}
 	}
 
