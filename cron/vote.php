@@ -15,84 +15,12 @@ if (IN_SESSION == 'n')
 # Give this script 60 seconds to complete.
 set_time_limit(240);
 
+require 'includes/class.Import.php';
+
 # FUNDAMENTAL VARIABLES
 $session_id = SESSION_ID;
 $session_year = SESSION_YEAR;
 $dlas_session_id = SESSION_LIS_ID;
-
-# FUNCTIONS
-
-# Look up a legislator's ID.
-function lookup_leg_id($lis_id)
-{
-
-	# Localize the list of legislators.
-	$legislators = $GLOBALS['legislators'];
-
-	# Determine the chamber.
-	if ($lis_id{0} == 'H')
-	{
-		$chamber = 'house';
-	}
-	elseif ($lis_id{0} == 'S')
-	{
-		$chamber = 'senate';
-	}
-
-	# Bizarrely, LIS often (but not always) identifies the House speaker
-	# as "Mr. Speaker" and uses the ID of "H0000," regardless of the real
-	# ID of that delegate.  Translate that ID here.
-	if ($lis_id == 'H0000')
-	{
-		$lis_id = HOUSE_SPEAKER_LIS_ID;
-	}
-
-	# Translate the LIS ID, stripping letters and removing leading 0s.
-	$lis_id = preg_replace('/[A-Z]/D', '', $lis_id);
-	$lis_id = round($lis_id);
-
-	for ($i=0; $i<count($legislators); $i++)
-	{
-		if (($legislators[$i]['lis_id'] == $lis_id) && ($legislators[$i]['chamber'] == $chamber))
-		{
-			return $legislators[$i]['id'];
-		}
-	}
-	return FALSE;
-
-}
-
-# Look up a committee's ID.
-function lookup_com_id($lis_id)
-{
-
-	# Localize the list of legislators.
-	$committees = $GLOBALS['committees'];
-
-	# Determine the chamber.
-	if ($lis_id{0} == 'H')
-	{
-		$chamber = 'house';
-	}
-	elseif ($lis_id{0} == 'S')
-	{
-		$chamber = 'senate';
-	}
-
-	# Translate the LIS ID, stripping letters and removing leading 0s.
-	$lis_id = substr($lis_id, 1, 2);
-	$lis_id = round($lis_id);
-
-	for ($i=0; $i<count($committees); $i++)
-	{
-		if (($committees[$i]['lis_id'] == $lis_id) && ($committees[$i]['chamber'] == $chamber))
-		{
-			return $committees[$i]['id'];
-		}
-	}
-	return FALSE;
-
-}
 
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
@@ -110,6 +38,7 @@ if ( ($result === FALSE) || ($result->rowCount() == 0) )
 	$log->put('No legislators were found in the database, which seems bad.', 10);
 	return FALSE;
 }
+$legislators = array();
 while ($legislator = $result->fetch(PDO::FETCH_ASSOC))
 {
 	$legislators[] = $legislator;
@@ -126,6 +55,7 @@ if ( ($result === FALSE) || ($result->rowCount() == 0) )
 	$log->put('No committees were found in the database, which seems bad.', 9);
 	return FALSE;
 }
+$committees = array();
 while ($committee = $result->fetch(PDO::FETCH_ASSOC))
 {
 	$committees[] = $committee;
@@ -248,7 +178,7 @@ foreach ($votes as $vote)
 	{
 		if (($i % 2) == 1)
 		{
-			$legislator[$i]['id'] = lookup_leg_id($vote[$i]);
+			$legislator[$i]['id'] = Import::lookup_legislator_id($legislators, $vote[$i]);
 		}
 		elseif (($i % 2) == 0)
 		{
@@ -302,7 +232,7 @@ foreach ($votes as $vote)
 		if ((($chamber == 'senate') && ($total < 25))
 			|| (($chamber == 'house') && ($total < 80)))
 		{
-			$committee_id = lookup_com_id($vote_prefix);
+			$committee_id = Import::lookup_committee_id($committees, $vote_prefix);
 		}
 	}
 

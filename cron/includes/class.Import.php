@@ -26,7 +26,6 @@ class Import
 		# If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
 		if (md5($bills) == md5_file('bills.csv'))
 		{
-			echo 'unchanged';
 			$log->put('Not updating bills, because bills.csv has not been modified since it was last downloaded.', 2);
 			return FALSE;
 		}
@@ -154,6 +153,72 @@ class Import
 		//$bill['catch_line'] = trim($purifier->purify($bill['catch_line']));
 
 		return $bill;
+
+	}
+
+	# Look up a legislator's ID.
+	function lookup_legislator_id($legislators, $lis_id)
+	{
+
+		# Determine the chamber.
+		if ($lis_id{0} == 'H')
+		{
+			$chamber = 'house';
+		}
+		elseif ($lis_id{0} == 'S')
+		{
+			$chamber = 'senate';
+		}
+
+		# Bizarrely, LIS often (but not always) identifies the House speaker
+		# as "Mr. Speaker" and uses the ID of "H0000," regardless of the real
+		# ID of that delegate.  Translate that ID here.
+		if ($lis_id == 'H0000')
+		{
+			$lis_id = HOUSE_SPEAKER_LIS_ID;
+		}
+
+		# Translate the LIS ID, stripping letters and removing leading 0s.
+		$lis_id = preg_replace('/[A-Z]/D', '', $lis_id);
+		$lis_id = round($lis_id);
+
+		for ($i=0; $i<count($legislators); $i++)
+		{
+			if (($legislators[$i]['lis_id'] == $lis_id) && ($legislators[$i]['chamber'] == $chamber))
+			{
+				return $legislators[$i]['id'];
+			}
+		}
+		return FALSE;
+
+	}
+
+	# Look up a committee's ID.
+	function lookup_committee_id($committees, $lis_id)
+	{
+
+		# Determine the chamber.
+		if ($lis_id{0} == 'H')
+		{
+			$chamber = 'house';
+		}
+		elseif ($lis_id{0} == 'S')
+		{
+			$chamber = 'senate';
+		}
+
+		# Translate the LIS ID, stripping letters and removing leading 0s.
+		$lis_id = substr($lis_id, 1, 2);
+		$lis_id = round($lis_id);
+
+		for ($i=0; $i<count($committees); $i++)
+		{
+			if (($committees[$i]['lis_id'] == $lis_id) && ($committees[$i]['chamber'] == $chamber))
+			{
+				return $committees[$i]['id'];
+			}
+		}
+		return FALSE;
 
 	}
 	
