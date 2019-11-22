@@ -29,6 +29,7 @@ before_install:
 install:
 - composer install
 script:
+- cd deploy/tests/ && php bills.php && cd ../..
 - find cron/*.php includes/*.php -print0 |xargs -0 -n1 -P8 php -l
   && ./deploy/config_variables.sh
   && sonar-scanner
