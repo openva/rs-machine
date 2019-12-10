@@ -5,7 +5,7 @@
  *
  * Loads data into Memcached preemptively.
  *
- * @usage	Must be invoked from within update_db.php.
+ * @usage	Must be invoked from within update.php.
  */
 
 /*

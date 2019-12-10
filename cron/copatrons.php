@@ -10,7 +10,7 @@
 #
 # NOTES
 # This won't work if called on its own--it will only function when invoked from within
-# update_db.php.
+# update.php.
 ###
 
 /*

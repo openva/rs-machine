@@ -8,11 +8,11 @@
 # PURPOSE
 # Does all of the nice conversions of data that make Richmond Sunlight something other than a
 # parroting of LIS data. This was actually written over the course of years--the above date is just
-# when it was forked off of update_db.php and put into its own file.
+# when it was forked off of update.php and put into its own file.
 #
 # NOTES
 # This won't work if called on its own--it will only function when invoked from within
-# update_db.php.
+# update.php.
 #
 ###
 
@@ -44,8 +44,8 @@ $result = $sql->execute();
 # During session, new bills are filed and syndicated via BILLS.CSV prior to
 # the availability of detailed information via the daily-published HISTORY.CSV.
 # To compensate for this, we simply set null introduction dates to equal today's
-# date.  The hope is that, for any of these that are inaccurate, they'll be
-# overridden by the HISTORY.CSV data down the line.  The reason that we do this
+# date. The hope is that, for any of these that are inaccurate, they'll be
+# overridden by the HISTORY.CSV data down the line. The reason that we do this
 # is that much of the site depends on having an introduction date.  We can't
 # make people wait 24 hours to see what's been introduced, so it makes more
 # sense to meet that minimum data level and move on.
@@ -726,6 +726,7 @@ $sql = 'UPDATE bills
 			FROM bills_copatrons
 			WHERE bill_id=bills.id)';
 mysql_query($sql);
+
 
 ###
 # DELETE ORPHANED FULL TEXT
