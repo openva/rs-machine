@@ -177,9 +177,9 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
 	$summary['text'] = strip_tags($summary['text'], '<b><i><em><strong>');
 
 	# Run the summary through HTML Purifier.
-	$config = HTMLPurifier_Config::createDefault();
-	$purifier = new HTMLPurifier($config);
-	$summary['text'] = $purifier->purify($summary['text']);
+	#$config = HTMLPurifier_Config::createDefault();
+	#$purifier = new HTMLPurifier($config);
+	#$summary['text'] = $purifier->purify($summary['text']);
 
 	# Clean up the bolding, so that we don't bold a blank space.
 	$summary['text'] = str_replace(' </b>', '</b> ', $summary['text']);
