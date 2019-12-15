@@ -35,18 +35,34 @@ function get_legislator_data($chamber, $lis_id)
 }
 
 /*
- * Retrieve a list of all active legislators' names and IDs. Though that's not *quite* right.
- * Within a couple of weeks of the election, the legislature's website pretends that the departing
- * legislators are already out office. New legislators are listed, departing ones are gone. To
- * avoid two solid months of errors, instead we get a list of legislators with no end date.
+ * Retrieve a list of all active delegates' names and IDs. Though that's not *quite* right.
+ * Within a couple of weeks of the election, the House's's website pretends that the departing
+ * delegates are already out office. New delegates are listed, departing ones are gone. To
+ * avoid two solid months of errors, instead we get a list of delegates with no end date.
  */
 $sql = 'SELECT name, chamber, lis_id
 		FROM representatives
-		WHERE date_ended IS NULL
-		ORDER BY chamber ASC';
+		WHERE chamber="house"
+			AND date_ended IS NULL';
 $stmt = $dbh->prepare($sql);
 $stmt->execute();
 $known_legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+/*
+ * Now get a list of senators. The Senate doesn't change their list of members until the day
+ * that a new session starts, so we need to use a slightly different query for them.
+ */
+$sql = 'SELECT name, chamber, lis_id
+		FROM representatives
+		WHERE chamber="senate"
+			AND date_started <= NOW()
+			AND (
+				date_ended IS NULL
+				OR
+				date_ended >= NOW())';
+$stmt = $dbh->prepare($sql);
+$stmt->execute();
+$known_legislators = array_merge($known_legislators, $stmt->fetchAll(PDO::FETCH_OBJ));
 
 foreach ($known_legislators as &$known_legislator)
 {
