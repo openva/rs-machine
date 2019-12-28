@@ -268,13 +268,14 @@ class Import
 		$lis_id = substr($lis_id, 1, 2);
 		$lis_id = round($lis_id);
 
-		for ($i=0; $i<count($committees); $i++)
+		foreach ($committees as $committee)
 		{
-			if (($committees[$i]['lis_id'] == $lis_id) && ($committees[$i]['chamber'] == $chamber))
+			if (($committee['lis_id'] == $lis_id) && ($committee['chamber'] == $chamber))
 			{
-				return $committees[$i]['id'];
+				return $committee['id'];
 			}
 		}
+		
 		return FALSE;
 
 	}
@@ -315,13 +316,28 @@ class Import
 	function committee_members_csv_parse($csv, $committees, $legislators)
 	{
 
-		$members = str_getcsv($csv);
+		if ( empty($csv) || !is_array($committees) || !is_array($legislators) )
+		{
+			return FALSE;
+		}
+
+		/*
+		 * Turn this CSV into a proper, indexed array
+		 */
+		$csv = explode("\n", $csv);
+		$labels = str_getcsv($csv[0]);
+		unset($csv[0]);
+		foreach($csv as $row)
+		{
+			$members[] = array_combine($labels, str_getcsv($row));
+		}
+		
 		if (!$members)
 		{
 			return FALSE;
 		}
 
-		foreach ($members as $member)
+		foreach ($members as &$member)
 		{
 			$member['committee_id'] = Import::lookup_committee_id($committees, $member['CMB_COMNO']);
 			$member['legislator_id'] = Import::lookup_legislator_id($legislators, $member['CMB_MBRNO']);
