@@ -156,6 +156,63 @@ class Import
 
 	}
 
+	/*
+	 * Generate a list of all committees
+	 */
+	function create_committee_list()
+	{
+
+        $database = new Database;
+        $database->connect_mysqli();
+
+		$sql = 'SELECT id, lis_id, chamber
+				FROM committees
+				WHERE parent_id IS NULL
+				ORDER BY id ASC';
+		$result = $db->query($sql);
+		if ( ($result === FALSE) || ($result->rowCount() == 0) )
+		{
+			$log->put('No committees were found in the database, which seems bad.', 9);
+			return FALSE;
+		}
+		$committees = array();
+		while ($committee = $result->fetch(PDO::FETCH_ASSOC))
+		{
+			$committees[] = $committee;
+		}
+
+		return $committees;
+
+	}
+
+	/*
+	 * Generate a list of all legislators
+	 */
+	function create_legislator_list()
+	{
+
+        $database = new Database;
+        $database->connect_mysqli();
+
+		$sql = 'SELECT id, lis_id, chamber
+				FROM legislators
+				ORDER BY id ASC';
+		$result = $db->query($sql);
+		if ( ($result === FALSE) || ($result->rowCount() == 0) )
+		{
+			$log->put('No legislators were found in the database, which seems bad.', 9);
+			return FALSE;
+		}
+		$legislators = array();
+		while ($legislator = $result->fetch(PDO::FETCH_ASSOC))
+		{
+			$legislators[] = $legislator;
+		}
+
+		return $legislators;
+
+	}
+
 	# Look up a legislator's ID.
 	function lookup_legislator_id($legislators, $lis_id)
 	{
@@ -219,6 +276,58 @@ class Import
 			}
 		}
 		return FALSE;
+
+	}
+
+	/*
+	 * Fetch the CSV listing committee members
+	 */
+	function committee_members_csv_fetch($dlas_session_id = SESSION_ID)
+	{
+
+		$url = 'ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@legis.state.va.us/fromdlas/csv'
+			. $dlas_session_id . '/CommitteeMembers.csv';$bills = get_content($url);
+
+		$members = get_content($url);
+
+		if (!$members || empty($members))
+		{
+			$log->put('CommitteeMembers.csv doesn’t exist on legis.state.va.us.', 8);
+			echo 'No committee member data found on DLAS’s FTP server.';
+			return FALSE;
+		}
+
+		# If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
+		if (md5($members) == md5_file('committee_members.csv'))
+		{
+			$log->put('Not updating committee members, because committee_members.csv has not been '
+				. ' modified since it was last downloaded.', 2);
+			return FALSE;
+		}
+
+		return $members;
+
+	}
+	
+	/*
+	 * Turn committee member CSV into an array ready to be inserted into the database
+	 */
+	function committee_members_csv_parse($csv, $committees, $legislators)
+	{
+
+		$members = str_getcsv($csv);
+		if (!$members)
+		{
+			return FALSE;
+		}
+
+		foreach ($members as $member)
+		{
+			$member['committee_id'] = Import::lookup_committee_id($committees, $member['CMB_COMNO']);
+			$member['legislator_id'] = Import::lookup_legislator_id($legislators, $member['CMB_MBRNO']);
+		}
+
+		return $members;
 
 	}
 	
