@@ -138,11 +138,11 @@ foreach ($bills as $bill)
 					OR
 					lis_shortname = "' . strtolower($bill['chief_patron']) . '")
 				AND (
-						(date_ended IS NULL)
+						date_ended IS NULL
 						OR
-						(YEAR(date_ended)+1 = YEAR(now()))
+						YEAR(date_ended)+1 = YEAR(now())
 						OR
-						(YEAR(date_ended) = YEAR(now()))
+						YEAR(date_ended) = YEAR(now())
 					)
 				AND chamber = "' . $bill['chamber'] . '"),
 			last_committee_id=
