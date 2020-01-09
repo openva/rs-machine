@@ -134,9 +134,7 @@ foreach ($bills as $bill)
 				(SELECT id
 				FROM representatives
 				WHERE
-					(lis_id = "' . $bill['chief_patron_id'] . '"
-					OR
-					lis_shortname = "' . strtolower($bill['chief_patron']) . '")
+					lis_id = "' . $bill['chief_patron_id'] . '"
 				AND (
 						date_ended IS NULL
 						OR
