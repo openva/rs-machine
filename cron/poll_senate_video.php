@@ -90,16 +90,27 @@ foreach ($sources as $chamber => $url)
 	{
 		$guids[] = (string) $item->guid;
 	}
-
+	
 	/*
 	 * If no GUIDs are new, then skip to the next chamber.
 	 */
-	$new_guids = array_diff($guids, $guid_cache);
-	if (count($new_guids) == 0)
+	if (count($guid_cache) > 0)
 	{
-		continue;
+		$new_guids = array_diff($guids, $guid_cache);
+		if (count($new_guids) == 0)
+		{
+			continue;
+		}
 	}
 
+	/*
+	 * Otherwise, treat all GUIDs as new.
+	 */
+	else
+	{
+		$new_guids = $guids;
+	}
+	
 	/*
 	 * We'll keep our new videos in this array.
 	 */
@@ -110,13 +121,13 @@ foreach ($sources as $chamber => $url)
 	 */
 	foreach ($new_guids as $guid)
 	{
-
+		
 		/*
 		 * Iterate through each XML item, to find this GUID.
 		 */
 		foreach ($xml->channel->item as $item)
 		{
-
+			
 			if ($item->guid == $guid)
 			{
 
@@ -157,7 +168,7 @@ foreach ($sources as $chamber => $url)
 				{
 
 					$title_parts = explode(' - ', $item->title);
-					$committee_name = $title_parts[0];
+					$committee_name = trim(preg_replace('|\((.+)\)|', '', $title_parts[0]));
 					$meeting_time = end($title_parts);
 
 					/*
@@ -171,8 +182,6 @@ foreach ($sources as $chamber => $url)
 						break(2);
 					}
 					$committee_id = $committee->id;
-					print_r($committee);
-					die();
 				}
 
 				/*
@@ -211,7 +220,7 @@ foreach ($sources as $chamber => $url)
 	 */
 	if (count($videos) == 0)
 	{
-		$log->put('No new legislative videos found.', 1);
+		$log->put('No new senate videos found.', 1);
 		exit;
 	}
 
