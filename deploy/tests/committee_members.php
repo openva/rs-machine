@@ -1,6 +1,6 @@
 <?php
 
-include '../../cron/includes/class.Import.php';
+include '../../includes/class.Import.php';
 
 /*
  * A sample committee members file
