@@ -19,7 +19,7 @@ $legislators = $import->create_legislator_list();
 
 if ($csv = $import->committee_members_csv_fetch())
 {
-    $members = $import->committee_members_csv_parse($csv, $committees, $legislators);
+    $new_members = $import->committee_members_csv_parse($csv, $committees, $legislators);
 }
 
 /*
@@ -27,6 +27,22 @@ if ($csv = $import->committee_members_csv_fetch())
  */
 $committee = new Committee();
 $committee->members();
-$legislators = $committee->members;
+$existing_members = $committee->members;
+
+exit('Make real, real sure you want to run this.');
+
+$database = new Database;
+$db = $database->connect_mysqli();
 
 // Store the new member list
+foreach ($new_members as $new_member)
+{
+
+    $sql = 'INSERT INTO committee_members
+            SET committee_id = ' . $new_member['committee_id'] . ',
+            representative_id = ' . $new_member['legislator_id'] . ',
+            date_started = "2020-01-08",
+            date_created=now()';
+    mysqli_query($db, $sql);
+
+}
