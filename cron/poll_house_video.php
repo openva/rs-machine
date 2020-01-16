@@ -30,8 +30,8 @@ $sqs_client = new SqsClient([
 $today = date('Ymd');
 
 $chamber = 'house';
-$html_url = 'https://sg001-harmony.sliq.net/00304/Harmony/en/api/Data/GetListViewData?categoryId=-1&fromDate=' . $today;
-
+$url = 'https://sg001-harmony.sliq.net/00304/Harmony/en/api/Data/GetRecentEndedEvents?lastModified=' 
+	. $today . '000000000';
 
 $cached_guids = '.video_guids_' . $chamber;
 $cached_json = '.video_json_' . $chamber;
@@ -39,11 +39,11 @@ $cached_json = '.video_json_' . $chamber;
 /*
  * Retrieve the JSON for the main listing.
  */
-$json = get_content($html_url);
+$json = get_content($url);
 
 if ($json === FALSE)
 {
-	$log->put('Video JSON for ' . ucfirst($chamber) . ' could not be retrieved.', 4);
+	$log->put('Video JSON for House could not be retrieved.', 4);
 	exit;
 }
 
@@ -52,7 +52,7 @@ if ($json === FALSE)
  */
 if ( file_exists($cached_json) && ( md5($json) == md5(file_get_contents($cached_json)) ) )
 {
-	$log->put('Video RSS for ' . ucfirst($chamber) . ' is unchanged.', 1);
+	$log->put('Video JSON for House is unchanged.', 1);
 	exit;
 }
 
@@ -85,10 +85,10 @@ if (file_exists($cached_guids))
  * Get all GUIDs from the JSON.
  */
 $guids = array();
-foreach ($video_list->Weeks as $week)
+foreach ($video_list->ContentEntityDatas as $section)
 {
 
-	foreach ($week->ContentEntityDatas as $video)
+	foreach ($section as $video)
     {
         $guids[] = $video->Id;
 	}
@@ -112,11 +112,11 @@ $videos = array();
 /*
  * Identify new videos and queue them for processing.
  */
-foreach ($video_list->Weeks as $week)
+foreach ($video_list->ContentEntityDatas as $section)
 {
 
-	foreach ($week->ContentEntityDatas as $video)
-    {
+	foreach ($section as $video)
+	{
 		
 		if (in_array($video->Id, $new_guids))
 		{
@@ -136,7 +136,11 @@ foreach ($video_list->Weeks as $week)
 			 * that aren't committees, e.g. select committees, page ceremonies, etc.
 			 * 
 			 */
-			if ($video->Location == 'House Chamber')
+			if (
+				$video->Location == 'House Chamber'
+				||
+				stripos($video->Title, 'Regular Session') !== FALSE
+			)
 			{
 				$type = 'floor';
 			}
@@ -151,7 +155,7 @@ foreach ($video_list->Weeks as $week)
 			if ($type == 'committee')
 			{
 
-				$committee_name = $video->Title;
+				$committee_name = str_replace('House', '', $video->Title);
 				$meeting_time = substr($video->ActualStart, -8);
 
 				/*
@@ -188,15 +192,16 @@ foreach ($video_list->Weeks as $week)
 			$video_html = curl_exec($ch);
 			curl_close($ch);
 
-			$pattern_match = '/"Url":"(.+.mp4)"/';
+			$pattern_match = '/"Url":"(.+\.mp4)/';
 			preg_match($pattern_match, $video_html, $matches);
-			$url = $matches[1];
 			if (preg_match($pattern_match, $video_html, $matches) != true)
 			{
 				$log->put('Skipping video, because no video URL could be found on the web page: '
 					. $video_url , 3);
                 continue;
-            }
+			}
+			
+			$url = $matches[1];
 
 			/*
 			 * Put together our final array of data about this video.
