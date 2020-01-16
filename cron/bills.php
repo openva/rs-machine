@@ -86,7 +86,7 @@ foreach ($bills as $bill)
 		$hashes[$number] = $hash;
 		if (!isset($hashes[$number]))
 		{
-			$log->put('Adding ' . strtoupper($number) . '.', 3);
+			$log->put('Adding ' . strtoupper($number) . '.', 4);
 		}
 		else
 		{
