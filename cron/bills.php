@@ -1,6 +1,6 @@
 <?php
 
-require('includes/class.Import.php');
+require('../includes/class.Import.php');
 
 # Retrieve the CSV data and save it to a local file. We make sure that it's non-empty because
 # otherwise, if the connection fails, we end up with a zero-length file.
