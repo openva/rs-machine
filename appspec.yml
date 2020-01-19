@@ -18,5 +18,5 @@ permissions:
 # BeforeInstall:
 #    - location: rs-machine/deploy/predeploy.sh
 # AfterInstall:
-#    - location: rs-machine/deploy/postdeploy.sh
+    - location: rs-machine/deploy/postdeploy.sh
 #    - location: php rs-machine/deploy/log_deployment.php
