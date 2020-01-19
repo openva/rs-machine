@@ -1,7 +1,5 @@
 <?php
 
-require('includes/class.Import.php');
-
 # Retrieve the CSV data and save it to a local file. We make sure that it's non-empty because
 # otherwise, if the connection fails, we end up with a zero-length file.
 $url = 'ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@legis.state.va.us/fromdlas/csv'
@@ -86,7 +84,7 @@ foreach ($bills as $bill)
 		$hashes[$number] = $hash;
 		if (!isset($hashes[$number]))
 		{
-			$log->put('Adding ' . strtoupper($number) . '.', 3);
+			$log->put('Adding ' . strtoupper($number) . '.', 4);
 		}
 		else
 		{

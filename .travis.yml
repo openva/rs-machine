@@ -29,7 +29,7 @@ before_install:
 install:
 - composer install
 script:
-- cd deploy/tests/ && php bills.php && cd ../..
+- cd deploy/tests/ && php bills.php && php committee_members.php && cd ../..
 - ./deploy/config_variables.sh
   && sonar-scanner
   && ./deploy/aws_credentials.sh
