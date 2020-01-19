@@ -288,9 +288,9 @@ foreach ($videos as &$video)
 		'MessageBody' 				=> json_encode($video)
 	]);
 
-	$log->put('Machine found new ' . (!empty($video['committee_id']) ? 'committee ' : '')
-		. 'video, for ' . $video['date'] . ', for the ' . ucfirst($video['chamber'])
-		. ', at: ' . $video['url']. '', 5);
+	$log->put('Machine found new ' . ucfirst($video['chamber']) . ' '
+		. (!empty($video['committee_id']) ? 'committee' : 'floor')
+		. ' video, for ' . $video['date'] . ', ' . ', at: ' . $video['url'], 5);
 
 }
 
