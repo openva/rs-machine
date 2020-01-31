@@ -149,14 +149,14 @@ while ($text = mysql_fetch_array($result))
 		# Increment the failed retrievals counter.
 		$sql = 'UPDATE bills_full_text
 				SET failed_retrievals = failed_retrievals+1
-				WHERE id='.$text['id'];
+				WHERE id=' . $text['id'];
 		mysql_query($sql);
 
 		# Ignore bills that have been codified into law -- we don't need to be
 		# told about those.
 		if (mb_stripos($text['number'], 'CHAP') === FALSE)
 		{
-			$log->put('Full text of ' . $text['number'] . ' came up blank.', 5);
+			$log->put('Full text of ' . $text['number'] . ' came up blank: ' . $url, 5);
 		}
 
 	}
