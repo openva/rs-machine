@@ -192,7 +192,7 @@ foreach ($video_list->ContentEntityDatas as $section)
 			$video_html = curl_exec($ch);
 			curl_close($ch);
 
-			$pattern_match = '/"Url":"(.+\.mp4)/';
+			$pattern_match = '/"Url":"(.+\.mp4)"/';
 			preg_match($pattern_match, $video_html, $matches);
 			if (preg_match($pattern_match, $video_html, $matches) != true)
 			{
