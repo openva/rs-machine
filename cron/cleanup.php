@@ -135,10 +135,8 @@ $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed committee"
-						WHERE status LIKE "Continued to :session_year%"
+						WHERE status LIKE "Continued to %"
 						AND translation IS NULL');
-$next_year = $session_year + 1;
-$sql->bindParam(':session_year', $next_year);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
