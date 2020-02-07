@@ -2,6 +2,8 @@
 
 include '../../includes/class.Import.php';
 
+$import = new Import();
+
 /*
  * A sample committee members file
  */
@@ -42,7 +44,7 @@ foreach ($committees as &$committee)
     $committee = (array) $committee;
 }
 
-$members = Import::committee_members_csv_parse($committee_members_csv, $committees, $legislators);
+$members = $import->committee_members_csv_parse($committee_members_csv, $committees, $legislators);
 
 if ($members[0]['legislator_id'] != 74)
 {
