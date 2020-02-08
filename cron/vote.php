@@ -15,12 +15,12 @@ if (IN_SESSION == 'n')
 # Give this script 60 seconds to complete.
 set_time_limit(240);
 
-require 'includes/class.Import.php';
-
 # FUNDAMENTAL VARIABLES
 $session_id = SESSION_ID;
 $session_year = SESSION_YEAR;
 $dlas_session_id = SESSION_LIS_ID;
+
+$import = new Import();
 
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
@@ -178,7 +178,7 @@ foreach ($votes as $vote)
 	{
 		if (($i % 2) == 1)
 		{
-			$legislator[$i]['id'] = Import::lookup_legislator_id($legislators, $vote[$i]);
+			$legislator[$i]['id'] = $import->lookup_legislator_id($legislators, $vote[$i]);
 		}
 		elseif (($i % 2) == 0)
 		{
@@ -232,7 +232,7 @@ foreach ($votes as $vote)
 		if ((($chamber == 'senate') && ($total < 25))
 			|| (($chamber == 'house') && ($total < 80)))
 		{
-			$committee_id = Import::lookup_committee_id($committees, $vote_prefix);
+			$committee_id = $import->lookup_committee_id($committees, $vote_prefix);
 		}
 	}
 
