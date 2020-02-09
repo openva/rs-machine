@@ -205,6 +205,11 @@ foreach ($new_guids as $guid)
 			}
 
 			/*
+			 * Instruct the video process to complete all video processing steps.
+			 */
+			$video_data['step_all'] = TRUE;
+
+			/*
 			* Append our array of video information to the list of all videos.
 			*/
 			$videos[] = $video_data;
