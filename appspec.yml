@@ -12,6 +12,6 @@ permissions:
        - directory
 hooks:
 # BeforeInstall:
-#    - location: rs-machine/deploy/predeploy.sh
+#    - location: deploy/predeploy.sh
   AfterInstall:
-    - location: rs-machine/deploy/postdeploy.sh
+    - location: deploy/postdeploy.sh
