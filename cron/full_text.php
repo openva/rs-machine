@@ -33,11 +33,12 @@ while ($text = mysql_fetch_array($result))
 {
 
 	# Retrieve the full text.
-	$url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . $text['lis_id'] . '+ful+'
+	$url = 'https://leg1.state.va.us/cgi-bin/legp504.exe?' . $text['lis_id'] . '+ful+'
 		. strtoupper($text['number']);
 	$ch = curl_init($url);
 	curl_setopt($ch, CURLOPT_HEADER, 0);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 	$full_text = curl_exec($ch);
 	curl_close($ch);
 
