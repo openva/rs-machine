@@ -133,11 +133,11 @@ $sql = $dbh->prepare('UPDATE bills_status
 					WHERE status LIKE "Failed to report%" AND translation IS NULL');
 $result = $sql->execute();
 
-$sql = $dbh->prepare('UPDATE bills_status
+/*$sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed committee"
 						WHERE status LIKE "Continued to %"
 						AND translation IS NULL');
-$result = $sql->execute();
+$result = $sql->execute();*/
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed committee"
