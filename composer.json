@@ -5,7 +5,7 @@
     "require": {
         "phpmailer/phpmailer": "~6.1",
         "ezyang/htmlpurifier":"~4.9",
-        "aws/aws-sdk-php": "~2.8",
+        "aws/aws-sdk-php": "~3.186",
         "sunra/php-simple-html-dom-parser": "1.5.2"
     }
 }
