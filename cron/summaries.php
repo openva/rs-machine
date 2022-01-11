@@ -7,11 +7,12 @@
 /*
  * Fetch the CSV file.
  */
-$summaries = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
-	. '@legis.state.va.us/fromdlas/csv' . $dlas_session_id . '/Summaries.csv');
+$summaries = get_content('sftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
+	. '@sftp.dlas.virginia.gov/CSV'
+	. $dlas_session_id . '/csv'. $dlas_session_id .'/Summaries.csv');
 if (!$summaries || empty($summaries))
 {
-	$log->put('Summaries.csv doesn’t exist on legis.state.va.us.', 8);
+	$log->put('Summaries.csv doesn’t exist on sftp.dlas.virginia.gov.', 8);
 	return FALSE;
 }
 

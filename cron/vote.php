@@ -96,12 +96,12 @@ while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC))
 }
 
 # Retrieve the CSV data and save it to a local file.
-$vote = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@legis.state.va.us/fromdlas/csv'
-	. $dlas_session_id . '/VOTE.CSV');
+$vote = get_content('sftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@sftp.dlas.virginia.gov/CSV'
+	. $dlas_session_id . '/csv'. $dlas_session_id .'/VOTE.CSV');
 
 if ($vote === FALSE)
 {
-	$log->put('vote.csv couldn’t be retrieved from legis.state.va.us.', 8);
+	$log->put('vote.csv couldn’t be retrieved from sftp.dlas.virginia.gov.', 8);
 	return FALSE;
 }
 

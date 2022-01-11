@@ -2,8 +2,8 @@
 
 # Retrieve the CSV data and save it to a local file. We make sure that it's non-empty because
 # otherwise, if the connection fails, we end up with a zero-length file.
-$url = 'ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@legis.state.va.us/fromdlas/csv'
-	. $dlas_session_id . '/BILLS.CSV';
+$url = 'sftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@sftp.dlas.virginia.gov/CSV'
+. $dlas_session_id . '/csv'. $dlas_session_id .'/BILLS.CSV';
 $bills = Import::update_bills_csv($url);
 if (!$bills)
 {

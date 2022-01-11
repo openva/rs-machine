@@ -5,12 +5,12 @@ if (isset($_GLOBAL['history']))
 {
 
 	# Retrieve the CSV data and save it to a local file.
-	$history = get_content('ftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
-		. '@legis.state.va.us/fromdlas/csv' . $dlas_session_id . '/HISTORY.CSV');
+	$history = get_content('sftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@sftp.dlas.virginia.gov/CSV'
+	. $dlas_session_id . '/csv'. $dlas_session_id .'/HISTORY.CSV');
 
 	if (!$history || empty($history))
 	{
-		$log->put('HISTORY.CSV doesn’t exist on legis.state.va.us.', 8);
+		$log->put('HISTORY.CSV doesn’t exist on sftp.dlas.virginia.gov.', 8);
 		echo 'No history data found on DLAS’s FTP server.';
 		return FALSE;
 	}
