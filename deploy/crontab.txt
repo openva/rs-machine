@@ -1,10 +1,15 @@
 # The core update script. This runs hourly at 55 after, 4 minutes after DLAS outputs their data
+55 6-23 * * * rs-machine/cron/sftp.sh BILLS.CSV rs-machine/cron/bills.csv
+55 6-23 * * * rs-machine/cron/sftp.sh HISTORY.CSV rs-machine/cron/history.csv
+55 6-23 * * * rs-machine/cron/sftp.sh Committees.csv rs-machine/cron/committees.csv
 55 6-23 * * * /usr/bin/php rs-machine/cron/update.php
 
 # The update script that handles the advancing of bills. This runs hourly at 2 after, 2 minutes after DLAS outputs their data.
+02 6-23 * * * rs-machine/cron/sftp.sh HISTORY.CSV rs-machine/cron/history.csv
 02 6-23 * * * /usr/bin/php rs-machine/cron/update.php history
 
 # The daily script that collects and tallies votes. This runs at 3:00, an hour after DLAS outputs their data.
+0 3 * * * rs-machine/cron/sftp.sh VOTE.CSV rs-machine/cron/vote.csv
 0 3 * * * /usr/bin/php rs-machine/cron/update.php vote
 
 # Collects scheduled meetings and hearings.
@@ -14,6 +19,7 @@
 0 6,9,12,15,18,21 * * * /usr/bin/php rs-machine/cron/update.php minutes
 
 # Update the bill summaries (which is updated daily at 11:53).
+59 11 * * * rs-machine/cron/sftp.sh Summaries.csv rs-machine/cron/summaries.csv
 59 11 * * * /usr/bin/php rs-machine/cron/update.php summaries
 
 # Update the bill full text.
@@ -41,7 +47,7 @@
 * 10-17 * 1-3 1-5 /usr/bin/php rs-machine/cron/chamber_status.php
 
 # Re-zip the current year's downloadable bill full-text HTML.
-* 3 * * * /usr/bin/zip -rj rs-machine/downloads/bills/2018 rs-machine/downloads/bills/2018
+* 3 * * * /usr/bin/zip -rj rs-machine/downloads/bills/2022 rs-machine/downloads/bills/2022
 
 # Run a daily database backup.
 #* 6 * * * /usr/sbin/logrotate -f /vol/www/richmondsunlight.com/backups/logrotate.db -s /var/www/richmondsunlight.com/backups/logrotate.status
