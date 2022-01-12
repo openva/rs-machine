@@ -95,33 +95,28 @@ while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC))
 	$empty_votes[] = $empty_vote['lis_vote_id'];
 }
 
-# Retrieve the CSV data and save it to a local file.
-$vote = get_content('sftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@sftp.dlas.virginia.gov/CSV'
-	. $dlas_session_id . '/csv'. $dlas_session_id .'/VOTE.CSV');
+/*
+ * Connect to Memcached, since we'll be interacting with it during this session.
+ */
+$mc = new Memcached();
+$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 
-if ($vote === FALSE)
+/*
+ * Don't bother if the file hasn't changed.
+ */
+$vote_hash = md5(file_get_contents(__DIR__ . '/vote.csv'));
+if ( $mc->get('vote-csv-hash') == $vote_hash )
 {
-	$log->put('vote.csv couldn’t be retrieved from sftp.dlas.virginia.gov.', 8);
-	return FALSE;
+	$log->put('Bill votes unchanged', 2);
+	return;
 }
 
-# If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
-if (file_exists(__DIR__ . '/vote.csv'))
-{
-	if (md5($vote) == md5_file(__DIR__ . '/vote.csv'))
-	{
-		$log->put('vote.csv was unchanged since the last update.', 2);
-		return FALSE;
-	}
-}
+/*
+ * Save the new hash.
+ */
+$mc->set('vote-csv-hash', $vote_hash);
 
-if (!file_put_contents(__DIR__ . '/vote.csv', $vote))
-{
-	$log->put('Could not save vote.csv.', 9);
-	return FALSE;
-}
-
-# Open the resulting file.
+# Open the vote CSV.
 $fp = fopen(__DIR__ . '/vote.csv','r');
 
 # Step through each row in the CSV file, one by one.

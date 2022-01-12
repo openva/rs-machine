@@ -4,223 +4,213 @@
 if (isset($_GLOBAL['history']))
 {
 
-	# Retrieve the CSV data and save it to a local file.
-	$history = get_content('sftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@sftp.dlas.virginia.gov/CSV'
-	. $dlas_session_id . '/csv'. $dlas_session_id .'/HISTORY.CSV');
+	/*
+	 * Connect to Memcached, since we'll be interacting with it during this session.
+	 */
+	$mc = new Memcached();
+	$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 
-	if (!$history || empty($history))
+	/*
+	 * Don't bother if the file hasn't changed.
+	 */
+	$history_hash = md5(file_get_contents(__DIR__ . '/history.csv'));
+	if ( $mc->get('history-csv-hash') == $history_hash )
 	{
-		$log->put('HISTORY.CSV doesn’t exist on sftp.dlas.virginia.gov.', 8);
-		echo 'No history data found on DLAS’s FTP server.';
+		$log->put('Bill histories unchanged', 2);
+		return;
+	}
+
+	/*
+	 * Save the new hash.
+	 */
+	$mc->set('history-csv-hash', $history_hash);
+
+	# Open history.csv.
+	$fp = fopen(__DIR__ . '/history.csv','r');
+	if ($fp === FALSE)
+	{
+		$log->put('history.csv could not be read from the filesystem.', 8);
+		echo 'history.csv could not be read from the filesystem.';
 		return FALSE;
 	}
 
-	# If the MD5 value of the new file is different than the saved file, make some updates.
-	if ( (file_exists(__DIR__ . '/history.csv') == FALSE) || md5($history) != md5_file(__DIR__ . '/history.csv') )
+	# Retrieve our saved serialized array of hash data, so that we can only update or insert
+	# bills that have changed, or that are new.
+	$hash_path = __DIR__ . '/hashes/history-' . SESSION_ID . '.md5';
+	if (file_exists($hash_path))
 	{
-
-		# First, save the file.
-		if (file_put_contents(__DIR__ . '/history.csv', $history) === FALSE)
+		$hashes = file_get_contents($hash_path);
+		if ($hashes !== FALSE)
 		{
-			$log->put('history.csv could not be saved to the filesystem.', 8);
-			echo 'history.csv could not be saved to the filesystem.';
-			return FALSE;
-		}
-
-		# Open the resulting file.
-		$fp = fopen(__DIR__ . '/history.csv','r');
-		if ($fp === FALSE)
-		{
-			$log->put('history.csv could not be read from the filesystem.', 8);
-			echo 'history.csv could not be read from the filesystem.';
-			return FALSE;
-		}
-
-		# Retrieve our saved serialized array of hash data, so that we can only update or insert
-		# bills that have changed, or that are new.
-		$hash_path = __DIR__ . '/hashes/history-' . SESSION_ID . '.md5';
-		if (file_exists($hash_path))
-		{
-			$hashes = file_get_contents($hash_path);
-			if ($hashes !== FALSE)
-			{
-				$hashes = explode("\n", $hashes);
-				unlink($hash_path);
-			}
-			else
-			{
-				$hashes = array();
-			}
+			$hashes = explode("\n", $hashes);
+			unlink($hash_path);
 		}
 		else
 		{
-			if (!file_exists(__DIR__ . '/hashes/'))
-			{
-				mkdir(__DIR__ . '/hashes');
-			}
 			$hashes = array();
 		}
+	}
+	else
+	{
+		if (!file_exists(__DIR__ . '/hashes/'))
+		{
+			mkdir(__DIR__ . '/hashes');
+		}
+		$hashes = array();
+	}
 
-		/*
-		 * Connect to Memcached, since we'll be interacting with it during this session.
-		 */
-		$mc = new Memcached();
-		$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+	# Prepare our query for updating the chamber that bills are in.
+	$chamber_stmt = $dbh->prepare('UPDATE bills
+									SET current_chamber = :current_chamber
+									WHERE number = :bill_number AND session_id = :session_id');
 
-		# Prepare our query for updating the chamber that bills are in.
-		$chamber_stmt = $dbh->prepare('UPDATE bills
-										SET current_chamber = :current_chamber
-										WHERE number = :bill_number AND session_id = :session_id');
+	# Prepare 2 bill-status update queries. The first one is if we don't have an LIS vote ID.
+	$status_stmt = $dbh->prepare('REPLACE INTO bills_status
+									SET bill_id =
+										(SELECT id
+										FROM bills
+										WHERE number = :bill_number
+										AND session_id = :session_id),
+									status = :bill_status,
+									session_id = :session_id,
+									date = :bill_date,
+									date_created=now()');
 
-		# Prepare 2 bill-status update queries. The first one is if we don't have an LIS vote ID.
-		$status_stmt = $dbh->prepare('REPLACE INTO bills_status
+	# Our second bill-status update query is for when we *do* have an LIS vote ID.
+	$status_vote_stmt = $dbh->prepare('REPLACE INTO bills_status
 										SET bill_id =
 											(SELECT id
 											FROM bills
 											WHERE number = :bill_number
 											AND session_id = :session_id),
-										status = :bill_status,
+										status = :bill_status, lis_vote_id = :lis_vote_id,
 										session_id = :session_id,
 										date = :bill_date,
 										date_created=now()');
 
-		# Our second bill-status update query is for when we *do* have an LIS vote ID.
-		$status_vote_stmt = $dbh->prepare('REPLACE INTO bills_status
-											SET bill_id =
-												(SELECT id
-												FROM bills
-												WHERE number = :bill_number
-												AND session_id = :session_id),
-											status = :bill_status, lis_vote_id = :lis_vote_id,
-											session_id = :session_id,
-											date = :bill_date,
-											date_created=now()');
 
+	# Set a flag that will allow us to ignore the header row.
+	$first = 'yes';
 
-		# Set a flag that will allow us to ignore the header row.
-		$first = 'yes';
+	# Step through each row in the CSV file, one by one.
+	$i=0;
+	while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
+	{
 
-		# Step through each row in the CSV file, one by one.
-		$i=0;
-		while (($bill = fgetcsv($fp, 1000, ',')) !== FALSE)
+		# If this is the header row, skip it.
+		if (isset($first))
+		{
+			unset($first);
+			continue;
+		}
+
+		###
+		# Before we proceed any farther, see if we already have this record on file.
+		###
+		$hash = md5(serialize($bill));
+		if (in_array($hash, $hashes) === TRUE)
+		{
+			continue;
+		}
+		else
+		{
+			$hashes[] = $hash;
+		}
+
+		# Provide friendlier array element names.
+		$bill['number'] = strtolower($bill[0]);
+		$bill['date'] = $bill[1];
+		$bill['status'] = $bill[2];
+		$bill['lis_vote_id'] = $bill[3];
+
+		# Determine if this is in the House or the Senate.
+		if ($bill['number']{0} == 'h') $bill['chamber'] = 'house';
+		elseif ($bill['number']{0} == 's') $bill['chamber'] = 'senate';
+
+		# Only proceed if we've gotten a meaningful bill chamber.
+		if (isset($bill['chamber']))
 		{
 
-			# If this is the header row, skip it.
-			if (isset($first))
+			# Clean up the data.
+			if (substr($bill['status'], 0, 2) == 'H ')
 			{
-				unset($first);
-				continue;
+				$bill['status'] = substr($bill['status'], 2);
+				$bill['current_chamber'] = 'house';
 			}
-
-			###
-			# Before we proceed any farther, see if we already have this record on file.
-			###
-			$hash = md5(serialize($bill));
-			if (in_array($hash, $hashes) === TRUE)
+			elseif (substr($bill['status'], 0, 2) == 'S ')
 			{
-				continue;
+				$bill['status'] = substr($bill['status'], 2);
+				$bill['current_chamber'] = 'senate';
 			}
 			else
 			{
-				$hashes[] = $hash;
+				$bill['current_chamber'] = $bill['chamber'];
 			}
+			$bill['date'] = strtotime($bill['date']);
+			$bill['date'] = date('Y-m-d', $bill['date']);
 
-			# Provide friendlier array element names.
-			$bill['number'] = strtolower($bill[0]);
-			$bill['date'] = $bill[1];
-			$bill['status'] = $bill[2];
-			$bill['lis_vote_id'] = $bill[3];
-
-			# Determine if this is in the House or the Senate.
-			if ($bill['number']{0} == 'h') $bill['chamber'] = 'house';
-			elseif ($bill['number']{0} == 's') $bill['chamber'] = 'senate';
-
-			# Only proceed if we've gotten a meaningful bill chamber.
-			if (isset($bill['chamber']))
+			# Only insert the data if we have a reasonable date.
+			if ($bill['date'] != '1969-12-31')
 			{
 
-				# Clean up the data.
-				if (substr($bill['status'], 0, 2) == 'H ')
+				if (empty($bill['lis_vote_id']))
 				{
-					$bill['status'] = substr($bill['status'], 2);
-					$bill['current_chamber'] = 'house';
-				}
-				elseif (substr($bill['status'], 0, 2) == 'S ')
-				{
-					$bill['status'] = substr($bill['status'], 2);
-					$bill['current_chamber'] = 'senate';
+					$status_stmt->bindParam(':bill_number', $bill['number']);
+					$status_stmt->bindParam(':session_id', $session_id);
+					$status_stmt->bindParam(':bill_status', $bill['status']);
+					$status_stmt->bindParam(':bill_date', $bill['date']);
+					$result = $status_stmt->execute();
 				}
 				else
 				{
-					$bill['current_chamber'] = $bill['chamber'];
+					$status_vote_stmt->bindParam(':bill_number', $bill['number']);
+					$status_vote_stmt->bindParam(':session_id', $session_id);
+					$status_vote_stmt->bindParam(':bill_status', $bill['status']);
+					$status_vote_stmt->bindParam(':bill_date', $bill['date']);
+					$status_vote_stmt->bindParam(':lis_vote_id', $bill['lis_vote_id']);
+					$result = $status_vote_stmt->execute();
 				}
-				$bill['date'] = strtotime($bill['date']);
-				$bill['date'] = date('Y-m-d', $bill['date']);
 
-				# Only insert the data if we have a reasonable date.
-				if ($bill['date'] != '1969-12-31')
+				$chamber_stmt->bindParam(':current_chamber', $bill['current_chamber']);
+				$chamber_stmt->bindParam(':bill_number', $bill['number']);
+				$chamber_stmt->bindParam(':session_id', $session_id);
+				$result = $chamber_stmt->execute();
+
+				if ($result === FALSE)
 				{
-
-					if (empty($bill['lis_vote_id']))
-					{
-						$status_stmt->bindParam(':bill_number', $bill['number']);
-						$status_stmt->bindParam(':session_id', $session_id);
-						$status_stmt->bindParam(':bill_status', $bill['status']);
-						$status_stmt->bindParam(':bill_date', $bill['date']);
-						$result = $status_stmt->execute();
-					}
-					else
-					{
-						$status_vote_stmt->bindParam(':bill_number', $bill['number']);
-						$status_vote_stmt->bindParam(':session_id', $session_id);
-						$status_vote_stmt->bindParam(':bill_status', $bill['status']);
-						$status_vote_stmt->bindParam(':bill_date', $bill['date']);
-						$status_vote_stmt->bindParam(':lis_vote_id', $bill['lis_vote_id']);
-						$result = $status_vote_stmt->execute();
-					}
-
-					if ($result === FALSE)
-					{
-						echo '<p style="color: #f00;">'.strtoupper($bill['number']).' status REPLACE INTO failed with:</p><p>'.$sql.'</p>';
-					}
-
-					$chamber_stmt->bindParam(':current_chamber', $bill['current_chamber']);
-					$chamber_stmt->bindParam(':bill_number', $bill['number']);
-					$chamber_stmt->bindParam(':session_id', $session_id);
-					$result = $chamber_stmt->execute();
-
-					# Since we've just modified a bill record, we want to delete its cache entry.
-					# This will allow it to be rebuilt with fresh information.
-					$bill['id'] = $mc->get('bill-' . $bill['number']);
-					if ($bill['id'] != FALSE)
-					{
-						$mc->delete('bill-' . $bill['id']);
-					}
-
+					$log->put('SQL statement failed when adding history data for ' . $bill['number'], 7);
 				}
 
-				$i++;
-
-				# Every 100 records, write this data to a file and reset our hashes array.
-				if ( ($i % 100) === 0)
+				# Since we've just modified a bill record, we want to delete its cache entry.
+				# This will allow it to be rebuilt with fresh information.
+				$bill['id'] = $mc->get('bill-' . $bill['number']);
+				if ($bill['id'] != FALSE)
 				{
-					file_put_contents($hash_path, implode("\n", $hashes) . "\n", FILE_APPEND);
-					$hashes = array();
+					$mc->delete('bill-' . $bill['id']);
 				}
 
-			} // end looping through lines in this CSV file
+			}
 
-		}
+			$i++;
 
-		# Store whatever hashes remain. (Which may well be all of them, if fewer than 100 new or
-		# changed records were found.)
-		file_put_contents($hash_path, implode("\n", $hashes) . "\n", FILE_APPEND);
+			# Every 100 records, write this data to a file and reset our hashes array.
+			if ( ($i % 100) === 0)
+			{
+				file_put_contents($hash_path, implode("\n", $hashes) . "\n", FILE_APPEND);
+				$hashes = array();
+			}
 
-		# Close the CSV file.
-		fclose($fp);
-
-		$log->put('Updated bill histories', 2);
+		} // end looping through lines in this CSV file
 
 	}
+
+	# Store whatever hashes remain. (Which may well be all of them, if fewer than 100 new or
+	# changed records were found.)
+	file_put_contents($hash_path, implode("\n", $hashes) . "\n", FILE_APPEND);
+
+	# Close the CSV file.
+	fclose($fp);
+
+	$log->put('Updated bill histories', 2);
 
 }

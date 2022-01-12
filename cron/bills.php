@@ -1,29 +1,14 @@
 <?php
 
-# Retrieve the CSV data and save it to a local file. We make sure that it's non-empty because
-# otherwise, if the connection fails, we end up with a zero-length file.
-$url = 'sftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD . '@sftp.dlas.virginia.gov/CSV'
-. $dlas_session_id . '/csv'. $dlas_session_id .'/BILLS.CSV';
-$bills = Import::update_bills_csv($url);
-if (!$bills)
-{
-	exit;
-}
+/*
+ * Open the bills CSV.
+ */
+$bills = file_get_contents(__DIR__ . '/bills.csv');
 
 /*
  * Remove any white space.
  */
 $bills = trim($bills);
-
-/*
- * Save the bills locally.
- */
-if (file_put_contents(__DIR__ . '/bills.csv', $bills) === FALSE)
-{
-	$log->put('bills.csv could not be saved to the filesystem.', 8);
-	echo 'bills.csv could not be saved to the filesystem.';
-	return FALSE;
-}
 
 /*
  * Also, retrieve our saved serialized array of hash data, so that we can only update or insert

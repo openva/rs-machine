@@ -5,40 +5,28 @@
 ###
 
 /*
- * Fetch the CSV file.
+ * Connect to Memcached, since we'll be interacting with it during this session.
  */
-$summaries = get_content('sftp://' . LIS_FTP_USERNAME . ':' . LIS_FTP_PASSWORD
-	. '@sftp.dlas.virginia.gov/CSV'
-	. $dlas_session_id . '/csv'. $dlas_session_id .'/Summaries.csv');
-if (!$summaries || empty($summaries))
-{
-	$log->put('Summaries.csv doesn’t exist on sftp.dlas.virginia.gov.', 8);
-	return FALSE;
-}
+$mc = new Memcached();
+$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 
-# If the MD5 value of the new file is the same as the saved file, then there's nothing to update.
-if (md5($summaries) == md5_file('summaries.csv'))
+/*
+ * Don't bother if the file hasn't changed.
+ */
+$summaries_hash = md5(file_get_contents(__DIR__ . '/summaries.csv'));
+if ( $mc->get('summaries-csv-hash') == $summaries_hash )
 {
-	$log->put('Not updating summaries, because summaries.csv has not been modified since it was last downloaded.', 2);
-	return FALSE;
+	$log->put('Bill summaries unchanged', 2);
+	return;
 }
 
 /*
- * Remove any white space.
+ * Save the new hash.
  */
-$summaries = trim($summaries);
+$mc->set('summaries-csv-hash', $summaries_hash);
 
 /*
- * Save the summaries locally.
- */
-if (file_put_contents(__DIR__ . '/summaries.csv', $summaries) === FALSE)
-{
-	$log->put('summaries.csv could not be saved to the filesystem.', 8);
-	return FALSE;
-}
-
-/*
- * Open the resulting file.
+ * Open the file.
  */
 $fp = fopen(__DIR__ . '/summaries.csv','r');
 if ($fp === FALSE)
