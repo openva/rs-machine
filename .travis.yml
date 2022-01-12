@@ -33,6 +33,7 @@ script:
 - ./deploy/config_variables.sh
   && sonar-scanner
   && ./deploy/aws_credentials.sh
+  && ./deploy/sftp_credentials.sh
   && zip -qr latest *
   && mkdir -p upload
   && mv latest.zip upload/latest.zip
