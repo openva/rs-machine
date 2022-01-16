@@ -214,6 +214,12 @@ if ($type == 'vote')
 	require 'vote.php';
 }
 
+# Run integrity checks.
+if (($type == 'all') || ($type == 'checks'))
+{
+	require 'checks.php';
+}
+
 # UPDATE DASHBOARD SMART PORTFOLIOS
 # Step through every smart portfolio and update its constituent bills.
 if (($type == 'all') || ($type == 'photosynthesis'))
