@@ -43,9 +43,6 @@
 # Updates the sections of the code referred to within each bill.
 5,15,25,35,45,55 * * 1-3,10-12 * /usr/bin/php rs-machine/cron/update.php code_sections
 
-# Mirror the contents of the real-time status tracking system.
-* 10-17 * 1-3 1-5 /usr/bin/php rs-machine/cron/chamber_status.php
-
 # Re-zip the current year's downloadable bill full-text HTML.
 * 3 * * * /usr/bin/zip -rj rs-machine/downloads/bills/2022 rs-machine/downloads/bills/2022
 
