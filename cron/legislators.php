@@ -122,7 +122,7 @@ $log->put('Retrieved ' . count($delegates) . ' delegates from virginiageneralass
 /*
  * First see if we have records of any representatives that are not currently in office.
  */
-foreach ($known_legislators as $known_legislator)
+foreach ($known_legislators as &$known_legislator)
 {
 
 	$id = $known_legislator->lis_id;
