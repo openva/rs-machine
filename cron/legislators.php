@@ -9,7 +9,7 @@ function get_legislator_data($chamber, $lis_id)
 {
 	if ( empty($chamber) || empty($lis_id) )
 	{
-		return FALSE;
+		return false;
 	}
 
 	if ($chamber == 'house')
@@ -25,7 +25,15 @@ function get_legislator_data($chamber, $lis_id)
 		 */
 		$url = 'https://virginiageneralassembly.gov/house/members/members.php?id=' . $lis_id;
 		$html = file_get_contents($url);
+		if ($html === false)
+		{
+			return false;
+		}
 		$dom = HtmlDomParser::str_get_html($html);
+		if ($dom === false)
+		{
+			return false;
+		}
 
 		/*
 		 * The array we'll store legislator data in.
@@ -61,24 +69,18 @@ function get_legislator_data($chamber, $lis_id)
 		unset($matches);
 
 		/*
-		 * Get office address.
+		 * Get capitol office address.
 		 */
 		preg_match('/Room Number:</span> ([E,W]([0-9]{3}))/', $html, $matches);
+		print_r($matches);
 		$legislator['richmond_address'] = $matches[1];
 		unset($matches);
 
 		/*
-		 * Get office phone number.
+		 * Get capitol phone number.
 		 */
 		preg_match('/Office:([\S\s]*)(\(804\) ([0-9]{3})-([0-9]{4}))/', $html, $matches);
 		$legislator['richmond_phone'] = substr(str_replace(') ', '-', $matches[2]), 1);
-		unset($matches);
-
-		/*
-		 * Get legislator photo.
-		 */
-		preg_match('/https:\/\/memdata\.virginiageneralassembly\.gov\/images\/display_image\/H[0-9]{4}/', $html, $matches);
-		$legislator['photo_url'] = $matches[0];
 		unset($matches);
 
 		/*
@@ -86,6 +88,25 @@ function get_legislator_data($chamber, $lis_id)
 		 */
 		$tmp = 'Address: ' . $dom->find('div[class=memBioOffice]', 1)->plaintext;
 		$legislator['district_address'] = str_replace('Address: District Office ', '', preg_replace('/\s{2,}/', ' ', $tmp));
+		if (stripos($legislator['district_address'], 'Office:') !== false)
+		{
+			$legislator['district_address'] = substr($legislator['district_address'], 0, stripos($legislator['district_address'], 'Office:'));
+
+		}
+
+		/*
+		 * Get district phone number.
+		 */
+		$tmp = 'Address: ' . $dom->find('div[class=memBioOffice]', 1)->plaintext;
+		preg_match('/(\(804\) ([0-9]{3})-([0-9]{4}))/', $html, $matches);
+		$legislator['district_phone'] = substr(str_replace(') ', '-', $matches[0]), 1);
+
+		/*
+		 * Get legislator photo.
+		 */
+		preg_match('/https:\/\/memdata\.virginiageneralassembly\.gov\/images\/display_image\/H[0-9]{4}/', $html, $matches);
+		$legislator['photo_url'] = $matches[0];
+		unset($matches);
 
 		/*
 		 * Get gender.
@@ -99,25 +120,38 @@ function get_legislator_data($chamber, $lis_id)
 		 */
 		preg_match('/Race\(s\):<\/span> (.+)</', $html, $matches);
 		$legislator['race'] = trim(strtolower($matches[1]));
+		$races = array(
+			'african american' => 'black',
+			'caucasian' => 'white',
+			'Asian American' => 'asian',
+			'Asian American, Indian' => 'asian',
+			'Hispanic, Latino' => 'latino',
+			'none given' => '',
+		);
 		unset($matches);
 
-		// REQUIRED FIELDS
+		/*
+		 * Get political party.
+		 */
+		preg_match('/distDescriptPlacement">([D,I,R]{1}) -/', $html, $matches);
+		$legislator['party'] = trim($matches[1]);
+		unset($matches);
+		
+		print_r($legislator);
+		die();
+
+		// MISSING, REQUIRED FIELDS
 		//name_formal
 		//name
 		//name_formatted (incl. placename)
 		//shortname
 		//lis_shortname
-		//chamber
 		//district_id
-		//date_started
-		//party
-		//race
-		//sex
 	}
 
 }
 
-get_legislator_data('house', '349');
+get_legislator_data('house', '177');
 
 /*
  * Retrieve a list of all active delegates' names and IDs. Though that's not *quite* right.
