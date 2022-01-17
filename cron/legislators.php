@@ -46,6 +46,56 @@ function get_legislator_data($chamber, $lis_id)
 		preg_match('/>Delegate (.+)</', $html, $matches);
 		$legislator['name'] = trim($matches[1]);
 		unset($matches);
+		
+		// Remove any nickname
+		$legislator['name'] = preg_replace('/ \(([A-Za-z]+)\) /', ' ', $legislator['name']);
+
+		// Preserve this version of their name as their formal name
+		$legislator['name_formal'] = $legislator['name'];
+
+		// Remove any suffix
+		$suffixes = array('Jr.', 'Sr.', 'I', 'II', 'III', 'IV');
+		foreach ($suffixes as $suffix)
+		{
+			if (substr( ($legislator['name']), strlen($suffix)*-1, strlen($suffix) ) == $suffix)
+			{
+				$legislator['name'] = trim(substr($legislator['name'], 0, strlen($suffix)*-1));
+			}
+		}
+
+		// Set aside the legislator's name in this format for use when creating the shortname
+		$shortname = $legislator['name'];
+
+		/*
+		 * Get delegate's preferred first name.
+		 */
+		preg_match('/>Preferred Name: ([a-zA-Z]+)</', $html, $matches);
+		if (!empty($matches))
+		{
+			$legislator['nickname'] = trim($matches[1]);
+			unset($matches);
+		}
+
+		// Save the legislator's name in Lastname, Firstname format.
+		if (isset($legislator['nickname']))
+		{
+			$legislator['name'] = substr($legislator['name'], strripos($legislator['name'], ' ')+1)
+				. ', ' . $legislator['nickname'];
+		}
+		else
+		{
+			$legislator['name'] = substr($legislator['name'], strripos($legislator['name'], ' ')+1)
+				. ', ' . substr($legislator['name'], 0, strripos($legislator['name'], ' ')*-1);
+		}
+
+		/*
+		 * Format delegate's shortname.
+		 */
+		preg_match_all('([A-Z]{1})', $shortname, $matches);
+		$legislator['shortname'] = implode('', array_slice($matches[0], 0, -1));
+		$tmp = explode(', ', $legislator['name']);
+		$legislator['shortname'] .= $tmp[0];
+		$legislator['shortname'] = strtolower($legislator['shortname']);
 
 		/*
 		 * Get email address.
@@ -71,8 +121,7 @@ function get_legislator_data($chamber, $lis_id)
 		/*
 		 * Get capitol office address.
 		 */
-		preg_match('/Room Number:</span> ([E,W]([0-9]{3}))/', $html, $matches);
-		print_r($matches);
+		preg_match('/Room Number:<\/span> ([E,W]([0-9]{3}))/', $html, $matches);
 		$legislator['richmond_address'] = $matches[1];
 		unset($matches);
 
@@ -128,6 +177,14 @@ function get_legislator_data($chamber, $lis_id)
 			'Hispanic, Latino' => 'latino',
 			'none given' => '',
 		);
+		foreach ($races as $find => $replace)
+		{
+			if ($legislator['race'] == $find)
+			{
+				$legislator['race'] = $replace;
+				break;
+			}
+		}
 		unset($matches);
 
 		/*
@@ -142,16 +199,14 @@ function get_legislator_data($chamber, $lis_id)
 
 		// MISSING, REQUIRED FIELDS
 		//name_formal
-		//name
 		//name_formatted (incl. placename)
 		//shortname
 		//lis_shortname
-		//district_id
 	}
 
 }
 
-get_legislator_data('house', '177');
+get_legislator_data('house', '340');
 
 /*
  * Retrieve a list of all active delegates' names and IDs. Though that's not *quite* right.
