@@ -1,6 +1,5 @@
 # The core update script. This runs hourly at 55 after, 4 minutes after DLAS outputs their data
 55 6-23 * * * rs-machine/cron/sftp.sh BILLS.CSV rs-machine/cron/bills.csv
-55 6-23 * * * rs-machine/cron/sftp.sh HISTORY.CSV rs-machine/cron/history.csv
 55 6-23 * * * rs-machine/cron/sftp.sh Committees.csv rs-machine/cron/committees.csv
 55 6-23 * * * /usr/bin/php rs-machine/cron/update.php
 
