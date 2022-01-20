@@ -16,8 +16,17 @@ if (isset($_GLOBAL['history']))
 	$history_hash = md5(file_get_contents(__DIR__ . '/history.csv'));
 	if ( $mc->get('history-csv-hash') == $history_hash )
 	{
-		$log->put('Bill histories unchanged', 2);
-		return;
+
+		/*
+		 * But if it's been more than six hours, go ahead and parse it anyway, just in case
+		 * something has gone wrong with the hash storage.
+		 */
+		if ( time() - filemtime(__DIR__ . '/history.csv') < (60 * 60 * 6) )
+		{
+			$log->put('Bill histories unchanged', 2);
+			return;
+		}
+		
 	}
 
 	/*
