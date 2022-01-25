@@ -19,12 +19,12 @@ $log = new Log;
  * Instantiate methods for AWS.
  */
 use Aws\Sqs\SqsClient;
+$credentials = new Aws\Credentials\Credentials(AWS_ACCESS_KEY, AWS_SECRET_KEY);
 $sqs_client = new SqsClient([
 	'profile'	=> 'default',
 	'region'	=> 'us-east-1',
     'version'	=> '2012-11-05',
-	'key'		=> AWS_ACCESS_KEY,
-	'secret'	=> AWS_SECRET_KEY
+	'credentials'   => $credentials
 ]);
 
 /*
