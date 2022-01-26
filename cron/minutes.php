@@ -114,6 +114,10 @@ foreach ($chambers as $chamber => $listing_url)
 					{
 						$end = strpos($minutes, '<hr>');
 					}
+					if ($end == FALSE)
+					{
+						$end = strpos($minutes, 'iFrame Resizer');
+					}
 				}
 				if ($end != FALSE)
 				{
