@@ -221,15 +221,59 @@ function get_legislator_data($chamber, $lis_id)
 		 */
 		$url = 'https://whosmy.virginiageneralassembly.gov/index.php/legislator';
 		$html = file_get_contents($url);
-		echo $html;
 
 		/*
 		 * Extract JSON from the data.
 		 */
 		preg_match('/senatorData">(.+)<\/div>/', $html, $matches);
-		echo 'matches';
-		print_r($matches);
+		$senators_json = $matches[1];
 		unset($matches);
+		$senators = json_decode($senators_json);
+		if (false === $senators)
+		{
+			return false;
+		}
+
+		foreach ($senators as $senator_data)
+		{
+			if ($senator_data->member_key)
+			{
+				$senator = $senator_data;
+				break;
+			}
+		}
+
+		if (!isset($senator))
+		{
+			return false;
+		}
+
+		/*
+		 * Use the correct names for elements; example JSON response:
+		 * "last_name": "Mason",
+		 * "first_name": "T. Montgomery",
+		 * "middle_name": "\"Monty\"",
+		 * "suffix": "",
+		 * "district": "1",
+		 * "party": "D",
+		 * "capitol_phone": "(804) 698-7501",
+		 * "district_phone": "(757) 229-9310",
+		 * "email_address": "district01@senate.virginia.gov",
+		 * "member_key": "S102 "
+		 */
+		$legislator = [];
+		$legislator['name'] = $senator->last_name . ', ' . $senator->first_name;
+		$legislator['name_formal'] = $senator->first_name . ' ' . $senator->middle_name  . ' ' . $senator->last_name;
+		$legislator['shortname'] = ;
+		$legislator['lis_shortname'] = ;
+		$legislator['lis_id'] = $senator->member_key;
+		$legislator['chamber'] = 'senate';
+		$legislator['party'] = $senator->party;
+		$legislator['email'] = $senator->email_address;
+		$legislator['district_number'] = $legislator->district;
+		$legislator['phone_district'] = $legislator->district_phone;
+		$legislator['phone_richmond'] = $legislator->capitol_phone;
+
 
 	}
 
