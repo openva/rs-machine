@@ -264,15 +264,29 @@ function get_legislator_data($chamber, $lis_id)
 		$legislator = [];
 		$legislator['name'] = $senator->last_name . ', ' . $senator->first_name;
 		$legislator['name_formal'] = $senator->first_name . ' ' . $senator->middle_name  . ' ' . $senator->last_name;
-		$legislator['shortname'] = ;
-		$legislator['lis_shortname'] = ;
-		$legislator['lis_id'] = $senator->member_key;
+		// Generate a shortname
+		$legislator['shortname'] = '';
+		// Figure out how to get the LIS shortname
+		$legislator['lis_shortname'] = '';
+		$legislator['lis_id'] = substr(trim($senator->member_key), 1);
 		$legislator['chamber'] = 'senate';
-		$legislator['party'] = $senator->party;
-		$legislator['email'] = $senator->email_address;
-		$legislator['district_number'] = $legislator->district;
-		$legislator['phone_district'] = $legislator->district_phone;
-		$legislator['phone_richmond'] = $legislator->capitol_phone;
+		$legislator['party'] = trim($senator->party);
+		$legislator['email'] = trim($senator->email_address);
+		$legislator['district_number'] = trim($legislator->district);
+		// Format phone numbers as ###-###-####
+		$legislator['phone_district'] = trim($legislator->district_phone);
+		$legislator['phone_richmond'] = trim($legislator->capitol_phone);
+
+		/*
+		 * Now extract values from the HTML
+		 */
+		$html = get_file_contents('https://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id);
+		
+		// Find the profile photo in <img src="(.+)" class="profile_pic">
+		// $legislator['bio'] in "Biography" section
+		// $legislator['address_district'] in "District Office" section
+		// $legislator['address_richmond'] in "Room No: (.+)"
+		
 
 
 	}
