@@ -7,6 +7,7 @@ use Sunra\PhpSimple\HtmlDomParser;
 
 function get_legislator_data($chamber, $lis_id)
 {
+
 	if ( empty($chamber) || empty($lis_id) )
 	{
 		return false;
@@ -193,20 +194,52 @@ function get_legislator_data($chamber, $lis_id)
 		preg_match('/distDescriptPlacement">([D,I,R]{1}) -/', $html, $matches);
 		$legislator['party'] = trim($matches[1]);
 		unset($matches);
-		
-		print_r($legislator);
-		die();
+
+		/*
+		 * Get personal website.
+		 */
+		preg_match('/Delegate\'s Personal Website[\s\S]+(http(.+))"/U', $html, $matches);
+		print_r($matches);
+		$legislator['website'] = trim($matches[1]);
+		unset($matches);
 
 		// MISSING, REQUIRED FIELDS
-		//name_formal
 		//name_formatted (incl. placename)
-		//shortname
 		//lis_shortname
 	}
 
+	elseif ($chamber == 'senate')
+	{
+
+		####
+		#### SENATOR DATA AVAILABLE AS JSON
+		#### 
+		####
+
+		/*
+		 * Fetch the HTML.
+		 */
+		$url = 'https://whosmy.virginiageneralassembly.gov/index.php/legislator';
+		$html = file_get_contents($url);
+		echo $html;
+
+		/*
+		 * Extract JSON from the data.
+		 */
+		preg_match('/senatorData">(.+)<\/div>/', $html, $matches);
+		echo 'matches';
+		print_r($matches);
+		unset($matches);
+
+	}
+
+	return $legislator;
+
 }
 
-get_legislator_data('house', '340');
+$data = get_legislator_data('senate', '259');
+var_dump($data);
+die();
 
 /*
  * Retrieve a list of all active delegates' names and IDs. Though that's not *quite* right.
