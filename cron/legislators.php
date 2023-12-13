@@ -274,6 +274,7 @@ function get_legislator_data($chamber, $lis_id)
 		$legislator['email'] = trim($senator->email_address);
 		$legislator['district_number'] = trim($legislator->district);
 		// Format phone numbers as ###-###-####
+		// Replace everything that isn't a number, then format it
 		$legislator['phone_district'] = trim($legislator->district_phone);
 		$legislator['phone_richmond'] = trim($legislator->capitol_phone);
 
@@ -282,6 +283,7 @@ function get_legislator_data($chamber, $lis_id)
 		 */
 		$html = get_file_contents('https://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id);
 		
+		# DO ALL OF THE BELOW WITH $dom = HtmlDomParser::str_get_html($html);
 		// Find the profile photo in <img src="(.+)" class="profile_pic">
 			// (Senator\/images\/member_photos\/[a-zA-Z0-9-]+)
 			// https://apps.senate.virginia.gov/$1
@@ -301,6 +303,27 @@ function get_legislator_data($chamber, $lis_id)
 }
 
 $data = get_legislator_data('senate', '259');
+$required_fields = array(
+	'name',
+	'name_formal',
+	'name_formatted',
+	'shortname',
+	'lis_id',
+	'lis_shortname',
+	'chamber',
+	'party',
+	'email',
+	'district_id',
+	'phone_district',
+	'phone_richmond',
+	'placename',
+	'start_date',
+	'',
+	'',
+	'',
+	'',
+	''
+);
 var_dump($data);
 die();
 
