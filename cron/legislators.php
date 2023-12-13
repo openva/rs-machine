@@ -283,10 +283,15 @@ function get_legislator_data($chamber, $lis_id)
 		$html = get_file_contents('https://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id);
 		
 		// Find the profile photo in <img src="(.+)" class="profile_pic">
+			// (Senator\/images\/member_photos\/[a-zA-Z0-9-]+)
+			// https://apps.senate.virginia.gov/$1
+			// fetch file
 		// $legislator['bio'] in "Biography" section
+			// Biography(.+)<div class="lrgblacktext">(.+)<\/div>
 		// $legislator['address_district'] in "District Office" section
+			// District Office(.+)<div class="lrgblacktext">(.+)Phone
 		// $legislator['address_richmond'] in "Room No: (.+)"
-		
+			// Room No: ([0-9]+)
 
 
 	}
