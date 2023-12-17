@@ -45,7 +45,7 @@ function get_legislator_data($chamber, $lis_id)
 		$legislator = array();
 
 		$legislator['chamber'] = 'house';
-		$legislator['lis_id'] = $lis_id;
+		$legislator['lis_id'] = preg_replace('[HS]', '', $lis_id);
 
 		/*
 		 * Get delegate name.
@@ -59,19 +59,19 @@ function get_legislator_data($chamber, $lis_id)
 		 * Remove "Elect" if it appears in the name.
 		 */
 		$legislator['name'] = str_replace('Elect ', '', $legislator['name']);
-
-		/*
-		 * Sometimes we wind up with double spaces in legislators' names, so remove those.
-		 */
-		$legislator['name'] = preg_replace('/\s{2,}/', ' ', $legislator['name']);
 		
 		/*
 		 * Remove any nickname
 		*/
-		$legislator['name'] = preg_replace('/ \(([A-Za-z]+)\) /', ' ', $legislator['name']);
+		$legislator['name'] = preg_replace('/ \(([A-Za-z]+)\) /', '', $legislator['name']);
+
+		/*
+		 * Sometimes we wind up with double spaces in legislators' names, so remove those.
+		 */
+		$legislator['name'] = trim(preg_replace('/\s{2,}/', ' ', $legislator['name']));
 
 		// Preserve this version of their name as their formal name
-		$legislator['name_formal'] = $legislator['name'];
+		$legislator['name_formal'] = trim($legislator['name']);
 
 		// Remove any suffix
 		$suffixes = array('Jr.', 'Sr.', 'I', 'II', 'III', 'IV');
@@ -98,7 +98,9 @@ function get_legislator_data($chamber, $lis_id)
 			unset($matches);
 		}
 
-		// Save the legislator's name in Lastname, Firstname format.
+		/*
+		 * Save the legislator's name in Lastname, Firstname format.
+		 */
 		if (isset($legislator['nickname']))
 		{
 			$legislator['name'] = substr($legislator['name'], strripos($legislator['name'], ' ')+1)
@@ -106,8 +108,15 @@ function get_legislator_data($chamber, $lis_id)
 		}
 		else
 		{
-			$legislator['name'] = substr($legislator['name'], strripos($legislator['name'], ' ')+1)
-				. ', ' . substr($legislator['name'], 0, strripos($legislator['name'], ' ')*-1);
+			$last_space = strripos($legislator['name'], ' ');
+
+			if ($last_space !== false)
+			{
+				$legislator['name'] =
+					substr($legislator['name'], $last_space + 1) .
+					', ' .
+					substr($legislator['name'], 0, $last_space);
+			}
 		}
 		$legislator['name'] = preg_replace('/\s{2,}/', ' ', $legislator['name']);
 
@@ -242,14 +251,24 @@ function get_legislator_data($chamber, $lis_id)
 		/*
 		 * Get place name
 		 */
-		preg_match('/<td>(.+), VA\s+([0-9]{5})/s', $html, $matches);
-		$legislator['place'] = $matches[1];
+		preg_match('/<th scope="col">District Office(.+)<td>([A-Za-z ]+), (VA|Virginia)(\s+)([0-9]{5})/sU', $html, $matches);
+		$legislator['place'] = $matches[2];
 
 		/*
 		 * Create formatted name
 		 */
 		$legislator['name_formatted'] = 'Del. ' . pivot($legislator['name']) . ' (' .
-			$legislator['party'] . '-' . $legislator['place'] . ')';
+			$legislator['party'] . '-';
+		// We don't always have the place name, due to incomplete LIS data
+		if (!empty($legislator['place']))
+		{
+			$legislator['name_formatted'] .= $legislator['place'];
+		}
+		else
+		{
+			$legislator['name_formatted'] .= $legislator['district_number'];
+		}
+		$legislator['name_formatted'] .= ')';
 
 	}
 
@@ -306,8 +325,6 @@ function get_legislator_data($chamber, $lis_id)
 		$legislator['name'] = $senator->last_name . ', ' . $senator->first_name;
 		$legislator['name_formal'] = $senator->first_name . ' ' . $senator->middle_name  . ' ' . $senator->last_name;
 		$legislator['name_formal'] = preg_replace('/\s{2,}/', ' ', $legislator['name_formal']);
-		// Figure out how to get the LIS shortname
-		$legislator['lis_shortname'] = '';
 		$legislator['lis_id'] = substr(trim($senator->member_key), 1);
 		$legislator['chamber'] = 'senate';
 		$legislator['party'] = trim($senator->party);
@@ -373,7 +390,18 @@ function get_legislator_data($chamber, $lis_id)
 		 * Create formatted name
 		 */
 		$legislator['name_formatted'] = 'Sen. ' . pivot($legislator['name']) . ' (' .
-			$legislator['party'] . '-' . $legislator['place'] . ')';
+			$legislator['party'] . '-';
+		// We don't always have the place name, due to incomplete LIS data
+		if (!empty($legislator['place']))
+		{
+			$legislator['name_formatted'] .= $legislator['place'];
+		}
+		else
+		{
+			$legislator['name_formatted'] .= $legislator['district_number'];
+		}
+		$legislator['name_formatted'] .= ')';
+		 
 
 		/*
 		 * Get Richmond office number.
@@ -539,6 +567,23 @@ foreach ($known_legislators as &$known_legislator)
 }
 
 /*
+ * Get at least this minimum subset of fields for any senators and delegates that are not in our
+ * records. (We use this list below.)
+ */
+$required_fields = array(
+	'name_formal',
+	'name',
+	'name_formatted',
+	'shortname',
+	'chamber',
+	'district_id',
+	'date_started',
+	'party',
+	'lis_id',
+	'email'
+);
+
+/*
  * Second, see there are any listed delegates or senators who are not in our records.
  */
 foreach ($senators as $lis_id => $name)
@@ -557,41 +602,43 @@ foreach ($senators as $lis_id => $name)
 
 	}
 
+	/*
+	 * If we've found any new senators, call that up, and scrape their basic data from LIS
+	 */
 	if ($match == FALSE && $name != 'Vacant')
 	{
-		$log->put('Senator missing from the database: ' . $name . ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
+		$log->put('Found a new senator: ' . $name . ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
 
 		$data = get_legislator_data('senate', $lis_id);
-		$required_fields = array(
-			'name_formal',
-			'name',
-			'name_formatted',
-			'shortname',
-			'lis_shortname',
-			'chamber',
-			'district_id',
-			'date_started',
-			'party',
-			'lis_id',
-			'email',
-			'phone_district',
-			'phone_richmond',
-			'place'
-		);
+
+		$errors = false;
+
 		foreach ($required_fields as $field)
 		{
 			if ( !isset($data[$field]) || empty($data[$field]) )
 			{
+				$errors = true;
 				echo 'Error: ' . $field . ' is missing for ' . $data['name'] . "\n";
 			}
 		}
 
-		print_r($data);
+		if ($errors == false)
+		{
+			echo 'All needed records found for ' . $data['name_formatted'];
+		}
+		else
+		{
+			echo 'Not adding ' . $data['name_formatted'] .', due to insufficient data.' . "\n";
+			unset($errors);
+		}
 		
 	}
 
 }
 
+/*
+ * Third, see there are any listed delegates or senators who are not in our records.
+ */
 foreach ($delegates as $lis_id => $name)
 {
 
@@ -607,10 +654,13 @@ foreach ($delegates as $lis_id => $name)
 		}
 
 	}
-
+	
+	/*
+	 * If we've found any new delegates, call that up, and scrape their basic data from LIS
+	 */
 	if ($match == FALSE && $name != 'Vacant')
 	{
-		$log->put('Delegate missing from the database: ' . $name . ' (https://virginiageneralassembly.gov/house/members/members.php?ses=' .
+		$log->put('Found a new delegate: ' . $name . ' (https://virginiageneralassembly.gov/house/members/members.php?ses=' .
 			SESSION_YEAR . '&id='. $lis_id . ')', 6);
 		$data = get_legislator_data('house', $lis_id);
 
@@ -624,17 +674,33 @@ foreach ($delegates as $lis_id => $name)
 			'date_started',
 			'party',
 			'lis_id',
-			'email',
-			'place'
+			'email'
 		);
+
+		$errors = false;
+
 		foreach ($required_fields as $field)
 		{
+
 			if ( !isset($data[$field]) || empty($data[$field]) )
 			{
+				$errors = true;
 				echo 'Error: ' . $field . ' is missing for ' . $data['name'] . "\n";
 			}
 		}
+
+		if ($errors == false)
+		{
+			echo 'All needed records found for ' . $data['name_formatted'] . "\n";
+		}
+		else
+		{
+			echo 'Not adding ' . $data['name_formatted'] .', due to insufficient data.' . "\n";
+			unset($errors);
+		}
+
 		print_r($data);
+
 	}
 
 }
