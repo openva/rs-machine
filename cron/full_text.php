@@ -40,6 +40,21 @@ while ($text = mysql_fetch_array($result))
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 	$full_text = curl_exec($ch);
+	
+	/*
+	 * Check that the cURL request was successful (HTTP status code 2XX).
+	 */
+	$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	if ($http_code >= 200 && $http_code < 300)
+	{
+		$full_text = $response;
+	}
+	else
+	{
+		$log->put('Cannot get bill text, because leg1.state.va.us isn’t returning a 2XX HTTP header.', 5);
+		exit;
+	}
+
 	curl_close($ch);
 
 	# Convert the legislature's Windows-1252 text to UTF-8.
