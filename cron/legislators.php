@@ -1,8 +1,20 @@
 <?php
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+/*
+ * Connect to the database
+ */
 $database = new Database;
 $db = $database->connect();
 global $db;
+
+/*
+ * Instantiate the logging class
+ */
+$log = new Log;
 
 /*
  * Use a DOM parser for the screen-scraper.
@@ -11,6 +23,64 @@ use Sunra\PhpSimple\HtmlDomParser;
 
 class Updater
 {
+
+	private $log;
+
+	public function __construct(Log $log)
+	{
+        $this->log = $log;
+    }
+
+	/*
+	 * fetch_photo()
+	 *
+	 * Retrieves a legislator photo from a provided URL and stores it.
+	 */
+	public function fetch_photo($url, $shortname)
+	{
+
+		if (empty($url) && empty($shortname))
+		{
+			return false;
+		}
+
+		/*
+		 * Retrieve the photo from the remote server
+		 */
+		$photo = file_get_contents($url);
+		
+		if ($photo == false)
+		{
+			return false;
+		}
+
+		/*
+		 * Store the file without an extension (we don't know the image format)
+		 */
+		$filename = $shortname;
+		if (file_put_contents($filename, $photo) == false)
+		{
+			return false;
+		}
+
+		/*
+		 * Try to identify the file format
+		 */
+		$filetype = mime_content_type($filename);
+		if (stristr($filetype, 'image/jpeg'))
+		{
+			rename($filename, $filename.'.jpg');
+			$filename = $filename.'.jpg';
+		}
+		elseif (stristr($filetype, 'image/png'))
+		{
+			rename($filename, $filename.'.png');
+			$filename = $filename.'.png';
+		}
+
+		return $filename;
+		
+	}
 
 	/*
 	 * deactivate_legislator()
@@ -24,6 +94,12 @@ class Updater
 		{
 			return false;
 		}
+
+		/*
+		 * LIS IDs are preceded with an H or an S, but we don't use those within the database,
+		 * so strip those out.
+		 */
+		$id = preg_replace('/[H,S]/', '', $id);
 
 		/*
 		* Determine what date to use to mark the legislator as no longer in office.
@@ -65,9 +141,13 @@ class Updater
 			$date_ended = date('Y-m-d', strtotime('-1 day'));
 		}
 
-		$sql = 'UPDATE representatives SET date_ended="' . $date_ended . '"
+		$sql = 'UPDATE representatives
+				SET date_ended="' . $date_ended . '"
 				WHERE lis_id="'. $id .'"';
-		echo $sql . "\n";
+		$stmt = $GLOBALS['dbh']->prepare($sql);
+		$result = $stmt->execute();
+
+		return $result;
 
 	} // deactivate_legislator()
 
@@ -80,7 +160,8 @@ class Updater
 	public function add_legislator($legislator)
 	{
 
-		if (isset($legislator) || !is_array($legislator)){
+		if (!isset($legislator) || !is_array($legislator))
+		{
 			return false;
 		}
 
@@ -88,24 +169,29 @@ class Updater
 		* All of these values must be defined in order to create a record.
 		*/
 		$required_fields = array(
-			'name_formal',
-			'name',
-			'name_formatted',
-			'shortname',
-			'chamber',
-			'district_id',
-			'date_started',
-			'party',
-			'lis_id',
-			'email'
+			'name_formal' => true,
+			'name' => true,
+			'name_formatted' => true,
+			'shortname' => true,
+			'chamber' => true,
+			'district_id' => true,
+			'date_started' => true,
+			'party' => true,
+			'lis_id' => true,
+			'email' => true,
 		);
 
 		/*
 		 * If any required values are missing, give up.
 		 */
-		if (count(array_diff_key($required_fields, $legislator) > 0))
+		$missing_fields = array_diff_key($required_fields, $legislator);
+		if (count($missing_fields) > 0)
 		{
+
+			$this->log->put('Missing one or more required fields (' . implode(',', $missing_fields)
+				. ') to add a record for ' . $legislator['name_formal'], 6);
 			return false;
+
 		}
 
 		/*
@@ -114,21 +200,55 @@ class Updater
 		$sql = 'SELECT *
 				FROM representatives
 				WHERE shortname="' . $legislator['shortname'] . '"';
-		$stmt = $GLOBALS['db']->prepare($sql);
+		$stmt = $GLOBALS['dbh']->prepare($sql);
 		$stmt->execute();
 		$existing = $stmt->fetchAll(PDO::FETCH_OBJ);
+
 		if (count($existing) > 0)
 		{
+
+			$error = 'Not creating a record for ' . $legislator['name_formatted'] .' because '
+				. ' there is already a record for ' . $legislator['shortname'] . ' in the '
+				. 'database. This legislator must be added manually. Use this info: ';
+			foreach ($legislator as $key => $value)
+			{
+				$error .= $key . ': ' . $value . "\n";
+			}
+			$this->log->put($error, 6);
+
 			return false;
+
 		}
 
+		/*
+		 * LIS IDs are preceded with an "H" or an "S," but we don't use those within the
+		 * database, so strip that out.
+		 */
+		$legislator['lis_id'] = preg_replace('/[H,S]/', '', $legislator['lis_id']);
+
+		/*
+		 * Build the SQL query
+		 */
 		$sql = 'INSERT INTO representatives SET ';
 		foreach ($legislator as $key=>$value)
 		{
-			$sql .= $key.'="' . $value . '"';
+			$sql .= $key.'="' . $value . '", ';
 		}
 
-		echo $sql . "\n";
+		$sql .= 'date_created=now()';
+
+		/*
+		 * Insert the legislator record
+		 */
+		$stmt = $GLOBALS['dbh']->prepare($sql);
+		$result = $stmt->execute();
+		if ($result == false)
+		{
+			$this->log->put('Error: Legislator record could not be added.' . "\n" . $sql . "\n", 6);
+			return false;
+		}
+		
+		return true;
 
 	}
 
@@ -146,6 +266,9 @@ class Updater
 			return false;
 		}
 
+		/*
+		 * Fetch delegate information
+		 */
 		if ($chamber == 'house')
 		{
 
@@ -259,6 +382,14 @@ class Updater
 			$legislator['name'] = preg_replace('/\s{2,}/', ' ', $legislator['name']);
 
 			/*
+			 * We no longer need a nickname.
+			 */
+			if (isset($legislator['nickname']))
+			{
+				unset($legislator['nickname']);
+			}
+
+			/*
 			 * Format delegate's shortname.
 			 */
 			preg_match_all('([A-Za-z-]+)', $shortname, $matches);
@@ -298,8 +429,11 @@ class Updater
 			 * Get capitol office address.
 			 */
 			preg_match('/Room Number:<\/span> ([E,W]([0-9]{3}))/', $html, $matches);
-			$legislator['address_richmond'] = $matches[1];
-			unset($matches);
+			if (isset($matches[1]))
+			{
+				$legislator['address_richmond'] = $matches[1];
+				unset($matches);
+			}
 
 			/*
 			 * Get capitol phone number.
@@ -396,7 +530,10 @@ class Updater
 			 * Get place name
 			 */
 			preg_match('/<th scope="col">District Office(.+)<td>([A-Za-z ]+), (VA|Virginia)(\s+)([0-9]{5})/sU', $html, $matches);
-			$legislator['place'] = $matches[2];
+			if (isset($matches[2]))
+			{
+				$legislator['place'] = $matches[2];
+			}
 
 			/*
 			 * Create formatted name
@@ -414,8 +551,17 @@ class Updater
 			}
 			$legislator['name_formatted'] .= ')';
 
-		}
 
+			/*
+			 * We no longer need the district number.
+			 */
+			unset($legislator['district_number']);
+
+		} // fetch delegate
+
+		/*
+		 * Fetch senator data
+		 */
 		elseif ($chamber == 'senate')
 		{
 
@@ -473,7 +619,7 @@ class Updater
 			$legislator['chamber'] = 'senate';
 			$legislator['party'] = trim($senator->party);
 			$legislator['email'] = trim($senator->email_address);
-			$legislator['district_number'] = trim($legislator->district);
+			$legislator['district_number'] = trim($senator->district);
 
 			/*
 			 * Fetch the HTML and save parse the DOM.
@@ -590,6 +736,80 @@ class Updater
 			$d = $district->info('senate', $legislator['district_number']);
 			$legislator['district_id'] = $d['id'];
 
+			/*
+			 * We no longer need the district number.
+			 */
+			unset($legislator['district_number']);
+
+		} // fetch senator
+
+		/*
+		 * Clean up or enhance data collected
+		 *
+		 * Instead of repeating identical data transformations for delegates and senators, perform
+		 * common transformations here.
+		 */
+
+		 /*
+		  * Get location coordinates
+		  */
+		$location = new Location();
+		if (!empty($legislator['address_district']))
+		{
+			$location->address = $legislator['address_district'];
+		}
+		elseif (!empty($legislator['place']))
+		{
+			$location->address = $legislator['place'] . ', VA';
+		}
+		if ( !empty($legislator['place']) && $location->get_coordinates($legislator['place']) != false )
+		{
+			$legislator['latitude'] = round($location->latitude, 2);
+			$legislator['longitude'] = round($location->longitude, 2);
+		}
+
+		/*
+		 * Standardize racial descriptions
+		 *
+		 * This is a little weird. The House of Delegates rightly allows members to specify any
+		 * racial descriptor for themselves. But our database only has a few crude racial labels,
+		 * because we don't actually use them for anything on the site, and because the House
+		 * long didn't provide racial identifiers (and the Senate still doesn't), requiring taking
+		 * a guess when adding legislators. The correct thing to do here would be to modify
+		 * the database to allow arbitrary descriptors to be entered. But I'm not prepared to do
+		 * that at this moment, so instead I'm going to collapse provided race designators into
+		 * a few overly simplistic categories. Again, this isn't actually being surfaced anywhere,
+		 * so there's no impact.
+		 */
+		$race_map = array(
+			'caucasian' => 'white',
+			'hispanic' => 'latino',
+			'african american' => 'black',
+			'asian american' => 'asian',
+			'middle eastern' => 'other'
+		);
+		if (!empty($legislator['race']))
+		{
+			if (array_key_exists($legislator['race'], $race_map))
+			{
+				$legislator['race'] = $race_map[$legislator{'race'}];
+			}
+			// If multiple races are listed, don't record anything
+			elseif (stristr($legislator['race'], ','))
+			{
+				$legislator['race'] = '';
+			}
+		}
+
+		/*
+		 * Drop any array elements with blank contents.
+		 */
+		foreach ($legislator as $key => $value)
+		{
+			if (!empty($value))
+			{
+				$newLegislator[$key] = $value;
+			}
 		}
 		
 		return $legislator;
@@ -600,7 +820,7 @@ class Updater
 
 /*
  * Retrieve a list of all active delegates' names and IDs. Though that's not *quite* right.
- * Within a couple of weeks of the election, the House's's website pretends that the departing
+ * Within a couple of weeks of the election, the House's website pretends that the departing
  * delegates are already out office. New delegates are listed, departing ones are gone. To
  * avoid two solid months of errors, instead we get a list of delegates with no end date.
  */
@@ -686,7 +906,7 @@ $log->put('Retrieved ' . count($delegates) . ' delegates from virginiageneralass
 /*
  * Invoke the updater class.
  */
-$updater = new Updater();
+$updater = new Updater($log);
 
 /*
  * First see if we have records of any legislators who are not currently in office.
@@ -703,10 +923,12 @@ foreach ($known_legislators as &$known_legislator)
 	{
 		if (!isset($senators[$id]))
 		{
-			$log->put('Error: Sen. ' . $known_legislator->name
+			$log->put('Error: Sen. ' . pivot($known_legislator->name)
 				. ' is no longer in office, but is still listed in the database.', 5);
-			// TODO: Mark legislator as no longer in office.
-			$updater->deactivate_legislator($id);
+			if ($updater->deactivate_legislator($id) == false)
+			{
+				$log->put('Error: ...but they couldn’t be marked as out of office.');
+			}
 		}
 	}
 
@@ -717,10 +939,12 @@ foreach ($known_legislators as &$known_legislator)
 	{
 		if (!isset($delegates[$id]))
 		{
-			$log->put('Error: Del. ' . $known_legislator->name
+			$log->put('Error: Del. ' . pivot($known_legislator->name)
 				. ' is no longer in office, but is still listed in the database.', 5);
-			// TODO: Mark legislator as no longer in office.
-			$updater->deactivate_legislator($id);
+			if ($updater->deactivate_legislator($id) == false)
+			{
+				$log->put('Error: ...but they couldn’t be marked as out of office.');
+			}
 		}
 	}
 
@@ -767,6 +991,7 @@ foreach ($senators as $lis_id => $name)
 	 */
 	if ($match == FALSE && $name != 'Vacant')
 	{
+
 		$log->put('Found a new senator: ' . $name . ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
 
 		$data = $updater->fetch_legislator_data('senate', $lis_id);
@@ -778,18 +1003,46 @@ foreach ($senators as $lis_id => $name)
 			if ( !isset($data[$field]) || empty($data[$field]) )
 			{
 				$errors = true;
-				echo 'Error: ' . $field . ' is missing for ' . $data['name'] . "\n";
+				$log->put('Required ' . $field . ' is missing for ' . $data['name_formatted']
+					. '.', 6);
 			}
 		}
 
 		if ($errors == false)
 		{
-			echo 'All needed records found for ' . $data['name_formatted'];
-			//$updater->add_legislator($data);
+			
+			/*
+			 * If there's a photo URL, save it in a separate variable and remove it from the
+			 * legislator data, because the URL doesn't get inserted into the database.
+			 */
+			if (isset($data['photo_url']))
+			{
+				$photo_url = $data['photo_url'];
+				$unset($data['photo_url']);
+			}
+
+			if ($updater->add_legislator($data) == false)
+			{
+				$log->put('Could not add ' . $data['name_formatted'] . ' to the system', 6);
+				continue;
+			}
+
+			$photo_success = $updater->fetch_photo($photo_url, $data['shortname']);
+			if ($photo_success == false)
+			{
+				$log->put('Could not retrieve photo of ' . $data['name_formatted'], 4);
+			}
+			else
+			{
+				$log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_success
+					. '. You need to manually commit it to the Git repo.', 5);
+			}
+			
 		}
 		else
 		{
-			echo 'Not adding ' . $data['name_formatted'] .', due to insufficient data.' . "\n";
+			$log->put('The new record for ' . $data['name_formatted'] .' was not added to the '
+				. 'system, due to missing data.', 6);
 			unset($errors);
 		}
 		
@@ -821,6 +1074,7 @@ foreach ($delegates as $lis_id => $name)
 	 */
 	if ($match == FALSE && $name != 'Vacant')
 	{
+
 		$log->put('Found a new delegate: ' . $name . ' (https://virginiageneralassembly.gov/house/members/members.php?ses=' .
 			SESSION_YEAR . '&id='. $lis_id . ')', 6);
 		$data = $updater->fetch_legislator_data('house', $lis_id);
@@ -846,22 +1100,48 @@ foreach ($delegates as $lis_id => $name)
 			if ( !isset($data[$field]) || empty($data[$field]) )
 			{
 				$errors = true;
-				echo 'Error: ' . $field . ' is missing for ' . $data['name'] . "\n";
+				$log->put('Error: Required ' . $field . ' is missing for ' . $data['name_formatted']
+					. ', so they couldn’t be added to the system.', 6);
 			}
+
 		}
 
 		if ($errors == false)
 		{
-			echo 'All needed records found for ' . $data['name_formatted'] . "\n";
-			//$updater->add_legislator($data);
+			
+			/*
+			 * If there's a photo URL, save it in a separate variable and remove it from the
+			 * legislator data, because the URL doesn't get inserted into the database.
+			 */
+			if (isset($data['photo_url']))
+			{
+				$photo_url = $data['photo_url'];
+				unset($data['photo_url']);
+			}
+			
+			if ($updater->add_legislator($data) == false)
+			{
+				$log->put('Could not add ' . $data['name_formatted'] . ' to the system', 6);
+				continue;
+			}
+
+			$photo_success = $updater->fetch_photo($photo_url, $data['shortname']);
+			if ($photo_success == false)
+			{
+				$log->put('Could not retrieve photo of ' . $data['name_formatted'], 4);
+			}
+			else
+			{
+				$log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_success
+					. '. You need to manually commit it to the Git repo.', 5);
+			}
 		}
 		else
 		{
-			echo 'Not adding ' . $data['name_formatted'] .', due to insufficient data.' . "\n";
+			$log->put('The new record for ' . $data['name_formatted'] .' was not added to the '
+				. 'system, due to missing data.', 6);
 			unset($errors);
 		}
-
-		print_r($data);
 
 	}
 
