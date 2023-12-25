@@ -5,7 +5,12 @@ include_once(__DIR__ . '/../includes/functions.inc.php');
 include_once(__DIR__ . '/../includes/photosynthesis.inc.php');
 include_once(__DIR__ . '/../includes/vendor/autoload.php');
 
-$import = new Import();
+/*
+ * Instantiate the logging class
+ */
+$log = new Log;
+
+$import = new Import($log);
 
 die('Read through all code before running this');
 

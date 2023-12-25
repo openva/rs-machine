@@ -2,7 +2,12 @@
 
 include '../../includes/class.Import.php';
 
-$import = new Import();
+/*
+ * Instantiate the logging class
+ */
+$log = new Log;
+
+$import = new Import($log);
 
 /*
  * A sample committee members file

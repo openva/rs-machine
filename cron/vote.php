@@ -20,7 +20,12 @@ $session_id = SESSION_ID;
 $session_year = SESSION_YEAR;
 $dlas_session_id = SESSION_LIS_ID;
 
-$import = new Import();
+/*
+ * Instantiate the logging class
+ */
+$log = new Log;
+
+$import = new Import($log);
 
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
