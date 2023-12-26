@@ -5,11 +5,6 @@ include_once(__DIR__ . '/../../includes/functions.inc.php');
 include_once(__DIR__ . '/../../includes/vendor/autoload.php');
 
 /*
- * Use a DOM parser for the screen-scraper.
- */
-use Sunra\PhpSimple\HtmlDomParser;
-
-/*
  * Instantiate the logging class
  */
 $log = new Log;
