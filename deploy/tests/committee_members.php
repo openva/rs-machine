@@ -81,4 +81,4 @@ if ($error == TRUE)
     return FALSE;
 }
 
-echo 'All tests passed';
+echo 'All committee members tests passed' . "\n";

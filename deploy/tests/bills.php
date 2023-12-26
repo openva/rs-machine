@@ -42,4 +42,4 @@ if ($error == TRUE)
     return FALSE;
 }
 
-echo 'All tests passed';
+echo 'All bills tests passed' . "\n";

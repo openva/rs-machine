@@ -78,4 +78,4 @@ if ($error == TRUE)
     return FALSE;
 }
 
-echo 'All tests passed';
+echo 'All legislators tests passed' . "\n";
