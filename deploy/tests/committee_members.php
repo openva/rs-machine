@@ -1,5 +1,6 @@
 <?php
 
+include '../../includes/class.Log.php';
 include '../../includes/class.Import.php';
 
 /*
