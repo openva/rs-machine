@@ -16,25 +16,26 @@ $bill = $import->prepare_bill($bill);
 
 if ($bill['number'] != 'hb1')
 {
-    echo 'Error: Bill number was ' . $bill['number'] . ', expected "hb1"';
+    echo 'Error: Bill number was ' . $bill['number'] . ', expected "hb1"' . "\n";
     $error = TRUE;
 }
 
 if ($bill['catch_line'] != 'Absentee voting; no excuse required.')
 {
-    echo 'Error: Catch line was ' . $bill['catch_line'] . ', expected "Absentee voting; no excuse required."';
+    echo 'Error: Catch line was ' . $bill['catch_line']
+        . ', expected "Absentee voting; no excuse required." . "\n"';
     $error = TRUE;
 }
 
 if ($bill['chief_patron'] != 'Herring')
 {
-    echo 'Error: Chief patron was ' . $bill['chief_patron'] . ', expected "Herring"';
+    echo 'Error: Chief patron was ' . $bill['chief_patron'] . ', expected "Herring"' . "\n";
     $error = TRUE;
 }
 
 if ($bill['last_house_date'] != '1574035200')
 {
-    echo 'Error: Last house date was ' . $bill['last_house_date'] . ', expected 1574035200';
+    echo 'Error: Last house date was ' . $bill['last_house_date'] . ', expected 1574035200' . "\n";
     $error = TRUE;
 }
 
