@@ -30,8 +30,6 @@ jobs:
       - run: cp richmondsunlight.com/htdocs/includes/*.php includes/
       - run: rm -Rf richmondsunlight.com
       - run: composer install
-      - run: cd htdocs/js/vendor; yarn build
-      - run: cd ../../..
       - run: find htdocs/*.php -print0 |xargs -0 -n1 -P8 php5.6 -l
       - run: cd deploy/tests/ && php bills.php && php committee_members.php && php legislators.php && cd ../..
       - run: >-
