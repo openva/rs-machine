@@ -61,14 +61,14 @@ foreach ($test_records as $test_record)
         if (!isset($legislator[$key]) || $legislator[$key] != $value)
         {
             echo 'Failure: For ' . pivot($legislator) .' expected a ' . $key . ' of value “'
-                . $value . ',” but instead the value was “' . legislator[$key] . '”';
+                . $value . ',” but instead the value was “' . legislator[$key] . '”' . "\n";
             $error = TRUE;
         }
     }
 
     if ( $import->fetch_photo($legislator['photo_url'], $legislator['shortname'] == false) )
     {
-        echo 'Failure: Photo ' . $legislator['photo_url'] .' couldn’t be fetched';
+        echo 'Failure: Photo ' . $legislator['photo_url'] .' couldn’t be fetched' . "\n";
         $error = TRUE;
     }
 
