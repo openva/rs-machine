@@ -33,9 +33,9 @@ if ($bill['chief_patron'] != 'Herring')
     $error = TRUE;
 }
 
-if ($bill['last_house_date'] != '1574035200')
+if ($bill['last_house_date'] != '1574053200')
 {
-    echo 'Error: Last house date was ' . $bill['last_house_date'] . ', expected 1574035200' . "\n";
+    echo 'Error: Last house date was ' . $bill['last_house_date'] . ', expected 1574053200' . "\n";
     $error = TRUE;
 }
 
