@@ -33,7 +33,7 @@
         {
             $age = time()-filemtime($file) * 3600;
             $log->put('Error: ' . $file . ' shouldn’t be older than ' . $age . ' hours, but it '
-                'hasn’t been updated in ' . $age . ' hours.', 7);
+                . 'hasn’t been updated in ' . $age . ' hours.', 7);
         }
 
     }
