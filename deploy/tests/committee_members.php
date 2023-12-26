@@ -76,7 +76,7 @@ if ($members[3]['committee_id'] != 22)
     $error = TRUE;
 }
 
-if ($error == TRUE)
+if (isset($error) && $error == TRUE)
 {
     return FALSE;
 }

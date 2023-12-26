@@ -73,7 +73,7 @@ foreach ($test_records as $test_record)
 
 }
 
-if ($error == TRUE)
+if (isset($error) && $error == TRUE)
 {
     return FALSE;
 }

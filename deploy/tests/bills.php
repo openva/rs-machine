@@ -37,7 +37,7 @@ if ($bill['last_house_date'] != '1574035200')
     $error = TRUE;
 }
 
-if ($error == TRUE)
+if (isset($error) && $error == TRUE)
 {
     return FALSE;
 }
