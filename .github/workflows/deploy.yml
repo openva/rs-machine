@@ -71,4 +71,4 @@ jobs:
             --application-name RS-Machine \
             --deployment-group-name RS-Machine-Fleet \
             --deployment-config-name CodeDeployDefault.OneAtATime \
-            --github-location repository=${{ github.repository }},commitId=${{ github.sha }}
+            --s3-location s3://deploy.richmondsunlight.com/rs-machine-master.zip
