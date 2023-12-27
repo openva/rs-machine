@@ -64,6 +64,9 @@ jobs:
       - name: Deploy via CodeDeploy
         if: ${{ needs.build.outputs.github_branch == 'master' }}
         run: |
+          aws deploy push --application-name RS-Machine \
+            --s3-location s3://deploy.richmondsunlight.com/rs-machine-master.zip \
+            --ignore-hidden-files
           aws deploy create-deployment \
             --application-name RS-Machine \
             --deployment-group-name RS-Machine-Fleet \
