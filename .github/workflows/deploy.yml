@@ -40,7 +40,7 @@ jobs:
           && mv latest.zip upload/latest.zip
       - run: cd deploy/tests/ && php bills.php && php committee_members.php && php legislators.php && cd ../..
       - name: Save secret-populated code for a subsequent deploy step
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: codebase
           path: .
@@ -52,7 +52,7 @@ jobs:
     needs: build # Don't deploy unless the build succeeds
     steps:
       - name: Get the secret-populated code
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: codebase
       - name: Configure AWS credentials
