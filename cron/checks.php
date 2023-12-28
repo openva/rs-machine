@@ -31,9 +31,9 @@
          */
         if (time()-filemtime(__DIR__ . '/' . $file) > $age * 3600)
         {
-            $age = time()-filemtime($file) * 3600;
-            $log->put('Error: ' . $file . ' shouldn’t be older than ' . $age . ' hours, but it '
-                . 'hasn’t been updated in ' . $age . ' hours.', 7);
+            $file_age = (time()-filemtime($file)) / 3600;
+            $log->put('Error: The local copy of ' . $file . ' hasn’t been updated in ' . $file_age
+                . ' hours.', 7);
         }
 
     }
