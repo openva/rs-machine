@@ -123,6 +123,8 @@ foreach ($bills as $bill)
 						OR
 						YEAR(date_ended)+1 = YEAR(now())
 						OR
+						YEAR(date_ended)-1 = YEAR(now())
+						OR
 						YEAR(date_ended) = YEAR(now())
 					)
 				AND chamber = "' . $bill['chamber'] . '"),
