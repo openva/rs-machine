@@ -13,9 +13,15 @@ $sql = 'SELECT bills_full_text.id, bills_full_text.number, sessions.lis_id
 			ON bills_full_text.bill_id = bills.id
 		LEFT JOIN sessions
 			ON bills.session_id = sessions.id
-		WHERE bills_full_text.text IS NULL AND bills_full_text.failed_retrievals < 20
-		ORDER BY bills_full_text.failed_retrievals ASC, sessions.year DESC,
-		bills.date_introduced DESC, bills_full_text.date_introduced DESC';
+		WHERE
+			bills_full_text.text IS NULL
+			AND bills_full_text.failed_retrievals < 20
+			AND bills.session_id = ' . SESSION_ID . '
+		ORDER BY
+			bills_full_text.failed_retrievals ASC,
+			sessions.year DESC,
+			bills.date_introduced DESC,
+			bills_full_text.date_introduced DESC';
 
 $result = mysql_query($sql);
 
