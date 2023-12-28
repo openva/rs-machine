@@ -210,7 +210,7 @@ while ($text = mysql_fetch_array($result))
 		# told about those.
 		if (mb_stripos($text['number'], 'CHAP') === FALSE)
 		{
-			$log->put('Full text of ' . $text['number'] . ' came up blank: ' . $url, 5);
+			$log->put('Full text of ' . $text['number'] . ' came up blank: ' . urlencode($url), 5);
 		}
 
 	}
