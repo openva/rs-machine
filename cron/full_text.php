@@ -35,6 +35,11 @@ if (mysql_num_rows($result) == 0)
 //$config = HTMLPurifier_Config::createDefault();
 //$purifier = new HTMLPurifier($config);
 
+/*
+ * We don't want to keep hammering on the server if it is returning errors.
+ */
+$server_errors = 0;
+
 while ($text = mysql_fetch_array($result))
 {
 
@@ -57,8 +62,30 @@ while ($text = mysql_fetch_array($result))
 	}
 	else
 	{
-		$log->put('Cannot get bill text, because leg1.state.va.us isn’t returning a 2XX HTTP header.', 5);
-		exit;
+		$server_errors++;
+		continue;
+	}
+
+	/*
+	 * Check for the legislature’s error that indicates excessive traffic. They send an HTTP 200,
+	 * unfortunately, so we have to determine the error state based on the content.
+	 */
+	if (stristr($full_text, 'your query could not be processed') !== false)
+	{
+		$server_errors++;
+		sleep(10);
+		continue;
+	}
+
+	/*
+	 * If too many consecutive server errors have been returned, give up, and stop hammering on
+	 * LIS's server.
+	 */
+	if ($server_errors >= 20)
+	{
+		$log->put('Abandoning collecting bill text, after receiving ' . $server_errors
+			. ' consecutive rate-limiting error messages from the LIS server.');
+		return;
 	}
 
 	curl_close($ch);
@@ -156,6 +183,11 @@ while ($text = mysql_fetch_array($result))
 				$log->put('Insertion of  ' . strtoupper($text['number']) . ' bill text succeeded.', 2);
 			}
 		}
+
+		/*
+		 * Reset server errors
+		 */
+		$server_errors = 0;
 
 		# Unset the variables that we used here.
 		unset($start);
