@@ -86,6 +86,12 @@ unset($tmp);
 
 $log->put('Retrieved ' . count($senators) . ' senators from senate.virginia.gov.', 1);
 
+if (count($senators) < 35)
+{
+	$log->put('Since too few senators were found to be plausible, abandoning efforts.', 5);
+	return;
+}
+
 /*
  * Get delegates. Their House ID (e.g., "H0200") is the key, their name is the value.
  */
@@ -102,6 +108,12 @@ $delegates = $tmp;
 unset($tmp);
 
 $log->put('Retrieved ' . count($delegates) . ' delegates from virginiageneralassembly.gov.', 1);
+
+if (count($delegates) < 90)
+{
+	$log->put('Since too few delegates were found to be plausible, abandoning efforts.', 5);
+	return;
+}
 
 /*
  * Invoke the Import class.
