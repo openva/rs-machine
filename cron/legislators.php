@@ -147,10 +147,10 @@ foreach ($known_legislators as &$known_legislator)
 		{
 			$log->put('Error: Sen. ' . pivot($known_legislator->name)
 				. ' is no longer in office, but is still listed in the database.', 5);
-			/*if ($import->deactivate_legislator($id) == false)
+			if ($import->deactivate_legislator($id) == false)
 			{
 				$log->put('Error: ...but they couldn’t be marked as out of office.');
-			}*/
+			}
 		}
 	}
 
@@ -163,10 +163,10 @@ foreach ($known_legislators as &$known_legislator)
 		{
 			$log->put('Error: Del. ' . pivot($known_legislator->name)
 				. ' is no longer in office, but is still listed in the database.', 5);
-			/*iif ($import->deactivate_legislator($id) == false)
+			if ($import->deactivate_legislator($id) == false)
 			{
 				$log->put('Error: ...but they couldn’t be marked as out of office.');
-			}*/
+			}
 		}
 	}
 
