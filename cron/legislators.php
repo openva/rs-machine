@@ -73,6 +73,11 @@ if (count($known_legislators) > 140)
  */
 
 $html = get_content('https://lis.virginia.gov/241/mbr/MBR.HTM');
+if ($html == false)
+{
+	$log->put('Could not load Senate listing. Abandoning efforts.', 5);
+	return;
+}
 preg_match_all('/mbr\+S([0-9]{2,3})">(.+)<\/a>/', $html, $senators);
 $tmp = array();
 $i=0;
@@ -88,7 +93,7 @@ $log->put('Retrieved ' . count($senators) . ' senators from senate.virginia.gov.
 
 if (count($senators) < 35)
 {
-	$log->put('Since too few senators were found to be plausible, abandoning efforts.', 5);
+	$log->put('Since too few senators were found to be plausible. Abandoning efforts.', 5);
 	return;
 }
 
@@ -96,6 +101,11 @@ if (count($senators) < 35)
  * Get delegates. Their House ID (e.g., "H0200") is the key, their name is the value.
  */
 $html = get_content('https://virginiageneralassembly.gov/house/members/members.php?ses=' . SESSION_YEAR);
+if ($html == false)
+{
+	$log->put('Could not load Senate listing. Abandoning efforts.', 5);
+	return;
+}
 preg_match_all('/id=\'member\[H([0-9]+)\]\'><td width="190px"><a class="bioOpener" href="#">(.*?)<\/a>/m', $html, $delegates);
 $tmp = array();
 $i=0;
