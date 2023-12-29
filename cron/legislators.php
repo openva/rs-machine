@@ -71,8 +71,9 @@ if (count($known_legislators) > 140)
 /*
  * Get senators. Their Senate ID (e.g., "S100") is the key, their name is the value.
  */
-$html = get_content('https://apps.senate.virginia.gov/Senator/index.php');
-preg_match_all('/id=S([0-9]{2,3})(?:.*)<u>(.+)<\/u>/', $html, $senators);
+
+$html = get_content('https://lis.virginia.gov/241/mbr/MBR.HTM');
+preg_match_all('/mbr\+S([0-9]{2,3})">(.+)<\/a>/', $html, $senators);
 $tmp = array();
 $i=0;
 foreach ($senators[1] as $senator)
