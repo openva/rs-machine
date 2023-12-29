@@ -103,7 +103,7 @@ if (count($senators) < 35)
 $html = get_content('https://virginiageneralassembly.gov/house/members/members.php?ses=' . SESSION_YEAR);
 if ($html == false)
 {
-	$log->put('Could not load Senate listing. Abandoning efforts.', 5);
+	$log->put('Could not load House listing. Abandoning efforts.', 5);
 	return;
 }
 preg_match_all('/id=\'member\[H([0-9]+)\]\'><td width="190px"><a class="bioOpener" href="#">(.*?)<\/a>/m', $html, $delegates);
