@@ -36,7 +36,8 @@
 # Update the PDF mirror.
 41 02,16 * * * /usr/bin/php rs-machine/cron/update.php download_pdfs
 
-# Perform a sanity-check for legislators.
+# Update the legislators listing
+40 12 * * * /usr/bin/expect rs-machine/cron/sftp.sh Members.csv rs-machine/cron/members.csv
 41 12 * * * /usr/bin/php rs-machine/cron/update.php legislators
 
 # Updates the sections of the code referred to within each bill.
