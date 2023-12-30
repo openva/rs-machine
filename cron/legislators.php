@@ -217,6 +217,11 @@ foreach ($senators as $lis_id => $name)
 		$log->put('Found a new senator: ' . $name . ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
 
 		$data = $import->fetch_legislator_data('senate', $lis_id);
+		if ($data == false)
+		{
+			$log->put('Error: Could not fetch that senator’s data.', 6);
+			continue;
+		}
 
 		$errors = false;
 
