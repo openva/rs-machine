@@ -43,6 +43,13 @@ $mc = new Memcached();
 $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 
 /*
+ * If we encounter legislators whose bills can't be added, build up a list of them so that we
+ * can avoid attempting to add further bills by them, and also to provide a list of missing
+ * legislators.
+ */
+$missing_legislators = array();
+
+/*
  * Step through each row in the CSV, one by one.
  */
 $bills = explode("\n", $bills);
@@ -73,9 +80,20 @@ foreach ($bills as $bill)
 		}
 		else
 		{
-			$log->put('Updating ' . strtoupper($number) . '.', 1);
+			$log->put('Updating ' . strtoupper($number) . '.', 2);
 		}
 
+	}
+
+	/*
+	 * If we've already tried to insert a bill by this legislator, and failed, then don't try
+	 * again.
+	 */
+	if (in_array($bill['chief_patron_id'], $missing_legislators))
+	{
+		$log->put('Skipping ' . strtoupper($number) . ', because the database has no record of '
+			. 'that legislator.', 2);
+		continue;
 	}
 
 	/*
@@ -147,6 +165,7 @@ foreach ($bills as $bill)
 			. 'the legislator (' . $bill['chief_patron_id'] . ', '
 			. strtolower($bill['chief_patron']) . ') who filed this bill isn’t in the database.', 7);
 		unset($hashes[$number]);
+		$missing_legislators[] = $bill['chief_patron_id'];
 	}
 
 	else
@@ -186,3 +205,12 @@ foreach ($bills as $bill)
 # Store our per-bill hashes array to a file, so that we can open it up next time and see which
 # bills have changed.
 file_put_contents($hash_path, serialize($hashes));
+
+/*
+ * If any of these bills are patroned by legislators that we have no record of, log that.
+ */
+if (count($missing_legislators) > 0)
+{
+	$log->put('There are ' . count($missing_legislators) . ' legislators that we have no '
+		. 'record of.', 6);
+}
