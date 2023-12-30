@@ -86,6 +86,11 @@ foreach ($bills as $bill)
 	}
 
 	/*
+	 * Clean up the bill CSV
+	 */
+	$bill = Import::prepare_bill($bill);
+
+	/*
 	 * If we've already tried to insert a bill by this legislator, and failed, then don't try
 	 * again.
 	 */
@@ -95,11 +100,6 @@ foreach ($bills as $bill)
 			. 'that legislator.', 2);
 		continue;
 	}
-
-	/*
-	 * Clean up the bill CSV
-	 */
-	$bill = Import::prepare_bill($bill);
 
 	# Prepare the data for the database.
 	array_walk_recursive($bill, function($field) { $field = mysqli_real_escape_string($GLOBALS['db'], $field); } );
