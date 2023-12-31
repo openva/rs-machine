@@ -335,6 +335,8 @@ foreach ($delegates as $lis_id => $name)
 
 		if ($errors == false)
 		{
+
+			$log->put('Successfully created a new record for ' . $data['name_formatted'], 4);
 			
 			/*
 			 * If there's a photo URL, save it in a separate variable and remove it from the
