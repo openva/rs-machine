@@ -214,6 +214,12 @@ if ($type == 'vote')
 	require 'vote.php';
 }
 
+# Auto-tag some bills.
+if ($type == 'tags')
+{
+	require 'tags.php';
+}
+
 # Run integrity checks.
 if (($type == 'all') || ($type == 'checks'))
 {
