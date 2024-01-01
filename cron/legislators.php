@@ -287,7 +287,10 @@ foreach ($delegates as $lis_id => $name)
 	foreach ($known_legislators as $known_legislator)
 	{
 
-		if ($known_legislator->lis_id == $lis_id)
+		/*
+		 * LIS inconsistently left-pads LIS IDs with 0s, so allow for that possibility
+		 */
+		if ( $known_legislator->lis_id == $lis_id || '0' . $known_legislator->lis_id == $lis_id )
 		{
 			$match = TRUE;
 			continue(2);
