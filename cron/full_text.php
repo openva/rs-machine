@@ -164,7 +164,7 @@ while ($text = mysql_fetch_array($result))
 
 		# Put the data back into the database, but clean it up first.
 		$full_text = trim($full_text);
-		$full_text = mysql_real_escape_string($full_text);
+		$full_text = @mysql_real_escape_string($full_text);
 
 		if (!empty($full_text))
 		{
@@ -173,7 +173,7 @@ while ($text = mysql_fetch_array($result))
 			$sql = 'UPDATE bills_full_text
 					SET text="' . $full_text . '", failed_retrievals=0
 					WHERE id=' . $text['id'];
-			$result2 = mysql_query($sql);
+			$result2 = @mysql_query($sql);
 			if (!$result2)
 			{
 				$log->put('Insertion of  ' . strtoupper($text['number']) . ' bill text failed.', 5);
@@ -204,7 +204,7 @@ while ($text = mysql_fetch_array($result))
 		$sql = 'UPDATE bills_full_text
 				SET failed_retrievals = failed_retrievals+1
 				WHERE id=' . $text['id'];
-		mysql_query($sql);
+		@mysql_query($sql);
 
 		# Ignore bills that have been codified into law -- we don't need to be
 		# told about those.
