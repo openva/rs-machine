@@ -156,7 +156,7 @@ while ($text = mysql_fetch_array($result))
 		$full_text = str_ireplace('href="/', 'href="http://lis.virginia.gov/', $full_text);
 
 		# Replace links to the state code with links to Virginia Decoded.
-		$full_text = str_ireplace('href="http://law.lis.virginia.gov/vacode', 'href="https://vacode.org', $full_text);
+		//$full_text = str_ireplace('href="http://law.lis.virginia.gov/vacode', 'href="https://vacode.org', $full_text);
 
 		# Any time that we've just got a question mark hanging out, that should be a section
 		# symbol.
