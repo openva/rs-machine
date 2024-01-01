@@ -161,9 +161,9 @@ foreach ($bills as $bill)
 
 	if ($result === FALSE)
 	{
-		$log->put('Adding ' . $bill['number'] . ' failed. Almost certainly, this means that '
-			. 'the legislator (' . $bill['chief_patron_id'] . ', '
-			. strtolower($bill['chief_patron']) . ') who filed this bill isn’t in the database.', 7);
+		$log->put('Adding ' . $bill['number'] . ' failed. This probably means that the legislator '
+			. '(' . $bill['chief_patron_id'] . ', ' . strtolower($bill['chief_patron'])
+			. ') who filed this bill isn’t in the database.', 4);
 		unset($hashes[$number]);
 		$missing_legislators[] = $bill['chief_patron_id'];
 	}
