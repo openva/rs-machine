@@ -38,7 +38,6 @@ $known_legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
 $sql = 'SELECT name, chamber, lis_id, date_ended
 		FROM representatives
 		WHERE chamber="senate"
-			AND date_started <= NOW()
 			AND (
 				date_ended IS NULL
 				OR
@@ -71,7 +70,6 @@ if (count($known_legislators) > 140)
 /*
  * Get senators. Their Senate ID (e.g., "S100") is the key, their name is the value.
  */
-
 $html = get_content('https://lis.virginia.gov/241/mbr/MBR.HTM');
 if ($html == false)
 {
@@ -214,7 +212,8 @@ foreach ($senators as $lis_id => $name)
 	if ($match == FALSE && $name != 'Vacant')
 	{
 
-		$log->put('Found a new senator: ' . $name . ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
+		$log->put('Found a new senator: ' . $name
+			. ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
 
 		$data = $import->fetch_legislator_data('senate', $lis_id);
 		if ($data == false)
