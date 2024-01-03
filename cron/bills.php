@@ -129,8 +129,8 @@ foreach ($bills as $bill)
 
 	# Now create the code to insert the bill or update the bill, depending
 	# on what the last query established for the preamble.
-	$sql .= 'number="' . $bill['number'] . '", session_id="' . $session_id.'",
-			chamber="' . $bill['chamber'] . '", catch_line="' . $bill['catch_line'].'",
+	$sql .= 'number="' . $bill['number'] . '", session_id="' . $session_id . '",
+			chamber="' . $bill['chamber'] . '", catch_line="' . $bill['catch_line'] . '",
 			chief_patron_id=
 				(SELECT id
 				FROM representatives
