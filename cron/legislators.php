@@ -212,8 +212,9 @@ foreach ($senators as $lis_id => $name)
 	if ($match == FALSE && $name != 'Vacant')
 	{
 
-		$log->put('Found a new senator: ' . $name
-			. ' (http://apps.senate.virginia.gov/Senator/memberpage.php?id=' . $lis_id . ')', 6);
+		$log->put('Found a new senator: ' . $name . ' ('
+			. 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+mbr+S117'
+			. $lis_id . ')', 6);
 
 		$data = $import->fetch_legislator_data('senate', $lis_id);
 		if ($data == false)
