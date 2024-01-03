@@ -215,7 +215,7 @@ if ($type == 'vote')
 }
 
 # Auto-tag some bills.
-if ($type == 'tags')
+if (($type == 'all') || ($type == 'tags'))
 {
 	require 'tags.php';
 }
