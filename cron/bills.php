@@ -171,6 +171,10 @@ foreach ($bills as $bill)
 	else
 	{
 
+		$log->put('Added ' . strtoupper($bill['number']) . ': ' . $bill['catch_line']
+			. ' (https://richmondsunlight.com/bill/' . SESSION_YEAR . '/' . $bill['number']
+			. '/)', 3);
+
 		# Get the last bill insert ID.
 		if (!isset($existing_bill['id']))
 		{
