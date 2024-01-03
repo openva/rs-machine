@@ -70,7 +70,7 @@ if (count($known_legislators) > 140)
 /*
  * Get senators. Their Senate ID (e.g., "S100") is the key, their name is the value.
  */
-$html = get_content('https://lis.virginia.gov/241/mbr/MBR.HTM');
+$html = get_content('https://lis.virginia.gov/' . SESSION_LIS_ID . '/mbr/MBR.HTM');
 if ($html == false)
 {
 	$log->put('Could not load Senate listing. Abandoning efforts.', 5);
