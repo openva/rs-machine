@@ -12,8 +12,12 @@ $sql = 'SELECT bills.id, bills.catch_line, bills.summary
         FROM bills
         LEFT JOIN tags
         ON bills.id=tags.bill_id
-        WHERE tags.bill_id IS NULL AND summary IS NOT NULL
-        ORDER BY bills.date_introduced DESC
+        WHERE
+            tags.bill_id IS NULL AND
+            summary IS NOT NULL
+        ORDER BY
+            bills.view_count DESC,
+            bills.date_introduced DESC
         LIMIT 10';
 $stmt = $GLOBALS['dbh']->prepare($sql);
 $stmt->execute();
