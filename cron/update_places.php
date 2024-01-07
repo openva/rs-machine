@@ -9,8 +9,10 @@ a query over and over and over, always getting no results.
 # INCLUDES
 # Include any files or libraries that are necessary for this specific
 # page to function.
-include_once('../includes/settings.inc.php');
-include_once('../includes/functions.inc.php');
+include_once(__DIR__ . '/../includes/settings.inc.php');
+include_once(__DIR__ . '/../includes/functions.inc.php');
+include_once(__DIR__ . '/../includes/photosynthesis.inc.php');
+include_once(__DIR__ . '/../includes/vendor/autoload.php');
 
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
@@ -224,7 +226,7 @@ while ($bill = mysql_fetch_array($result))
 		$place_result = mysql_query($sql);
 		if ($place_result == false)
 		{
-			//$log->put('Error: Could not add place names for ' . strtoupper($bill['number']), 4);
+			$log->put('Error: Could not add place names for ' . strtoupper($bill['number']), 4);
 		}
 		
 	}
@@ -232,9 +234,9 @@ while ($bill = mysql_fetch_array($result))
 	/*
 	 * Clear the bill from Memcached.
 	 */
-	//$mc->delete('bill-' . $bill['id']);
+	$mc->delete('bill-' . $bill['id']);
 
-	//$log->put('Identified place names in ' . strtoupper($bill['number']), 2);
+	$log->put('Identified place names in ' . strtoupper($bill['number']), 2);
 
 }
 
