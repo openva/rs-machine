@@ -261,7 +261,7 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE TABLE IF NOT EXISTS gazetteer (
   id mediumint(8) unsigned NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 NOT NULL,
-  municipality varchar(64) CHARACTER SET utf8 NOT NULL,
+  municipality varchar(64) CHARACTER SET utf8 NULL,
   latitude float NOT NULL,
   longitude float NOT NULL,
   elevation tinyint(3) unsigned DEFAULT NULL,
