@@ -42,18 +42,21 @@
      * Make sure that the bill histories are being updated.
      */
     // If it's M–F, 10 AM–5 PM
-    if ( ( date('N') > 0 && date('N') < 6) && (date('G') > 10) & (date('G') < 17) )
+    if (IN_SESSION == true)
     {
-        $sql = 'SELECT *
-                FROM `bills_status`
-                WHERE date_created > NOW() - INTERVAL 3 HOUR
-                ORDER BY date_created DESC';
-        $result = mysql_query($sql);
-        if (mysql_num_rows($result) == 0)
+        if ( ( date('N') > 0 && date('N') < 6) && (date('G') > 10) & (date('G') < 17) )
         {
-            $log->put('Error: No bills have advanced in the past 3 hours, which is unusual. '
-                . 'There may be a problem. Make sure that summaries.csv is being updated, and '
-                . 'that data is being loaded correctly.', 6);
+            $sql = 'SELECT *
+                    FROM `bills_status`
+                    WHERE date_created > NOW() - INTERVAL 3 HOUR
+                    ORDER BY date_created DESC';
+            $result = mysql_query($sql);
+            if (mysql_num_rows($result) == 0)
+            {
+                $log->put('Error: No bills have advanced in the past 3 hours, which is unusual. '
+                    . 'There may be a problem. Make sure that summaries.csv is being updated, and '
+                    . 'that data is being loaded correctly.', 6);
+            }
         }
     }
 
