@@ -23,7 +23,10 @@
 	require_once __DIR__ . '/../includes/phpmailer/class.phpmailer.php';
 
 	# Don't bother to run this if the General Assembly isn't in session.
-	if (IN_SESSION == 'n') exit();
+	if (LEGISLATIVE_SEASON == false)
+	{
+		exit();
+	}
 
 	# DECLARATIVE FUNCTIONS
 	# Run those functions that are necessary prior to loading this specific

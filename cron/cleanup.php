@@ -644,7 +644,7 @@ if (mysql_num_rows($result) > 0)
 # it's not in session, we based it on the past three days. The formula itself is based on five
 # factors: comments, views, Photosynthesis adds, poll votes, and subscriptions to comments.
 ###
-if (IN_SESSION == 'y')
+if (LEGISLATIVE_SEASON == true)
 {
 	$days = 1;
 }

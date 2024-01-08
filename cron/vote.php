@@ -7,7 +7,7 @@
  */
 
 # Don't bother to run this if the General Assembly isn't in session.
-if (IN_SESSION == 'n')
+if (IN_SESSION == false)
 {
 	return FALSE;
 }

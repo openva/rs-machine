@@ -8,7 +8,7 @@
  * @usage	Must be invoked from within update.php.
  */
 
- if (IN_SESSION == 'Y')
+ if (LEGISLATIVE_SEASON == true)
  {
 
     /*

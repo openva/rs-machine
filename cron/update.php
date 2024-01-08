@@ -33,7 +33,7 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
 $log = new Log;
 
 # Don't bother to run this if the General Assembly isn't in session.
-if (IN_SESSION == 'N')
+if (LEGISLATIVE_SEASON == false)
 {
 	exit();
 }

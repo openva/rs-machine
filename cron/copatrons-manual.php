@@ -15,7 +15,7 @@ ini_set('display_errors', '1');
 include_once(__DIR__ . '/../includes/settings.inc.php');
 include_once(__DIR__ . '/../includes/functions.inc.php');
 
-if (IN_SESSION == 'N')
+if (LEGISLATIVE_SEASON == false)
 {
 	die('The General Assembly is not in session.');
 }
