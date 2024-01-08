@@ -88,6 +88,11 @@ foreach ($bills as $bill)
 
         foreach ($tags as $tag)
         {
+
+            if ($tag == 'legislation')
+            {
+                continue;
+            }
         
             $sql = 'INSERT INTO tags
                     SET bill_id=:bill_id,
