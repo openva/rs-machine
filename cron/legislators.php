@@ -129,7 +129,7 @@ if (count($delegates) < 90)
 $import = new Import($log);
 
 /*
- * First see if we have records of any legislators who are not currently in office.
+ * First see if we have records of any legislators who are no longer in office.
  */
 foreach ($known_legislators as &$known_legislator)
 {
