@@ -91,7 +91,7 @@ $log->put('Retrieved ' . count($senators) . ' senators from senate.virginia.gov.
 
 if (count($senators) < 35)
 {
-	$log->put('Since too few senators were found to be plausible. Abandoning efforts.', 5);
+	$log->put('Too few senators were found to be plausible. Abandoning efforts.', 5);
 	return;
 }
 
