@@ -32,7 +32,7 @@ $stmt->execute();
 $known_legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
 
 /*
- * Now get a list of senators. The Senate doesn't change their list of members until the day
+ * Now get a list of senators. The senate doesn't change their list of members until the day
  * that a new session starts, so we need to use a slightly different query for them.
  */
 $sql = 'SELECT name, chamber, lis_id, date_ended
