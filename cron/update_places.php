@@ -19,6 +19,8 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
 # page.
 connect_to_db();
 
+$log = new Log;
+
 /*
  * Select all bills that contain a phrase concerning geography for which we don't already have
  * location records stored.
