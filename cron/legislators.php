@@ -195,9 +195,9 @@ foreach ($senators as $lis_id => $name)
 
 	$match = FALSE;
 
-	foreach ($known_legislators as $known_legislator)
+	foreach ($known_legislators as &$known_legislator)
 	{
-
+		
 		if ($known_legislator->lis_id == $lis_id)
 		{
 			$match = TRUE;
