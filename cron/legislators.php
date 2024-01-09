@@ -188,7 +188,7 @@ $required_fields = array(
 );
 
 /*
- * Second, see there are any listed delegates or senators who are not in our records.
+ * Second, see there are any LIS-listed delegates or senators who are not in our records.
  */
 foreach ($senators as $lis_id => $name)
 {
