@@ -69,8 +69,6 @@ while ($legislator = mysql_fetch_array($result))
 
 	# Calculate the percentages of the legislators' party memberships who have cosponsored any bill
 	# introduced by this legislator.
-	// Using this "IN" clause is just ridiculous. The query takes a good .2 seconds, which is way
-	// too long. There's got to be a faster way to do this.
 	$sql = 'SELECT representatives.party, COUNT(*) AS number
 			FROM bills_copatrons
 			LEFT JOIN representatives
@@ -113,8 +111,6 @@ while ($legislator = mysql_fetch_array($result))
 	# of bills copatroned by this legislator. Meaning, look at every bill that this legislator has
 	# copatroned, and look at every other copatron of those bills, and calculate the percentage of
 	# those copatrons that are Democrats, Republicans, and independents.
-	// Using this "IN" clause is just ridiculous. The query takes a good .1 seconds, which is way
-	// too long. There's got to be a faster way to do this.
 	$sql = 'SELECT representatives.party, COUNT(*) AS number
 			FROM bills_copatrons
 			LEFT JOIN representatives
