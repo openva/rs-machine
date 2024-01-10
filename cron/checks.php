@@ -41,9 +41,9 @@
     /*
      * Make sure that the bill histories are being updated.
      */
-    // If it's M–F, 10 AM–5 PM
     if (IN_SESSION == true)
     {
+        // If it's M–F, 10 AM–5 PM
         if ( ( date('N') > 0 && date('N') < 6) && (date('G') > 10) & (date('G') < 17) )
         {
             $sql = 'SELECT *
