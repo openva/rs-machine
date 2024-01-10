@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /home/ubuntu/rs-machine/
+cd /home/ubuntu/rs-machine/ || exit
 
 # Set up the crontab
 crontab deploy/crontab.txt
