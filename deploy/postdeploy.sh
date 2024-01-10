@@ -10,4 +10,4 @@ chown -R ubuntu:ubuntu /home/ubuntu/
 chmod -R g+w /home/ubuntu/
 
 # Log a record of this deployment
-echo -e "$(date)\tSuccessful deployment \r\n" >> deploy.log
+echo -e "$(date)\tSuccessful deployment \r" >> deploy.log
