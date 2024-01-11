@@ -171,7 +171,7 @@ foreach ($bills as $bill)
 	else
 	{
 
-		$log->put('Added ' . strtoupper($bill['number']) . ': ' . $bill['catch_line']
+		$log->put('Added/Updated ' . strtoupper($bill['number']) . ': ' . $bill['catch_line']
 			. ' (https://richmondsunlight.com/bill/' . SESSION_YEAR . '/' . $bill['number']
 			. '/)', 3);
 
