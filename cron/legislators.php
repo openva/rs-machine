@@ -13,6 +13,15 @@ global $db;
 $log = new Log;
 
 /*
+ * Instantiate Memcached
+ */
+if (MEMCACHED_SERVER != '')
+{
+	$mc = new Memcached();
+	$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+}
+
+/*
  * Use a DOM parser for the screen-scraper.
  */
 use Sunra\PhpSimple\HtmlDomParser;
@@ -129,6 +138,45 @@ if (count($delegates) < 90)
 $import = new Import($log);
 
 /*
+ * Update legislators' records periodically
+ * 
+ * Select a handful of currently-serving legislators and update their records based on a re-query
+ * of LIS et al. To avoid abusing the legislature's website, we select a small subset of
+ * legislators to update each time, so it may be a few days before a given legislator's record
+ * picks up changes.
+ */
+$sql = 'SELECT
+			id,
+			name,
+			chamber,
+			lis_id
+		FROM representatives
+		WHERE
+			date_ended IS NULL
+		ORDER BY RAND()
+		LIMIT 10';
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+foreach ($legislators as &$legislator)
+{
+	
+	$data = $import->fetch_legislator_data($legislator->chamber, $legislator->lis_id);
+	$data['id'] = $legislator->id;
+	$import->update_legislator($data);
+
+	/*
+	 * Remove this legislator's cached record
+	 */
+	if (MEMCACHED_SERVER != '')
+	{
+		$mc->delete('legislator-' . $legislator->id);
+	}
+
+}
+
+/*
  * First see if we have records of any legislators who are no longer in office.
  */
 foreach ($known_legislators as &$known_legislator)
@@ -213,7 +261,7 @@ foreach ($senators as $lis_id => $name)
 	{
 
 		$log->put('Found a new senator: ' . $name . ' ('
-			. 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+mbr+S117'
+			. 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+mbr+'
 			. $lis_id . ')', 6);
 
 		$data = $import->fetch_legislator_data('senate', $lis_id);
@@ -339,7 +387,7 @@ foreach ($delegates as $lis_id => $name)
 		if ($errors == false)
 		{
 
-			$log->put('Successfully created a new record for ' . $data['name_formatted'], 4);
+			$log->put('All required data found for ' . $data['name_formatted'], 4);
 			
 			/*
 			 * If there's a photo URL, save it in a separate variable and remove it from the
@@ -356,6 +404,8 @@ foreach ($delegates as $lis_id => $name)
 				$log->put('Could not add ' . $data['name_formatted'] . ' to the system', 6);
 				continue;
 			}
+
+			$log->put('Added ' . $data['name_formatted'] . ' to the database', 4);
 
 			$photo_success = $import->fetch_photo($photo_url, $data['shortname']);
 			if ($photo_success == false)
