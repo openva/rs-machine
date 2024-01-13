@@ -303,8 +303,8 @@ foreach ($videos as &$video)
 	}
 
 	/*
-	* Log this to SQS.
-	*/
+	 * Log this to SQS.
+	 */
 	$sqs_client->sendMessage([
 		'MessageGroupId'			=> '1',
 		'MessageDeduplicationId'	=> mt_rand(),
@@ -319,8 +319,8 @@ foreach ($videos as &$video)
 }
 
 /*
-* Start up the video-processing EC2 instance.
-*/
+ * Start up the video-processing EC2 instance.
+ */
 $ec2_client = new Aws\Ec2\Ec2Client([
 	'region'	=> 'us-east-1',
 	'version'	=> '2016-11-15',
@@ -340,8 +340,8 @@ if ($action == 'START')
 $log->put('Starting video processor.', 5);
 
 /*
-* Write all item GUIDs back to the cache file.
-*/
+ * Write all item GUIDs back to the cache file.
+ */
 if (file_put_contents($cached_guids, serialize($guids)) === FALSE)
 {
 	$log->put('Could not cache video GUIDs.', 4);
