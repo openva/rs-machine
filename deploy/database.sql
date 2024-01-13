@@ -562,6 +562,7 @@ ALTER TABLE bills_full_text
 
 ALTER TABLE bills_places
   ADD PRIMARY KEY (id),
+  ADD UNIQUE KEY bill_place (bill_id,placename),
   ADD KEY bill_id (bill_id,latitude,longitude);
 
 ALTER TABLE bills_section_numbers
