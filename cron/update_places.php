@@ -25,7 +25,12 @@ $log = new Log;
  * Select all bills that contain a phrase concerning geography for which we don't already have
  * location records stored.
  */
-$sql = 'SELECT bills.id, bills.number, bills.full_text, sessions.year
+$sql = 'SELECT
+			bills.id,
+			bills.number,
+			bills.summary,
+			bills.full_text,
+			sessions.year
 		FROM bills
 		LEFT JOIN sessions
 			ON bills.session_id=sessions.id
@@ -35,6 +40,10 @@ $sql = 'SELECT bills.id, bills.number, bills.full_text, sessions.year
 				OR (full_text LIKE "% County of%") OR (full_text LIKE "% Towns of%")
 				OR (full_text LIKE "% Cities of%") OR (full_text LIKE "% Counties of%")
 				OR (full_text LIKE "% County%") OR (full_text LIKE "% City%")
+				OR (summary LIKE "% Town of%") OR (summary LIKE "% City of%")
+				OR (summary LIKE "% County of%") OR (summary LIKE "% Towns of%")
+				OR (summary LIKE "% Cities of%") OR (summary LIKE "% Counties of%")
+				OR (summary LIKE "% County%") OR (summary LIKE "% City%")
 			)
 		AND
 			(SELECT COUNT(*)
@@ -99,11 +108,11 @@ while ($bill = mysql_fetch_array($result))
 	$bill_info = json_decode($bill_info);
 	if ( empty($bill_info->changes) || count($bill_info->changes) == 0 )
 	{
-		$prompt = strip_tags($bill_info->full_text);
+		$prompt = $bill_info->summary . ' ' . strip_tags($bill_info->full_text);
 	}
 	else
 	{
-		$prompt = '';
+		$prompt = $bill_info->summary . ' ';
 		foreach ($bill_info->changes as $change)
 		{
 			$prompt .= $change->text .= "\n";
