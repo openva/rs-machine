@@ -242,7 +242,8 @@ while ($bill = mysql_fetch_array($result))
 		$place_result = mysql_query($sql);
 		if ($place_result == false)
 		{
-			$log->put('Error: Could not add place names for ' . strtoupper($bill['number']), 4);
+			$log->put('Error: Could not add place names for ' . strtoupper($bill['number'])
+				. ': ' . mysql_error($place_result) . ', ' . $sql, 4);
 		}
 		
 	}
