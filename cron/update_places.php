@@ -209,8 +209,8 @@ while ($bill = mysql_fetch_array($result))
 		$coordinates_result = mysql_query($sql);
 
 		/*
-		 * If there's no result, or if there's more than one result (which we have no way to)
-		 * pick between, skip this town.
+		 * If there's no result, or if there's more than one result (which we have no way to
+		 * pick between), skip this town.
 		 */
 		if ( ($coordinates_result == false) || (mysql_num_rows($coordinates_result) > 1) )
 		{
