@@ -206,18 +206,18 @@ while ($bill = mysql_fetch_array($result))
 						municipality IS NOT NULL';
 		}
 
-		$town_result = mysql_query($sql);
+		$coordinates_result = mysql_query($sql);
 
 		/*
 		 * If there's no result, or if there's more than one result (which we have no way to)
 		 * pick between, skip this town.
 		 */
-		if ( ($town_result == false) || (mysql_num_rows($town_result) > 1) )
+		if ( ($coordinates_result == false) || (mysql_num_rows($coordinates_result) > 1) )
 		{
 			continue;
 		}
 
-		$coordinates = mysql_fetch_array($town_result);
+		$coordinates = mysql_fetch_array($coordinates_result);
 	
 		$sql = 'INSERT INTO bills_places
 				SET
