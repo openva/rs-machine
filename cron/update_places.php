@@ -35,6 +35,8 @@ $sql = 'SELECT
 		LEFT JOIN sessions
 			ON bills.session_id=sessions.id
 		WHERE
+			bills.session_id=' . SESSION_ID . ' AND
+			bills.date_created >= (CURDATE() - INTERVAL 3 DAY) AND
 			(
 				(full_text LIKE "% Town of%") OR (full_text LIKE "% City of%")
 				OR (full_text LIKE "% County of%") OR (full_text LIKE "% Towns of%")
@@ -49,8 +51,6 @@ $sql = 'SELECT
 			(SELECT COUNT(*)
 			FROM bills_places
 			WHERE bill_id=bills.id) = 0
-		AND bills.session_id=' . SESSION_ID . '
-		AND bills.date_created >= (CURDATE() - INTERVAL 3 DAY)
 		ORDER BY RAND()
 		LIMIT 10';
 $result = mysql_query($sql);
