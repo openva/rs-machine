@@ -218,6 +218,11 @@ while ($bill = mysql_fetch_array($result))
 		}
 
 		$coordinates = mysql_fetch_array($coordinates_result);
+
+		if ( empty($coordinates['latitude']) || empty($coordinates['longitude']) )
+		{
+			continue;
+		}
 	
 		$sql = 'INSERT INTO bills_places
 				SET
