@@ -121,10 +121,13 @@ foreach ($bills as $bill)
 		# Memcached.
 		$mc->delete('bill-' . $existing_bill['id']);
 
+		$operation_type = 'Updated';
+
 	}
 	else
 	{
 		$sql = 'INSERT INTO bills SET date_created=now(), ';
+		$operation_type = 'Added';
 	}
 
 	# Now create the code to insert the bill or update the bill, depending
@@ -171,7 +174,7 @@ foreach ($bills as $bill)
 	else
 	{
 
-		$log->put('Added/Updated ' . strtoupper($bill['number']) . ': ' . $bill['catch_line']
+		$log->put($operation_type . ' ' . strtoupper($bill['number']) . ': ' . $bill['catch_line']
 			. ' (https://richmondsunlight.com/bill/' . SESSION_YEAR . '/' . $bill['number']
 			. '/)', 3);
 
