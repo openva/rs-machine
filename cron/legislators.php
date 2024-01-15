@@ -191,6 +191,25 @@ foreach ($known_legislators as &$known_legislator)
 	{
 		if ( !isset($senators[$id]) && empty($known_legislator->date_ended) )
 		{
+			try
+			{
+				$legislator_in_csv = $import->legislator_in_csv($senators[$id]);
+			}
+			catch (Exception $e)
+			{
+				$log->put('Error: Could not verify that Sen. ' . pivot($known_legislator->name)
+					. ' is no longer in office. Error thrown: '. $e->getMessage(), 5);
+				continue;
+			}
+
+			if ($legislator_in_csv == true)
+			{
+				$log->put('Error: Sen. ' . pivot($known_legislator->name) . ' is missing from '
+					. 'the website, but is still present in LIS’s CSV. They will be kept active '
+					. 'until they are removed from the CSV.', 5);
+				continue;
+			}
+
 			$log->put('Error: Sen. ' . pivot($known_legislator->name)
 				. ' is no longer in office, but is still listed in the database.', 5);
 			if ($import->deactivate_legislator($id) == false)
@@ -205,8 +224,27 @@ foreach ($known_legislators as &$known_legislator)
 	 */
 	elseif ($known_legislator->chamber == 'house')
 	{
-		if (!isset($delegates[$id]))
+		if ( !isset($delegates[$id]) && empty($known_legislator->date_ended) )
 		{
+			try
+			{
+				$legislator_in_csv = $import->legislator_in_csv($delegates[$id]);
+			}
+			catch (Exception $e)
+			{
+				$log->put('Error: Could not verify that Del. ' . pivot($known_legislator->name)
+					. ' is no longer in office. Error thrown: '. $e->getMessage(), 5);
+				continue;
+			}
+
+			if ($legislator_in_csv == true)
+			{
+				$log->put('Error: Del. ' . pivot($known_legislator->name) . ' is missing from '
+					. 'the website, but is still present in LIS’s CSV. They will be kept active '
+					. 'until they are removed from the CSV.', 5);
+				continue;
+			}
+
 			$log->put('Error: Del. ' . pivot($known_legislator->name)
 				. ' is no longer in office, but is still listed in the database.', 5);
 			if ($import->deactivate_legislator($id) == false)
