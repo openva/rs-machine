@@ -214,7 +214,7 @@ foreach ($known_legislators as &$known_legislator)
 				. ' is no longer in office, but is still listed in the database.', 5);
 			if ($import->deactivate_legislator($id) == false)
 			{
-				$log->put('Error: ...but they couldn’t be marked as out of office.');
+				$log->put('Error: ...but they couldn’t be marked as out of office.', 5);
 			}
 		}
 	}
