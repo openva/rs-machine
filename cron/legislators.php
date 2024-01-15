@@ -193,7 +193,7 @@ foreach ($known_legislators as &$known_legislator)
 		{
 			try
 			{
-				$legislator_in_csv = $import->legislator_in_csv($senators[$id]);
+				$legislator_in_csv = $import->legislator_in_csv('S' . $senators[$id]);
 			}
 			catch (Exception $e)
 			{
@@ -228,7 +228,7 @@ foreach ($known_legislators as &$known_legislator)
 		{
 			try
 			{
-				$legislator_in_csv = $import->legislator_in_csv($delegates[$id]);
+				$legislator_in_csv = $import->legislator_in_csv('H' . $delegates[$id]);
 			}
 			catch (Exception $e)
 			{
