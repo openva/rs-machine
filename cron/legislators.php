@@ -191,6 +191,8 @@ foreach ($known_legislators as &$known_legislator)
 	{
 		if ( !isset($senators[$id]) && empty($known_legislator->date_ended) )
 		{
+
+			$csv_dir = dirname($_SERVER['SCRIPT_FILENAME']);
 			try
 			{
 				$legislator_in_csv = $import->legislator_in_csv('S' . $senators[$id]);
@@ -226,6 +228,8 @@ foreach ($known_legislators as &$known_legislator)
 	{
 		if ( !isset($delegates[$id]) && empty($known_legislator->date_ended) )
 		{
+
+			$csv_dir = dirname($_SERVER['SCRIPT_FILENAME']);
 			try
 			{
 				$legislator_in_csv = $import->legislator_in_csv('H' . $delegates[$id]);
