@@ -40,7 +40,6 @@ if (mysql_num_rows($result) > 0)
 		$bill2->id = $bill['id'];
 		unset($bill2);
 
-
 	}
 
 }
