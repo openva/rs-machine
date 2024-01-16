@@ -327,7 +327,7 @@ foreach ($videos as &$video)
 
 	$log->put('Machine found new ' . (!empty($video['committee_id']) ? 'committee ' : '')
 		. 'video, for ' . $video['date'] . ', for the ' . ucfirst($video['chamber'])
-		. ', at: ' . $video['url']. '', 5);
+		. ', at: ' . urlencode($video['url']). '', 5);
 
 }
 

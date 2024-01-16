@@ -295,7 +295,7 @@ foreach ($videos as &$video)
 
 	$log->put('Machine found new ' . ucfirst($video['chamber']) . ' '
 		. (!empty($video['committee_id']) ? 'committee' : 'floor')
-		. ' video, for ' . $video['date'] . ', ' . ', at: ' . $video['url'], 5);
+		. ' video, for ' . $video['date'] . ', ' . ', at: ' . urlencode($video['url']), 5);
 
 }
 
