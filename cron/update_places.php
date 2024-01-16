@@ -38,19 +38,27 @@ $sql = 'SELECT
 			bills.session_id=' . SESSION_ID . ' AND
 			bills.date_created >= (CURDATE() - INTERVAL 3 DAY) AND
 			(
-				(full_text LIKE "% Town of%") OR (full_text LIKE "% City of%")
-				OR (full_text LIKE "% County of%") OR (full_text LIKE "% Towns of%")
-				OR (full_text LIKE "% Cities of%") OR (full_text LIKE "% Counties of%")
-				OR (full_text LIKE "% County%") OR (full_text LIKE "% City%")
-				OR (summary LIKE "% Town of%") OR (summary LIKE "% City of%")
-				OR (summary LIKE "% County of%") OR (summary LIKE "% Towns of%")
-				OR (summary LIKE "% Cities of%") OR (summary LIKE "% Counties of%")
-				OR (summary LIKE "% County%") OR (summary LIKE "% City%")
+				(full_text LIKE "% Town of%") OR
+				(full_text LIKE "% City of%") OR
+				(full_text LIKE "% County of%") OR
+				(full_text LIKE "% Towns of%") OR
+				(full_text LIKE "% Cities of%") OR
+				(full_text LIKE "% Counties of%") OR
+				(full_text LIKE "% County%") OR
+				(full_text LIKE "% City%") OR
+				(summary LIKE "% Town of%") OR
+				(summary LIKE "% City of%") OR
+				(summary LIKE "% County of%") OR
+				(summary LIKE "% Towns of%") OR
+				(summary LIKE "% Cities of%") OR
+				(summary LIKE "% Counties of%") OR
+				(summary LIKE "% County%") OR
+				(summary LIKE "% City%")
 			)
-		AND
-			(SELECT COUNT(*)
-			FROM bills_places
-			WHERE bill_id=bills.id) = 0
+			AND
+				(SELECT COUNT(*)
+				FROM bills_places
+				WHERE bill_id=bills.id) = 0
 		ORDER BY RAND()
 		LIMIT 10';
 $result = mysql_query($sql);
