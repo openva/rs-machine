@@ -198,6 +198,19 @@ foreach ($video_list->ContentEntityDatas as $section)
 			{
 				$log->put('Skipping video, because no video URL could be found on the web page: '
 					. $video_url , 3);
+				
+				/*
+				 * Remove this GUID from the list, so it won't be cached as completed, so it will
+				 * be checked anew next time this runs.
+				 */
+				foreach ($guids as $key => $guid)
+				{
+					if ($guid == $video->Id)
+					{
+						unset($guids[$key]);
+						$guids = array_values($guids);
+					}
+				}
                 continue;
 			}
 			
