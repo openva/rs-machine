@@ -136,9 +136,6 @@ foreach ($chambers as $chamber => $listing_url)
 
 				}
 
-				# Run the minutes thorugh HTML Purifier again.
-				//if (!is_null($minutes)) $minutes = $purifier->purify($minutes);
-
 				# Prepare them for MySQL.
 				$minutes = mysql_real_escape_string($minutes);
 
