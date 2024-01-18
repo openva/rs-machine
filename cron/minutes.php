@@ -143,24 +143,28 @@ foreach ($chambers as $chamber => $listing_url)
 				$minutes = mysql_real_escape_string($minutes);
 
 				# If, after all that, we still have any text in these minutes, picking an arbitrary
-				# length of 30 characters.
-				if (strlen($minutes) > 30)
-				{
+				# length of 150 characters.
+				if (strlen($minutes) > 150) {
 					# Insert the minutes into the database.
 					$sql = 'INSERT INTO minutes
 							SET date = "' . $date . '", chamber="' . $chamber . '",
 							text="' . $minutes . '"';
+					echo $sql;
 					$result = mysql_query($sql);
 					if (!$result)
 					{
 						$log->put('Inserting the minutes for ' . $date . ' in ' . $chamber
-							. ' failed. ' . $sql, 8);
+							. ' failed. ' . $sql, 7);
 					}
 					else
 					{
 
 						$log->put('Inserted the minutes for ' . $date . ' in ' . $chamber . '.', 2);
 					}
+				}
+				else {
+					$log->put('The retrieved minutes for ' . $date . ' in ' . $chamber .' were '
+						. ' suspiciously short, and not saved. They are as follows: ' . $minutes, 6);
 				}
 
 				# Unset our variables to prevent them from being reused on the next line.
