@@ -203,7 +203,7 @@ if (($type == 'all') || ($type == 'meetings'))
 }
 
 # Update the minutes.
-if (($type == 'all') || ($type == 'minutes'))
+if ($type == 'minutes')
 {
 	require 'minutes.php';
 }
