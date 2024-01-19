@@ -67,16 +67,16 @@ $result = $sql->execute();
 
 # Specify which subcommittee that a bill is in.
 /*$sql = 'SELECT id, status
-		FROM bills_status
-		WHERE status LIKE "Assigned to%sub%"
-		AND (translation IS NULL OR translation = "assigned to subcommittee")';
+        FROM bills_status
+        WHERE status LIKE "Assigned to%sub%"
+        AND (translation IS NULL OR translation = "assigned to subcommittee")';
 $result = mysql_query($sql);
 if (@mysql_num_rows($result) > 0)
 {
-	while ($status = @mysql_fetch_array($result))
-	{
+    while ($status = @mysql_fetch_array($result))
+    {
 
-	}
+    }
 }*/
 
 
@@ -134,9 +134,9 @@ $sql = $dbh->prepare('UPDATE bills_status
 $result = $sql->execute();
 
 /*$sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed committee"
-						WHERE status LIKE "Continued to %"
-						AND translation IS NULL');
+                        SET translation="failed committee"
+                        WHERE status LIKE "Continued to %"
+                        AND translation IS NULL');
 $result = $sql->execute();*/
 
 $sql = $dbh->prepare('UPDATE bills_status
@@ -336,7 +336,7 @@ mysql_query($sql);
 ###
 $sql = 'UPDATE bills
 		SET status="introduced"
-		WHERE (status IS NULL OR status="") AND session_id='.$session_id;
+		WHERE (status IS NULL OR status="") AND session_id=' . $session_id;
 $result = mysql_query($sql);
 
 ###
@@ -348,13 +348,13 @@ $sql = 'UPDATE bills
 		SET outcome="failed"
 		WHERE (status="failed committee" OR status="failed" OR status="failed house"
 			OR status="failed senate" OR status="vetoed by governor" OR status="stricken")
-		AND (outcome IS NULL OR outcome="passed") AND session_id='.$session_id;
+		AND (outcome IS NULL OR outcome="passed") AND session_id=' . $session_id;
 mysql_query($sql);
 
 $sql = 'UPDATE bills
 		SET outcome="passed"
 		WHERE (status="signed by governor" OR status="enacted")
-		AND (outcome IS NULL OR outcome="failed") AND session_id='.$session_id;
+		AND (outcome IS NULL OR outcome="failed") AND session_id=' . $session_id;
 mysql_query($sql);
 
 $sql = 'UPDATE bills
@@ -362,7 +362,7 @@ $sql = 'UPDATE bills
 		WHERE outcome="failed" AND status != "failed committee" AND status != "failed" AND
 		status != "failed house"
 		AND status != "failed senate" AND status != "vetoed by governor" AND status != "stricken"
-		AND status != "signed by governor" AND status != "enacted" AND session_id='.$session_id;
+		AND status != "signed by governor" AND status != "enacted" AND session_id=' . $session_id;
 mysql_query($sql);
 
 ###
@@ -377,7 +377,7 @@ $sql = 'UPDATE bills
 			WHERE bill_id = bills.id AND text IS NOT NULL
 			ORDER BY date_introduced DESC
 			LIMIT 1)
-		WHERE session_id='.$session_id.' AND full_text IS NULL';
+		WHERE session_id=' . $session_id . ' AND full_text IS NULL';
 mysql_query($sql);
 
 ###
@@ -394,7 +394,7 @@ $sql = 'UPDATE bills
 			WHERE bill_id = bills.id
 			ORDER BY date_introduced DESC
 			LIMIT 1)
-		WHERE session_id='.$session_id.'
+		WHERE session_id=' . $session_id . '
 		ORDER BY RAND()
 		LIMIT 50';
 mysql_query($sql);
@@ -435,40 +435,35 @@ $sql = 'SELECT id, session_id, (
 		WHERE incorporated_into IS NULL
 		HAVING incorporated IS NOT NULL';
 $result = mysql_query($sql);
-if (mysql_num_rows($result) > 0)
-{
-	while ($bill = mysql_fetch_array($result))
-	{
-		$bill = array_map('stripslashes', $bill);
+if (mysql_num_rows($result) > 0) {
+    while ($bill = mysql_fetch_array($result)) {
+        $bill = array_map('stripslashes', $bill);
 
-		# Extract the target bill number from the incorporation text.
-		preg_match('/(hb|sb|hr|sr|hjr|sjr)([0-9]+)/', $bill['incorporated'], $regs);
-		if (isset($regs[0]))
-		{
-			$bill['incorporated_into'] = strtolower($regs[0]);
-		}
+        # Extract the target bill number from the incorporation text.
+        preg_match('/(hb|sb|hr|sr|hjr|sjr)([0-9]+)/', $bill['incorporated'], $regs);
+        if (isset($regs[0])) {
+            $bill['incorporated_into'] = strtolower($regs[0]);
+        }
 
-		# If we successfully got a target bill number, then we can update the source bill with
-		# its ID.
-		if (!empty($bill['incorporated_into']))
-		{
-			$sql = 'SELECT id
+        # If we successfully got a target bill number, then we can update the source bill with
+        # its ID.
+        if (!empty($bill['incorporated_into'])) {
+            $sql = 'SELECT id
 					FROM bills
-					WHERE number="'.$bill['incorporated_into'].'"
-					AND session_id='.$bill['session_id'];
-			$result2 = mysql_query($sql);
-			if ($result2 !== false)
-			{
-				$tmp = mysql_fetch_array($result2);
-				$bill['incorporated_into'] = $tmp['id'];
+					WHERE number="' . $bill['incorporated_into'] . '"
+					AND session_id=' . $bill['session_id'];
+            $result2 = mysql_query($sql);
+            if ($result2 !== false) {
+                $tmp = mysql_fetch_array($result2);
+                $bill['incorporated_into'] = $tmp['id'];
 
-				$sql = 'UPDATE bills
-						SET incorporated_into = '.$bill['incorporated_into'].'
-						WHERE id='.$bill['id'];
-				$result2 = mysql_query($sql);
-			}
-		}
-	}
+                $sql = 'UPDATE bills
+						SET incorporated_into = ' . $bill['incorporated_into'] . '
+						WHERE id=' . $bill['id'];
+                $result2 = mysql_query($sql);
+            }
+        }
+    }
 }
 
 ###
@@ -488,152 +483,125 @@ $sql = 'SELECT bills.summary_hash AS hash, bills.id,
 		GROUP BY bills.id
 		ORDER BY bills.summary_hash';
 $result = mysql_query($sql);
-if (mysql_num_rows($result) > 0)
-{
-	# Initialize the array.
-	$hash = array();
+if (mysql_num_rows($result) > 0) {
+    # Initialize the array.
+    $hash = array();
 
-	# Iterate through the bills and build up an array of them.
-	while ($bill = mysql_fetch_array($result))
-	{
-		if (!empty($bill['tags']))
-		{
-			$tags = explode(',',$bill['tags']);
-			$hash[$bill{'hash'}][$bill{'id'}] = $tags;
-		}
-		else
-		{
-			$hash[$bill{'hash'}][$bill{'id'}] = array();
-		}
-	}
+    # Iterate through the bills and build up an array of them.
+    while ($bill = mysql_fetch_array($result)) {
+        if (!empty($bill['tags'])) {
+            $tags = explode(',', $bill['tags']);
+            $hash[$bill{'hash'}][$bill{'id'}] = $tags;
+        } else {
+            $hash[$bill{'hash'}][$bill{'id'}] = array();
+        }
+    }
 
-	# Iterate through each grouping of identical bills.
-	foreach ($hash as $bill)
-	{
+    # Iterate through each grouping of identical bills.
+    foreach ($hash as $bill) {
+        // This sucks, because it's only comparing the first two bills in the array. But we've got
+        // to, because the rest of this is dependent on that construct. At some point this will
+        // really need to be rewritten to deal with this problem.
+        if (count($bill) > 2) {
+            for ($i = 0; $i < count($bill); $i++) {
+                unset($bill[$i]);
+            }
+        }
 
-		// This sucks, because it's only comparing the first two bills in the array. But we've got
-		// to, because the rest of this is dependent on that construct. At some point this will
-		// really need to be rewritten to deal with this problem.
-		if (count($bill) > 2)
-		{
-			for ($i=0; $i<count($bill); $i++)
-			{
-				unset($bill[$i]);
-			}
-		}
+        # It's possible for bills to slip through that are not, in fact, identical to others. That's
+        # a problem in the SQL query, but as a double check, we avoid that sort of thing here.
+        elseif (count($bill) == 1) {
+            continue;
+        }
 
-		# It's possible for bills to slip through that are not, in fact, identical to others. That's
-		# a problem in the SQL query, but as a double check, we avoid that sort of thing here.
-		elseif (count($bill) == 1)
-		{
-			continue;
-		}
+        # Save the keys to this array, because we'll need them later.
+        $keys = array_keys($bill);
 
-		# Save the keys to this array, because we'll need them later.
-		$keys = array_keys($bill);
+        # Convert this from an associative array to an indexed array.
+        $bill = array_values($bill);
 
-		# Convert this from an associative array to an indexed array.
-		$bill = array_values($bill);
+        # If neither bill has any tags, we might as well stop now.
+        if ((count($bill[0]) == 0) && (count($bill[1]) == 0)) {
+            unset($hash);
+            continue;
+        } else {
+            # Check if there's any difference between these two tag sets. You'd think that we only
+            # need to do a single array diff, rather than alternating. But you'd be wrong.
+            $tmp = array_diff($bill[0], $bill[1]);
+            $tmp2 = array_diff($bill[1], $bill[0]);
+            $diff = array_merge($tmp, $tmp2);
 
-		# If neither bill has any tags, we might as well stop now.
-		if ((count($bill[0]) == 0) && (count($bill[1]) == 0))
-		{
-			unset($hash);
-			continue;
-		}
+            # If there's any difference between the tags, then we need to synch them.
+            if (count($diff) > 0) {
+                # If this is a simple case of one bill having tags and the other one not, just
+                # assign the tags to the other bill and be done with it.
+                if ((count($bill[0]) == 0) && (count($bill[1]) > 0)) {
+                    $bill[0] = array_merge($bill[0], $bill[1]);
+                    $bill[1] = array();
+                } elseif ((count($bill[0]) == 0) && (count($bill[1]) > 0)) {
+                    $bill[1] = array_merge($bill[0], $bill[1]);
+                    $bill[0] = array();
+                }
 
-		else
-		{
+                # But if both bills are tagged, but not identically, then we need to join
+                # them.
+                else {
+                    # Save a copy of the original bill tags; we'll need them later.
+                    $original = $bill;
 
-			# Check if there's any difference between these two tag sets. You'd think that we only
-			# need to do a single array diff, rather than alternating. But you'd be wrong.
-			$tmp = array_diff($bill[0], $bill[1]);
-			$tmp2 = array_diff($bill[1], $bill[0]);
-			$diff = array_merge($tmp, $tmp2);
+                    # Merge the values together.
+                    $merge = array_merge($bill[0], $bill[1]);
 
-			# If there's any difference between the tags, then we need to synch them.
-			if (count($diff) > 0)
-			{
+                    # Calculate the intersection between these two bills' tags.
+                    $intersection = array_intersect($bill[0], $bill[1]);
 
-				# If this is a simple case of one bill having tags and the other one not, just
-				# assign the tags to the other bill and be done with it.
-				if ((count($bill[0]) == 0) && (count($bill[1]) > 0))
-				{
-					$bill[0] = array_merge($bill[0], $bill[1]);
-					$bill[1] = array();
-				}
-				elseif ((count($bill[0]) == 0) && (count($bill[1]) > 0))
-				{
-					$bill[1] = array_merge($bill[0], $bill[1]);
-					$bill[0] = array();
-				}
+                    # Now unset any tag that's already present in both bills.
+                    $bill[0] = array_diff($bill[0], $intersection);
+                    $bill[1] = array_diff($bill[1], $intersection);
 
-				# But if both bills are tagged, but not identically, then we need to join
-				# them.
-				else
-				{
+                    # Make each bill's tag the product of the two of them.
+                    $bill[0] = array_merge($bill[0], $bill[1]);
+                    $bill[1] = array_merge($bill[0], $bill[1]);
 
-					# Save a copy of the original bill tags; we'll need them later.
-					$original = $bill;
+                    # Unset any tag that was present initially.
+                    $bill[0] = array_diff($bill[0], $original[0]);
+                    $bill[1] = array_diff($bill[1], $original[1]);
 
-					# Merge the values together.
-					$merge = array_merge($bill[0], $bill[1]);
+                    # Just in case, make sure that these are unique.
+                    $bill[0] = array_unique($bill[0]);
+                    $bill[1] = array_unique($bill[1]);
+                }
 
-					# Calculate the intersection between these two bills' tags.
-					$intersection = array_intersect($bill[0], $bill[1]);
+                # Convert this indexed array back to an associative array by restoring its original
+                # keys.
+                for ($i = 0; $i < count($keys); $i++) {
+                    $bill[$keys{$i}] = $bill[$i];
+                    unset($bill[$i]);
+                }
+            }
 
-					# Now unset any tag that's already present in both bills.
-					$bill[0] = array_diff($bill[0], $intersection);
-					$bill[1] = array_diff($bill[1], $intersection);
+            # If there's no difference between the tags, we can give up.
+            else {
+                unset($hash);
+                continue;
+            }
 
-					# Make each bill's tag the product of the two of them.
-					$bill[0] = array_merge($bill[0], $bill[1]);
-					$bill[1] = array_merge($bill[0], $bill[1]);
-
-					# Unset any tag that was present initially.
-					$bill[0] = array_diff($bill[0], $original[0]);
-					$bill[1] = array_diff($bill[1], $original[1]);
-
-					# Just in case, make sure that these are unique.
-					$bill[0] = array_unique($bill[0]);
-					$bill[1] = array_unique($bill[1]);
-				}
-
-				# Convert this indexed array back to an associative array by restoring its original
-				# keys.
-				for ($i=0; $i<count($keys); $i++)
-				{
-					$bill[$keys{$i}] = $bill[$i];
-					unset($bill[$i]);
-				}
-			}
-
-			# If there's no difference between the tags, we can give up.
-			else
-			{
-				unset($hash);
-				continue;
-			}
-
-			# Iterate through the bills.
-			foreach ($bill as $bill_id => $tags)
-			{
-				# Iterate through the tags, but only if there are any.
-				if (count($tags > 0))
-				{
-					foreach ($tags as $tag)
-					{
-						# Assemble the insertion SQL. The tags table assumes that we'll always have a user id,
-						# but that's not true here. So we employ a user ID of 0.
-						$sql = 'INSERT INTO tags
-								SET bill_id='.$bill_id.', tag="'.$tag.'",
+            # Iterate through the bills.
+            foreach ($bill as $bill_id => $tags) {
+                # Iterate through the tags, but only if there are any.
+                if (count($tags > 0)) {
+                    foreach ($tags as $tag) {
+                        # Assemble the insertion SQL. The tags table assumes that we'll always have a user id,
+                        # but that's not true here. So we employ a user ID of 0.
+                        $sql = 'INSERT INTO tags
+								SET bill_id=' . $bill_id . ', tag="' . $tag . '",
 								user_id=0, date_created=now()';
-						mysql_query($sql);
-					}
-				}
-			}
-		}
-	}
+                        mysql_query($sql);
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -644,38 +612,35 @@ if (mysql_num_rows($result) > 0)
 # it's not in session, we based it on the past three days. The formula itself is based on five
 # factors: comments, views, Photosynthesis adds, poll votes, and subscriptions to comments.
 ###
-if (LEGISLATIVE_SEASON == true)
-{
-	$days = 1;
-}
-else
-{
-	$days = 3;
+if (LEGISLATIVE_SEASON == true) {
+    $days = 1;
+} else {
+    $days = 3;
 }
 $sql = 'UPDATE bills
 		SET hotness=
 			(
 				(SELECT COUNT(*)
 				FROM comments
-				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= '.$days.')) * 5
+				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= ' . $days . ')) * 5
 				+
 				(SELECT COUNT(DISTINCT ip)
 				FROM bills_views
-				WHERE bill_id=bills.id AND (DATEDIFF(now(), date) <= '.$days.')) / 3
+				WHERE bill_id=bills.id AND (DATEDIFF(now(), date) <= ' . $days . ')) / 3
 				+
 				(SELECT COUNT(*)
 				FROM dashboard_bills
-				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= '.$days.')) * 10
+				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= ' . $days . ')) * 10
 				+
 				(SELECT COUNT(*)
 				FROM polls
-				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= '.$days.')) * 2
+				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= ' . $days . ')) * 2
 				+
 				(SELECT COUNT(*)
 				FROM comments_subscriptions
-				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= '.$days.')) * 2
+				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= ' . $days . ')) * 2
 			)
-		WHERE session_id='.$session_id;
+		WHERE session_id=' . $session_id;
 mysql_query($sql);
 
 ###
@@ -708,7 +673,7 @@ $sql = 'UPDATE bills
 				FROM comments_subscriptions
 				WHERE bill_id=bills.id) * 2
 			)
-		WHERE session_id='.$session_id;
+		WHERE session_id=' . $session_id;
 mysql_query($sql);
 
 
@@ -749,66 +714,55 @@ $sql = 'SELECT id, tally
 		FROM votes
 		WHERE contested IS NULL';
 $result = mysql_query($sql);
-if (mysql_num_rows($result) > 0)
-{
-	while ($vote = mysql_fetch_array($result))
-	{
+if (mysql_num_rows($result) > 0) {
+    while ($vote = mysql_fetch_array($result)) {
+        # If the vote is more than XX-YY (such as XX-YY-ZZ, or XX-YY-ZZ-AA), then we hack off
+        # everything after XX-YY.
+        if (substr_count($vote['tally'], '-') > 1) {
+            # Disassemble the tally and hack off any final bit.
+            $tmp = explode('-', $vote['tally']);
+            $tmp = array_slice($tmp, 0, 2);
 
-		# If the vote is more than XX-YY (such as XX-YY-ZZ, or XX-YY-ZZ-AA), then we hack off
-		# everything after XX-YY.
-		if (substr_count($vote['tally'], '-') > 1)
-		{
-			# Disassemble the tally and hack off any final bit.
-			$tmp = explode('-', $vote['tally']);
-			$tmp = array_slice($tmp, 0, 2);
+            # We get the vote total from adding up the results of the Ys and the Ns. Though the
+            # total number of votes cast is stored in the database, that includes the absentions
+            # and absent votes, which isn't helpful here.
+            $vote['total'] = array_sum($tmp);
 
-			# We get the vote total from adding up the results of the Ys and the Ns. Though the
-			# total number of votes cast is stored in the database, that includes the absentions
-			# and absent votes, which isn't helpful here.
-			$vote['total'] = array_sum($tmp);
+            # Put the tally back together.
+            $vote['tally'] = implode('-', $tmp);
+        }
 
-			# Put the tally back together.
-			$vote['tally'] = implode('-', $tmp);
+        # If either the first (Ys) or second (Ns) element of that temporary array is a zero, then
+        # we know that this vote wasn't contested at all. Also, we know the same thing if the vote
+        # total is zero. One would think that the first two conditions would obviate the third,
+        # but, oddly, that's not so in practice.
+        if (($tmp[0] == 0) || ($tmp[1] == 0) || ($vote['total'] == 0)) {
+            $vote['contested'] = 0;
+        }
 
-		}
+        # If the vote was contested, then proceed to do the math to determine how contested that it
+        # was.
+        else {
+            # We need to eval() the tally in order to treat the string like an algorithm.
+            eval("\$vote[contested] = $vote[tally];");
+            $vote['contested'] = round((abs($vote['contested']) / $vote['total']), 2);
 
-		# If either the first (Ys) or second (Ns) element of that temporary array is a zero, then
-		# we know that this vote wasn't contested at all. Also, we know the same thing if the vote
-		# total is zero. One would think that the first two conditions would obviate the third,
-		# but, oddly, that's not so in practice.
-		if (($tmp[0] == 0) || ($tmp[1] == 0) || ($vote['total'] == 0))
-		{
-			$vote['contested'] = 0;
-		}
+            # Reverse this number on the 0-1 scale.
+            if ($vote['contested'] < .5) {
+                $vote['contested'] = 1 - $vote['contested'];
+            } elseif ($vote['contested'] > .5) {
+                $vote['contested'] = 0 + (1 - $vote['contested']);
+            }
+        }
 
-		# If the vote was contested, then proceed to do the math to determine how contested that it
-		# was.
-		else
-		{
-			# We need to eval() the tally in order to treat the string like an algorithm.
-			eval("\$vote[contested] = $vote[tally];");
-			$vote['contested'] = round((abs($vote['contested']) / $vote['total']), 2);
-
-			# Reverse this number on the 0-1 scale.
-			if ($vote['contested'] < .5)
-			{
-				$vote['contested'] = 1 - $vote['contested'];
-			}
-			elseif ($vote['contested'] > .5)
-			{
-				$vote['contested'] = 0 + (1 - $vote['contested']);
-			}
-		}
-
-		# Update the votes table with this contested rating.
-		$sql = 'UPDATE votes
-				SET contested='.$vote['contested'];
-		# If the vote wasn't contested, then it also wasn't partisan.
-		if ($vote['contested'] == 0)
-		{
-			$sql .= ', partisanship=0';
-		}
-		$sql .= ' WHERE id='.$vote['id'];
-		mysql_query($sql);
-	}
+        # Update the votes table with this contested rating.
+        $sql = 'UPDATE votes
+				SET contested=' . $vote['contested'];
+        # If the vote wasn't contested, then it also wasn't partisan.
+        if ($vote['contested'] == 0) {
+            $sql .= ', partisanship=0';
+        }
+        $sql .= ' WHERE id=' . $vote['id'];
+        mysql_query($sql);
+    }
 }

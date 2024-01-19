@@ -8,7 +8,7 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
 /*
  * Instantiate the logging class
  */
-$log = new Log;
+$log = new Log();
 
 $import = new Import($log);
 
@@ -32,16 +32,14 @@ $csv = trim(file_get_contents('committee_members.csv'));
 /*
  * If the CSV is at least 5,000 characters long, it's probably valid.
  */
-if (strlen($csv) > 5000)
-{
+if (strlen($csv) > 5000) {
     $new_members = $import->committee_members_csv_parse($csv, $committees, $legislators);
 }
 
 /*
  * Make sure we have a plausible number of committee memberships.
  */
-if (count($new_members) < 300)
-{
+if (count($new_members) < 300) {
     die('Error: Only ' . count($new_members) . ' entries were found in the CSV.');
 }
 
@@ -52,20 +50,17 @@ $committee = new Committee();
 $committee->members();
 $existing_members = $committee->members;
 
-$database = new Database;
+$database = new Database();
 $db = $database->connect_mysqli();
 
 /*
  * Store the new member list
  */
-foreach ($new_members as $new_member)
-{
-
+foreach ($new_members as $new_member) {
     $sql = 'INSERT INTO committee_members
             SET committee_id = ' . $new_member['committee_id'] . ',
             representative_id = ' . $new_member['legislator_id'] . ',
             date_started = "2022-01-12",
             date_created=now()';
     //mysqli_query($db, $sql);
-
 }

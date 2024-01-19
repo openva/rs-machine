@@ -19,7 +19,7 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
 # page.
 connect_to_db();
 
-$log = new Log;
+$log = new Log();
 
 /*
  * Select all bills that contain a phrase concerning geography for which we don't already have
@@ -62,9 +62,8 @@ $sql = 'SELECT
 		ORDER BY RAND()
 		LIMIT 10';
 $result = mysql_query($sql);
-if (mysql_num_rows($result) == 0)
-{
-	return;
+if (mysql_num_rows($result) == 0) {
+    return;
 }
 
 /*
@@ -79,11 +78,11 @@ $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 $api_key = OPENAI_KEY;
 $endpoint = 'https://api.openai.com/v1/chat/completions';
 $role = 'You are a helpful assistant who identifies the names of places mentioned in '
-	. 'the languages of legislation before the Virginia General Assembly. Given the text '
-	. 'of a bill, you will extract the name of every Virginia county, city, and town mentioned, '
-	. 'creating a list of them. You will separate each place name by commas. You will use the full name, of each place '
-	. '(e.g. "City of Fairfax," "County of Fairfax," or "Town of Scottsville.") If no places '
-	. 'are in the text at all, remain silent.' . "\n\n";
+    . 'the languages of legislation before the Virginia General Assembly. Given the text '
+    . 'of a bill, you will extract the name of every Virginia county, city, and town mentioned, '
+    . 'creating a list of them. You will separate each place name by commas. You will use the full name, of each place '
+    . '(e.g. "City of Fairfax," "County of Fairfax," or "Town of Scottsville.") If no places '
+    . 'are in the text at all, remain silent.' . "\n\n";
 
 /*
  * Create an initial connection to the endpoint, to be reused on each loop
@@ -99,55 +98,46 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 /*
  * Iterate through the bills.
  */
-while ($bill = mysql_fetch_array($result))
-{
+while ($bill = mysql_fetch_array($result)) {
+    $bill = array_map('stripslashes', $bill);
 
-	$bill = array_map('stripslashes', $bill);
+    /*
+     * Get bill information from the API, take all of the text that's changing, and put it into
+     * a single string. If there's no diff of changed text, then use the bill's full text.
+     */
+    $bill_info = file_get_contents('https://api.richmondsunlight.com/1.1/bill/' . $bill['year'] . '/' . $bill['number'] . '.json');
+    if ($bill_info == false) {
+        continue;
+    }
+    $bill_info = json_decode($bill_info);
+    if (empty($bill_info->changes) || count($bill_info->changes) == 0) {
+        $prompt = $bill_info->summary . ' ' . strip_tags($bill_info->full_text);
+    } else {
+        $prompt = $bill_info->summary . ' ';
+        foreach ($bill_info->changes as $change) {
+            $prompt .= $change->text .= "\n";
+        }
+    }
 
-	/*
-	 * Get bill information from the API, take all of the text that's changing, and put it into
-	 * a single string. If there's no diff of changed text, then use the bill's full text.
-	 */
-	$bill_info = file_get_contents('https://api.richmondsunlight.com/1.1/bill/' . $bill['year'] . '/' . $bill['number'] . '.json');
-	if ($bill_info == FALSE)
-	{
-		continue;
-	}
-	$bill_info = json_decode($bill_info);
-	if ( empty($bill_info->changes) || count($bill_info->changes) == 0 )
-	{
-		$prompt = $bill_info->summary . ' ' . strip_tags($bill_info->full_text);
-	}
-	else
-	{
-		$prompt = $bill_info->summary . ' ';
-		foreach ($bill_info->changes as $change)
-		{
-			$prompt .= $change->text .= "\n";
-		}
-	}
-
-	if (strlen($prompt) < 8)
-	{
-		continue;
-	}
+    if (strlen($prompt) < 8) {
+        continue;
+    }
 
     $data = [
         'model' => 'gpt-4-1106-preview',
         'messages' => [
             ['role' => 'system', 'content' => $role],
             ['role' => 'user', 'content' => 'Please extract place names from the following text: '
-				. $prompt]
+                . $prompt]
         ]
     ];
 
-	/*
+    /*
      * Submit query
      */
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     $response = curl_exec($ch);
-    if (curl_errno($ch))
-    {
+    if (curl_errno($ch)) {
         echo 'cURL error: ' . curl_error($ch);
         $log->put('ERROR: Could not query OpenAI API, with this failure: ' . curl_error($ch), 3);
     }
@@ -155,114 +145,96 @@ while ($bill = mysql_fetch_array($result))
    /*
     * Use the response
     */
-	$response = json_decode($response, true);
-    if (!isset($response['choices'][0]['message']['content']))
-	{
-		continue;
-	}
+    $response = json_decode($response, true);
+    if (!isset($response['choices'][0]['message']['content'])) {
+        continue;
+    }
 
-	$generated_text = trim($response['choices'][0]['message']['content']);
+    $generated_text = trim($response['choices'][0]['message']['content']);
 
-	/*
-	 * These responses indicate that ChatGPT hasn't found any place names.
-	 */
-	if (empty($generated_text))
-	{
-		continue;
-	}
-	$negative_responses = [ 'mentions', 'mentioned', 'provided text', 'specific'];
-	foreach ($negative_responses as $negative_response)
-	{
-		if (stripos($generated_text, $negative_response) !== false)
-		{
-			continue(2);
-		}
-	}
+    /*
+     * These responses indicate that ChatGPT hasn't found any place names.
+     */
+    if (empty($generated_text)) {
+        continue;
+    }
+    $negative_responses = [ 'mentions', 'mentioned', 'provided text', 'specific'];
+    foreach ($negative_responses as $negative_response) {
+        if (stripos($generated_text, $negative_response) !== false) {
+            continue(2);
+        }
+    }
 
-	$places = explode(', ', $generated_text);
+    $places = explode(', ', $generated_text);
 
-	/*
-	 * Iterate through each returned place
-	 */
-	foreach ($places as $place)
-	{
+    /*
+     * Iterate through each returned place
+     */
+    foreach ($places as $place) {
+        /*
+         * We need different queries for different types of municipalities
+         */
+        if (stripos($place, 'County') !== false) {
+            if (stripos($place, 'County of') !== false) {
+                $place = preg_replace('/County of (.+)/', '$1 County', $place);
+            }
 
-		/*
-		 * We need different queries for different types of municipalities
-		 */
-		if (stripos($place, 'County') !== false)
-		{
-
-			if (stripos($place, 'County of') !== false)
-			{
-				$place = preg_replace('/County of (.+)/', '$1 County', $place);
-			}
-
-			$sql = 'SELECT latitude, longitude
+            $sql = 'SELECT latitude, longitude
 					FROM gazetteer
 					WHERE
 						name="' . $place . '" AND
 						municipality IS NULL';
-		}
-		elseif (stripos($place, 'City of ') !== false)
-		{
-			$place = str_replace('City of ', '', $place);
-			$sql = 'SELECT latitude, longitude
+        } elseif (stripos($place, 'City of ') !== false) {
+            $place = str_replace('City of ', '', $place);
+            $sql = 'SELECT latitude, longitude
 					FROM gazetteer
 					WHERE
 						name="' . $place . '" AND
 						municipality IS NOT NULL';
-		}
-		elseif (stripos($place, 'Town of ') !== false)
-		{
-			$place = str_replace('Town of ', '', $place);
-			$sql = 'SELECT latitude, longitude
+        } elseif (stripos($place, 'Town of ') !== false) {
+            $place = str_replace('Town of ', '', $place);
+            $sql = 'SELECT latitude, longitude
 					FROM gazetteer
 					WHERE
 						name="' . $place . '" AND
 						municipality IS NOT NULL';
-		}
+        }
 
-		$coordinates_result = mysql_query($sql);
+        $coordinates_result = mysql_query($sql);
 
-		/*
-		 * If there's no result, or if there's more than one result (which we have no way to
-		 * pick between), skip this town.
-		 */
-		if ( ($coordinates_result == false) || (mysql_num_rows($coordinates_result) > 1) )
-		{
-			continue;
-		}
+        /*
+         * If there's no result, or if there's more than one result (which we have no way to
+         * pick between), skip this town.
+         */
+        if (($coordinates_result == false) || (mysql_num_rows($coordinates_result) > 1)) {
+            continue;
+        }
 
-		$coordinates = mysql_fetch_array($coordinates_result);
+        $coordinates = mysql_fetch_array($coordinates_result);
 
-		if ( empty($coordinates['latitude']) || empty($coordinates['longitude']) )
-		{
-			continue;
-		}
-	
-		$sql = 'INSERT INTO bills_places
+        if (empty($coordinates['latitude']) || empty($coordinates['longitude'])) {
+            continue;
+        }
+
+        $sql = 'INSERT INTO bills_places
 				SET
 					bill_id=' . $bill['id'] . ',
 					placename="' . addslashes($place) . '",
 					latitude=' . $coordinates['latitude'] . ',
 					longitude=' . $coordinates['longitude'];
-		$place_result = mysql_query($sql);
-		if ($place_result == false)
-		{
-			$log->put('Error: Could not add place names for ' . strtoupper($bill['number'])
-				. ': ' . mysql_error($place_result) . ', ' . $sql, 4);
-		}
-		
-	}
+        $place_result = mysql_query($sql);
+        if ($place_result == false) {
+            $log->put('Error: Could not add place names for ' . strtoupper($bill['number'])
+                . ': ' . mysql_error($place_result) . ', ' . $sql, 4);
+        }
+    }
 
-	/*
-	 * Clear the bill from Memcached.
-	 */
-	$mc->delete('bill-' . $bill['id']);
+    /*
+     * Clear the bill from Memcached.
+     */
+    $mc->delete('bill-' . $bill['id']);
 
-	$log->put('Identified place names in ' . strtoupper($bill['number']), 2);
-
+    $log->put('Identified place names in ' . strtoupper($bill['number']), 2);
 }
 
 /*

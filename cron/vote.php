@@ -7,9 +7,8 @@
  */
 
 # Don't bother to run this if the General Assembly isn't in session.
-if (IN_SESSION == false)
-{
-	return FALSE;
+if (IN_SESSION == false) {
+    return false;
 }
 
 # Give this script 60 seconds to complete.
@@ -23,14 +22,14 @@ $dlas_session_id = SESSION_LIS_ID;
 /*
  * Instantiate the logging class
  */
-$log = new Log;
+$log = new Log();
 
 $import = new Import($log);
 
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
 # page.
-$db = new PDO( PDO_DSN, PDO_USERNAME, PDO_PASSWORD, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT) );
+$db = new PDO(PDO_DSN, PDO_USERNAME, PDO_PASSWORD, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT));
 
 # LEGISLATOR ID TRANSLATION
 $sql = 'SELECT id, lis_id, chamber
@@ -38,15 +37,13 @@ $sql = 'SELECT id, lis_id, chamber
 		WHERE date_ended IS NULL AND lis_id IS NOT NULL
 		ORDER BY id ASC';
 $result = $db->query($sql);
-if ( ($result === FALSE) || ($result->rowCount() == 0) )
-{
-	$log->put('No legislators were found in the database, which seems bad.', 10);
-	return FALSE;
+if (($result === false) || ($result->rowCount() == 0)) {
+    $log->put('No legislators were found in the database, which seems bad.', 10);
+    return false;
 }
 $legislators = array();
-while ($legislator = $result->fetch(PDO::FETCH_ASSOC))
-{
-	$legislators[] = $legislator;
+while ($legislator = $result->fetch(PDO::FETCH_ASSOC)) {
+    $legislators[] = $legislator;
 }
 
 # COMMITTEE ID TRANSLATION
@@ -55,15 +52,13 @@ $sql = 'SELECT id, lis_id, chamber
 		WHERE parent_id IS NULL
 		ORDER BY id ASC';
 $result = $db->query($sql);
-if ( ($result === FALSE) || ($result->rowCount() == 0) )
-{
-	$log->put('No committees were found in the database, which seems bad.', 9);
-	return FALSE;
+if (($result === false) || ($result->rowCount() == 0)) {
+    $log->put('No committees were found in the database, which seems bad.', 9);
+    return false;
 }
 $committees = array();
-while ($committee = $result->fetch(PDO::FETCH_ASSOC))
-{
-	$committees[] = $committee;
+while ($committee = $result->fetch(PDO::FETCH_ASSOC)) {
+    $committees[] = $committee;
 }
 
 # LIST ALL VOTES THAT WE NEED TO RECORD
@@ -85,19 +80,15 @@ $sql = 'SELECT DISTINCT bills_status.lis_vote_id
 			AND session_id=' . $session_id . ') = 0
 		AND bills.session_id = ' . $session_id . ' AND bills_status.lis_vote_id IS NOT NULL
 		AND CHAR_LENGTH(bills_status.lis_vote_id) <= 8';
-		//AND DATEDIFF(now(), bills_status.date) <= 2';
+        //AND DATEDIFF(now(), bills_status.date) <= 2';
 $result = $db->query($sql);
-if ($result === FALSE)
-{
-	return FALSE;
+if ($result === false) {
+    return false;
+} elseif ($result->rowCount() == 0) {
+    $log->put('Found no new votes in need of being tallied.', 1);
 }
-elseif ($result->rowCount() == 0)
-{
-	$log->put('Found no new votes in need of being tallied.', 1);
-}
-while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC))
-{
-	$empty_votes[] = $empty_vote['lis_vote_id'];
+while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC)) {
+    $empty_votes[] = $empty_vote['lis_vote_id'];
 }
 
 /*
@@ -110,10 +101,9 @@ $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
  * Don't bother if the file hasn't changed.
  */
 $vote_hash = md5(file_get_contents(__DIR__ . '/vote.csv'));
-if ( $mc->get('vote-csv-hash') == $vote_hash )
-{
-	$log->put('Bill votes unchanged', 2);
-	return;
+if ($mc->get('vote-csv-hash') == $vote_hash) {
+    $log->put('Bill votes unchanged', 2);
+    return;
 }
 
 /*
@@ -122,22 +112,19 @@ if ( $mc->get('vote-csv-hash') == $vote_hash )
 $mc->set('vote-csv-hash', $vote_hash);
 
 # Open the vote CSV.
-$fp = fopen(__DIR__ . '/vote.csv','r');
+$fp = fopen(__DIR__ . '/vote.csv', 'r');
 
 # Step through each row in the CSV file, one by one.
-while (($vote = fgetcsv($fp, 2500, ',')) !== FALSE)
-{
-	# Only deal with votes that were tallied -- that is, that have row counts greater than 1.
-	if (count($vote) > 1)
-	{
-		# If our list of votes for which we have no record doesn't contain this vote, then
-		# skip to the next line in the CSV file.
-		if (in_array($vote[0], $empty_votes))
-		{
-			# Buld up an array of votes.
-			$votes[] = $vote;
-		}
-	}
+while (($vote = fgetcsv($fp, 2500, ',')) !== false) {
+    # Only deal with votes that were tallied -- that is, that have row counts greater than 1.
+    if (count($vote) > 1) {
+        # If our list of votes for which we have no record doesn't contain this vote, then
+        # skip to the next line in the CSV file.
+        if (in_array($vote[0], $empty_votes)) {
+            # Buld up an array of votes.
+            $votes[] = $vote;
+        }
+    }
 }
 
 # Close the CSV file.
@@ -146,162 +133,128 @@ fclose($fp);
 # We no longer need our array of empty votes.
 unset($empty_votes);
 
-if (!isset($votes) || count($votes) == 0)
-{
-	$log->put('vote.csv contained no votes.', 3);
-	return FALSE;
+if (!isset($votes) || count($votes) == 0) {
+    $log->put('vote.csv contained no votes.', 3);
+    return false;
 }
 
-foreach ($votes as $vote)
-{
+foreach ($votes as $vote) {
+    # Get the LIS vote ID.
+    $lis_vote_id = $vote[0];
 
-	# Get the LIS vote ID.
-	$lis_vote_id = $vote[0];
+    # Get the chamber.
+    if ($lis_vote_id{0} == 'H') {
+        $chamber = 'house';
+    } elseif ($lis_vote_id{0} == 'S') {
+        $chamber = 'senate';
+    }
 
-	# Get the chamber.
-	if ($lis_vote_id{0} == 'H')
-	{
-		$chamber = 'house';
-	}
-	elseif ($lis_vote_id{0} == 'S')
-	{
-		$chamber = 'senate';
-	}
+    # Set some default variables.
+    $tally['Y'] = 0;
+    $tally['N'] = 0;
+    $tally['X'] = 0;
 
-	# Set some default variables.
-	$tally['Y'] = 0;
-	$tally['N'] = 0;
-	$tally['X'] = 0;
+    # Iterate through the votes cast on this one bill.
+    for ($i = 1; $i < count($vote); $i++) {
+        if (($i % 2) == 1) {
+            $legislator[$i]['id'] = $import->lookup_legislator_id($legislators, $vote[$i]);
+        } elseif (($i % 2) == 0) {
+            $legislator[$i - 1]['vote'] = $vote[$i];
+            if ($vote[$i] == 'Y') {
+                $tally['Y']++;
+            } elseif ($vote[$i] == 'N') {
+                $tally['N']++;
+            } elseif ($vote[$i] == 'X') {
+                $tally['X']++;
+            }
+        }
+    }
 
-	# Iterate through the votes cast on this one bill.
-	for ($i=1; $i<count($vote); $i++)
-	{
-		if (($i % 2) == 1)
-		{
-			$legislator[$i]['id'] = $import->lookup_legislator_id($legislators, $vote[$i]);
-		}
-		elseif (($i % 2) == 0)
-		{
-			$legislator[$i-1]['vote'] = $vote[$i];
-			if ($vote[$i] == 'Y')
-			{
-				$tally['Y']++;
-			}
-			elseif ($vote[$i] == 'N')
-			{
-				$tally['N']++;
-			}
-			elseif ($vote[$i] == 'X')
-			{
-				$tally['X']++;
-			}
-		}
-	}
+    # Turn the individual counts into a traditional representation of a vote
+    # count.
+    $final_tally = $tally['Y'] . '-' . $tally['N'];
+    if ($tally['X'] > 0) {
+        $final_tally .= '-' . $tally['X'];
+    }
+    $total = $tally['Y'] + $tally['N'] + $tally['X'];
 
-	# Turn the individual counts into a traditional representation of a vote
-	# count.
-	$final_tally = $tally['Y'].'-'.$tally['N'];
-	if ($tally['X'] > 0)
-	{
-		$final_tally .= '-'.$tally['X'];
-	}
-	$total = $tally['Y'] + $tally['N'] + $tally['X'];
+    // This assumption that a simple majority means the bill passed is totally unreasonable.
+    if ($tally['Y'] > $tally['N']) {
+        $outcome = 'pass';
+    } else {
+        $outcome = 'fail';
+    }
+    $tally = $final_tally;
 
-	// This assumption that a simple majority means the bill passed is totally unreasonable.
-	if ($tally['Y'] > $tally['N'])
-	{
-		$outcome = 'pass';
-	}
-	else
-	{
-		$outcome = 'fail';
-	}
-	$tally = $final_tally;
+    $vote_prefix = substr($lis_vote_id, 0, 3);
 
-	$vote_prefix = substr($lis_vote_id, 0, 3);
+    # If there's a committee's LIS ID in the vote prefix then figure out
+    # the internal committee ID.  But LIS often provides a committee ID
+    # for floor votes, for no apparent reason.  For this reason, only assign
+    # a committee ID if the total number of votes cast is less than a big
+    # chunk of the chamber.
+    if (preg_match('/^([h-s]{1})([0-9]{2})/Di', $vote_prefix, $regs)) {
+        # Only bother to look up the ID if there are few enough votes that it could
+        # plausibly be an in-committee vote.
+        if (
+            (($chamber == 'senate') && ($total < 25))
+            || (($chamber == 'house') && ($total < 80))
+        ) {
+            $committee_id = $import->lookup_committee_id($committees, $vote_prefix);
+        }
+    }
 
-	# If there's a committee's LIS ID in the vote prefix then figure out
-	# the internal committee ID.  But LIS often provides a committee ID
-	# for floor votes, for no apparent reason.  For this reason, only assign
-	# a committee ID if the total number of votes cast is less than a big
-	# chunk of the chamber.
-	if (preg_match('/^([h-s]{1})([0-9]{2})/Di', $vote_prefix, $regs))
-	{
-		# Only bother to look up the ID if there are few enough votes that it could
-		# plausibly be an in-committee vote.
-		if ((($chamber == 'senate') && ($total < 25))
-			|| (($chamber == 'house') && ($total < 80)))
-		{
-			$committee_id = $import->lookup_committee_id($committees, $vote_prefix);
-		}
-	}
-
-	# Create a record for this vote.
-	$sql = 'INSERT INTO votes
+    # Create a record for this vote.
+    $sql = 'INSERT INTO votes
 			SET lis_id="' . $lis_vote_id . '", tally="' . $tally . '", session_id="' . $session_id . '",
 			total=' . $total . ', outcome="' . $outcome . '", chamber="' . $chamber . '",
 			date_created=now()';
-	if (!empty($committee_id))
-	{
-		$sql .= ', committee_id=' . $committee_id;
-	}
-	if (!empty($committee_id))
-	{
-		$sql .= ' ON DUPLICATE KEY UPDATE committee_id=' . $committee_id;
-	}
-	else
-	{
-		$sql .= ' ON DUPLICATE KEY update total=total';
-	}
-	$result = $db->exec($sql);
+    if (!empty($committee_id)) {
+        $sql .= ', committee_id=' . $committee_id;
+    }
+    if (!empty($committee_id)) {
+        $sql .= ' ON DUPLICATE KEY UPDATE committee_id=' . $committee_id;
+    } else {
+        $sql .= ' ON DUPLICATE KEY update total=total';
+    }
+    $result = $db->exec($sql);
 
-	if ($result === FALSE)
-	{
-		$log->put('New vote could not be inserted into the database.' . $sql, 9);
-	}
+    if ($result === false) {
+        $log->put('New vote could not be inserted into the database.' . $sql, 9);
+    } else {
+        # Get the ID for that vote.
+        $vote_id = $db->lastInsertID();
 
-	else
-	{
+        # Iterate through the legislators' votes and insert them after reindexing the array.
+        $legislator = array_values($legislator);
+        for ($i = 0; $i < count($legislator); $i++) {
+            if (!empty($legislator[$i]['id']) && !empty($legislator[$i]['vote'])) {
+                # Convert blank votes into the abstensions that they represent.
+                if ($legislator[$i]['vote'] == ' ') {
+                    $legislator[$i]['vote'] = 'A';
+                }
 
-		# Get the ID for that vote.
-		$vote_id = $db->lastInsertID();
-
-		# Iterate through the legislators' votes and insert them after reindexing the array.
-		$legislator = array_values($legislator);
-		for ($i=0; $i<count($legislator); $i++)
-		{
-			if (!empty($legislator[$i]['id']) && !empty($legislator[$i]['vote']))
-			{
-
-				# Convert blank votes into the abstensions that they represent.
-				if ($legislator[$i]['vote'] == ' ')
-				{
-					$legislator[$i]['vote'] = 'A';
-				}
-
-				$sql = 'INSERT DELAYED INTO representatives_votes
+                $sql = 'INSERT DELAYED INTO representatives_votes
 						SET representative_id=' . $legislator[$i]['id'] . ',
 						vote="' . $legislator[$i]['vote'] . '", vote_id=' . $vote_id . ',
 						date_created=now()
 						ON DUPLICATE KEY UPDATE vote=vote';
-				$result = $db->exec($sql);
-				if ($result === FALSE)
-				{
-					echo '<p>Insertion of vote record failed: <code>' . $sql . '</code></p>';
-					$log->put('A legislator’s vote could not be inserted into the database.' . $sql, 7);
-				}
-			}
-		}
-	}
+                $result = $db->exec($sql);
+                if ($result === false) {
+                    echo '<p>Insertion of vote record failed: <code>' . $sql . '</code></p>';
+                    $log->put('A legislator’s vote could not be inserted into the database.' . $sql, 7);
+                }
+            }
+        }
+    }
 
-	# Clear out the variables
-	unset($final_tally);
-	unset($outcome);
-	unset($tally);
-	unset($legislator);
-	unset($chamber);
-	unset($vote_id);
-
+    # Clear out the variables
+    unset($final_tally);
+    unset($outcome);
+    unset($tally);
+    unset($legislator);
+    unset($chamber);
+    unset($vote_id);
 } // end looping the array of votes
 
 # Make sure that no floor votes have wrongly been tallied as committee votes.  This

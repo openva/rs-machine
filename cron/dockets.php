@@ -24,106 +24,84 @@ $sql = 'SELECT committees.id, committees.lis_id, c2.lis_id AS parent_lis_id, com
 			ON committees.parent_id = c2.id
 		WHERE committees.chamber="senate" AND committees.lis_id IS NOT NULL';
 $result = mysql_query($sql);
-if (mysql_num_rows($result) == 0)
-{
-	$log->put('No subcommittees were found, which seems bad.', 10);
-	return FALSE;
+if (mysql_num_rows($result) == 0) {
+    $log->put('No subcommittees were found, which seems bad.', 10);
+    return false;
 }
 
 $committees = array();
-while ($committee = mysql_fetch_array($result))
-{
+while ($committee = mysql_fetch_array($result)) {
+    # If this is a subcommittee, pad out its parent ID for use in the URL.
+    if (!empty($committee['parent_lis_id'])) {
+        $committee['parent_lis_id'] = str_pad($committee['parent_lis_id'], 2, 0, STR_PAD_LEFT);
+        # Specify how much padding to place on the LIS ID for the URL.
+        $padding = 3;
+    } else {
+        # Specify how much padding to place on the LIS ID for the URL.
+        $padding = 2;
+    }
 
-	# If this is a subcommittee, pad out its parent ID for use in the URL.
-	if (!empty($committee['parent_lis_id']))
-	{
-		$committee['parent_lis_id'] = str_pad($committee['parent_lis_id'], 2, 0, STR_PAD_LEFT);
-		# Specify how much padding to place on the LIS ID for the URL.
-		$padding = 3;
-	}
-	else
-	{
-		# Specify how much padding to place on the LIS ID for the URL.
-		$padding = 2;
-	}
+    # Pad out the LIS ID for use in the URL.
+    $committee['lis_id'] = str_pad($committee['lis_id'], $padding, 0, STR_PAD_LEFT);
 
-	# Pad out the LIS ID for use in the URL.
-	$committee['lis_id'] = str_pad($committee['lis_id'], $padding, 0, STR_PAD_LEFT);
-
-	# We only care about the first letter of the chamber.
-	if ($committee['chamber'] == 'senate')
-	{
-		$committee['chamber'] = 'S';
-	}
-	elseif ($committee['chamber'] == 'house')
-	{
-		$committee['chamber'] = 'H';
-	}
-	$committees[] = $committee;
-
+    # We only care about the first letter of the chamber.
+    if ($committee['chamber'] == 'senate') {
+        $committee['chamber'] = 'S';
+    } elseif ($committee['chamber'] == 'house') {
+        $committee['chamber'] = 'H';
+    }
+    $committees[] = $committee;
 }
 
 # Create an array of upcoming dates for which there could plausibly be dockets, going
 # out five days.
 $date = time();
-for ($i=0; $i<6; $i++)
-{
-	$date = $date + (60 * 60 * 24);
-	$dates[$i]['url'] = date('md', $date);
-	$dates[$i]['full'] = date('Y-m-d', $date);
+for ($i = 0; $i < 6; $i++) {
+    $date = $date + (60 * 60 * 24);
+    $dates[$i]['url'] = date('md', $date);
+    $dates[$i]['full'] = date('Y-m-d', $date);
 }
 
-foreach ($committees as $committee)
-{
-	foreach ($dates as $date)
-	{
-		# Connecting to the appropriate docket page.
-		if ($committee['chamber'] == 'S')
-		{
-			# Get the docket for a subcommittee.
-			if (!empty($committee['parent_lis_id']))
-			{
-				$url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+sub+'
-					. $committee['chamber'] . $committee['parent_lis_id'] . $committee['lis_id'] . $date['url'];
-				$raw_html = get_content($url);
-			}
+foreach ($committees as $committee) {
+    foreach ($dates as $date) {
+        # Connecting to the appropriate docket page.
+        if ($committee['chamber'] == 'S') {
+            # Get the docket for a subcommittee.
+            if (!empty($committee['parent_lis_id'])) {
+                $url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+sub+'
+                    . $committee['chamber'] . $committee['parent_lis_id'] . $committee['lis_id'] . $date['url'];
+                $raw_html = get_content($url);
+            } else {
+                # Get the docket for a committee.
+                // Sometimes -- most of the time -- committee URLs contain a "1" between the LIS ID and the
+                // date. But sometimes it's a 2. When the 2 is shown, it's also listed on the LIS site
+                // parenthetically after the date (i.e. "January 21, 2010 (2)"). We're only finding dockets
+                // with 1s, which means we're missing some unknown minority of dockets.
+                $url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+doc+'
+                    . $committee['chamber'] . $committee['lis_id'] . '1' . $date['url'];
+                $raw_html = get_content($url);
+            }
+        }
 
-			else
-			{
-				# Get the docket for a committee.
-				// Sometimes -- most of the time -- committee URLs contain a "1" between the LIS ID and the
-				// date. But sometimes it's a 2. When the 2 is shown, it's also listed on the LIS site
-				// parenthetically after the date (i.e. "January 21, 2010 (2)"). We're only finding dockets
-				// with 1s, which means we're missing some unknown minority of dockets.
-				$url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+doc+'
-					. $committee['chamber'] . $committee['lis_id'] . '1' . $date['url'];
-				$raw_html = get_content($url);
-			}
-		}
-
-		# If the resulting page is longer than 1,000 bytes and we have a match, iterate through those
-		# matches.
-		if ((strlen($raw_html) > 1000) && (preg_match_all('#[H|S].[B|J|R].[[:space:]]*([0-9]+)#', $raw_html, $bill)))
-		{
-
-			# We start by clearing out the old docket data, since we're replacing it with new
-			# data. This is necessary to avoid continuing to list bills that were once on the
-			# docket, but are no longer. (If we only ever add new bills, then we have no
-			# method of deleting old bills.)
-			$sql = 'DELETE FROM dockets
+        # If the resulting page is longer than 1,000 bytes and we have a match, iterate through those
+        # matches.
+        if ((strlen($raw_html) > 1000) && (preg_match_all('#[H|S].[B|J|R].[[:space:]]*([0-9]+)#', $raw_html, $bill))) {
+            # We start by clearing out the old docket data, since we're replacing it with new
+            # data. This is necessary to avoid continuing to list bills that were once on the
+            # docket, but are no longer. (If we only ever add new bills, then we have no
+            # method of deleting old bills.)
+            $sql = 'DELETE FROM dockets
 					WHERE date="' . $date['full'] . '" AND committee_id=' . $committee['id'];
-			mysql_query($sql);
+            mysql_query($sql);
 
-			foreach ($bill[0] as $bill)
-			{
+            foreach ($bill[0] as $bill) {
+                # Convert the bills to the simplest form.
+                $bill = str_replace('.', '', $bill);
+                $bill = str_replace(' ', '', $bill);
+                $bill = strtolower($bill);
 
-				# Convert the bills to the simplest form.
-				$bill = str_replace('.', '', $bill);
-				$bill = str_replace(' ', '', $bill);
-				$bill = strtolower($bill);
-
-				# Insert the meeting data into the dockets table.
-				$sql = 'INSERT INTO dockets
+                # Insert the meeting data into the dockets table.
+                $sql = 'INSERT INTO dockets
 						SET date="' . $date['full'] . '", committee_id=' . $committee['id'] . ',
 						bill_id =
 							(SELECT id
@@ -131,12 +109,12 @@ foreach ($committees as $committee)
 							WHERE number = "' . $bill . '" AND session_id = ' . SESSION_ID . '),
 						date_created = now()
 						ON DUPLICATE KEY UPDATE id=id';
-				mysql_query($sql);
-			}
-		}
+                mysql_query($sql);
+            }
+        }
 
-		# Sleep for one second to avoid overwhelming LIS' server. This is important -- without
-		# this, the server will start rejecting these queries, and rightly so.
-		sleep(1);
-	}
+        # Sleep for one second to avoid overwhelming LIS' server. This is important -- without
+        # this, the server will start rejecting these queries, and rightly so.
+        sleep(1);
+    }
 }

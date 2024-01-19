@@ -13,9 +13,8 @@
  */
 $dir = '../downloads/bills/' . SESSION_YEAR . '/pdf/';
 
-if (file_exists($dir) === FALSE)
-{
-	mkdir($dir);
+if (file_exists($dir) === false) {
+    mkdir($dir);
 }
 
 /*
@@ -33,9 +32,8 @@ $mirrored = array_values($mirrored);
 /*
  * Remove the ".pdf" suffix.
  */
-foreach ($mirrored as &$pdf)
-{
-	$pdf = str_replace($mirrored, '.pdf', '');
+foreach ($mirrored as &$pdf) {
+    $pdf = str_replace($mirrored, '.pdf', '');
 }
 
 /*
@@ -49,9 +47,8 @@ $sql = 'SELECT bills_full_text.number
 		WHERE bills.session_id = ' . SESSION_ID;
 $result = mysql_query($sql);
 $bills = array();
-while ($tmp = mysql_fetch_array($result))
-{
-	$bills[] = strtolower($tmp['number']);
+while ($tmp = mysql_fetch_array($result)) {
+    $bills[] = strtolower($tmp['number']);
 }
 
 /*
@@ -62,12 +59,9 @@ $bills = array_diff($bills, $mirrored);
 /*
  * Iterate through the bills and retrieve each one.
  */
-foreach ($bills as $bill)
-{
-
-	$pdf_url = 'http://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+ful+'
-		. strtoupper($bill) . '+pdf';
-	$pdf_contents = file_get_contents($pdf_url);
-	file_put_contents($dir . $bill . '.pdf', $pdf_contents);
-
+foreach ($bills as $bill) {
+    $pdf_url = 'http://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+ful+'
+        . strtoupper($bill) . '+pdf';
+    $pdf_contents = file_get_contents($pdf_url);
+    file_put_contents($dir . $bill . '.pdf', $pdf_contents);
 }

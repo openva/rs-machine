@@ -21,46 +21,38 @@ $sql = 'SELECT id, name, sbe_id
 $result = mysql_query($sql);
 
 # Iterate through each legislator, getting the data from the API and saving it for each one.
-while ($legislator = mysql_fetch_array($result))
-{
+while ($legislator = mysql_fetch_array($result)) {
+    # Create the URL for this committee query.
+    $url = 'http://openva.com/campaign-finance/committees/' . $legislator['sbe_id'] . '.json';
 
-	# Create the URL for this committee query.
-	$url = 'http://openva.com/campaign-finance/committees/' . $legislator['sbe_id'] . '.json';
+    # Get the JSON from the remote URL.
+    $json = get_content($url);
 
-	# Get the JSON from the remote URL.
-	$json = get_content($url);
+    # If that failed, go to the next legislator.
+    if ($json === false) {
+        continue;
+    }
 
-	# If that failed, go to the next legislator.
-	if ($json === FALSE)
-	{
-		continue;
-	}
+    $contributions = json_decode($json);
 
-	$contributions = json_decode($json);
+    # Then get the list of individual contributions.
+    $url = 'http://openva.com/campaign-finance/contributions/' . $legislator['sbe_id'] . '.json';
 
-	# Then get the list of individual contributions.
-	$url = 'http://openva.com/campaign-finance/contributions/' . $legislator['sbe_id'] . '.json';
+    # Get the JSON from the remote URL.
+    $json = get_content($url);
 
-	# Get the JSON from the remote URL.
-	$json = get_content($url);
+    if ($json !== false) {
+        $contributions->List = json_decode($json);
+    }
 
-	if ($json !== FALSE)
-	{
-		$contributions->List = json_decode($json);
-	}
-
-	# Insert it into the database.
-	$sql = 'UPDATE representatives
+    # Insert it into the database.
+    $sql = 'UPDATE representatives
 			SET contributions="' . addslashes(serialize($contributions)) . '"
 			WHERE id=' . $legislator['id'];
-	mysql_query($sql);
-	if (mysql_affected_rows() === 1)
-	{
-		echo '<p>Legislator ' . $legislator['name'] . ' updated.</p>';
-	}
-	else
-	{
-		echo '<p>Legislator ' . $legislator['name'] . ' unaffected.</p>';
-	}
-
+    mysql_query($sql);
+    if (mysql_affected_rows() === 1) {
+        echo '<p>Legislator ' . $legislator['name'] . ' updated.</p>';
+    } else {
+        echo '<p>Legislator ' . $legislator['name'] . ' unaffected.</p>';
+    }
 }

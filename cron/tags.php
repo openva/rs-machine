@@ -3,7 +3,7 @@
 /*
  * Instantiate the logging class
  */
-$log = new Log;
+$log = new Log();
 
 /*
  * Get a list of some bills that lack tags
@@ -22,8 +22,7 @@ $stmt = $GLOBALS['dbh']->prepare($sql);
 $stmt->execute();
 $bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-foreach ($bills as &$bill)
-{
+foreach ($bills as &$bill) {
     $bill['summary'] = strip_tags($bill['summary']);
 }
 
@@ -52,9 +51,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Authorization: Bearer ' . $api_key
 ]);
 
-foreach ($bills as $bill)
-{
-    
+foreach ($bills as $bill) {
     $prompt = $bill['catch_line'] . "\n\n" . $bill['summary'];
 
     $data = [
@@ -70,30 +67,24 @@ foreach ($bills as $bill)
      */
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     $response = curl_exec($ch);
-    if (curl_errno($ch))
-    {
+    if (curl_errno($ch)) {
         echo 'cURL error: ' . curl_error($ch);
         $log->put('ERROR: Could not query OpenAI API, with this failure: ' . curl_error($ch), 3);
     }
-    
+
     /*
      * Use the response
      */
     $result = json_decode($response, true);
-    if (isset($result['choices'][0]['message']['content']))
-    {
-
+    if (isset($result['choices'][0]['message']['content'])) {
         $generated_text = strtolower($result['choices'][0]['message']['content']);
         $tags = explode(', ', $generated_text);
 
-        foreach ($tags as $tag)
-        {
-
-            if ($tag == 'legislation')
-            {
+        foreach ($tags as $tag) {
+            if ($tag == 'legislation') {
                 continue;
             }
-        
+
             $sql = 'INSERT INTO tags
                     SET bill_id=:bill_id,
                     tag=:tag,
@@ -102,22 +93,16 @@ foreach ($bills as $bill)
             $stmt = $GLOBALS['dbh']->prepare($sql);
             $stmt->bindParam(":bill_id", $bill['id'], PDO::PARAM_INT);
             $stmt->bindParam(":tag", $tag, PDO::PARAM_STR);
-            try
-            {
+            try {
                 $stmt->execute();
-            }
-            catch (PDOException $e)
-            {
+            } catch (PDOException $e) {
                 $log->put('Failed while adding auto-generated tag ($tag): ' . $e->getMessage(), 2);
                 continue;
             }
-
         } // end foreach tags
 
         $log->put('Auto-generated tags: ' . implode(', ', $tags), 2);
-
     }
-
 } // end foreach bills
 
 curl_close($ch);

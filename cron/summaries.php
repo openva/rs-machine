@@ -14,10 +14,9 @@ $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
  * Don't bother if the file hasn't changed.
  */
 $summaries_hash = md5(file_get_contents(__DIR__ . '/summaries.csv'));
-if ( $mc->get('summaries-csv-hash') == $summaries_hash )
-{
-	$log->put('Bill summaries unchanged', 2);
-	return;
+if ($mc->get('summaries-csv-hash') == $summaries_hash) {
+    $log->put('Bill summaries unchanged', 2);
+    return;
 }
 
 /*
@@ -28,11 +27,10 @@ $mc->set('summaries-csv-hash', $summaries_hash);
 /*
  * Open the file.
  */
-$fp = fopen(__DIR__ . '/summaries.csv','r');
-if ($fp === FALSE)
-{
-	$log->put('summaries.csv could not be read from the filesystem.', 8);
-	return FALSE;
+$fp = fopen(__DIR__ . '/summaries.csv', 'r');
+if ($fp === false) {
+    $log->put('summaries.csv could not be read from the filesystem.', 8);
+    return false;
 }
 
 /*
@@ -40,25 +38,18 @@ if ($fp === FALSE)
  * summaries that have changed, or that are new.
  */
 $hash_path = __DIR__ . '/hashes/summaries-' . SESSION_ID . '.md5';
-if (file_exists($hash_path))
-{
-	$hashes = file_get_contents($hash_path);
-	if ($hashes !== FALSE)
-	{
-		$hashes = unserialize($hashes);
-	}
-	else
-	{
-		$hashes = array();
-	}
-}
-else
-{
-	if (!file_exists(__DIR__ . '/hashes/'))
-	{
-		mkdir(__DIR__ . '/hashes');
-	}
-	$hashes = array();
+if (file_exists($hash_path)) {
+    $hashes = file_get_contents($hash_path);
+    if ($hashes !== false) {
+        $hashes = unserialize($hashes);
+    } else {
+        $hashes = array();
+    }
+} else {
+    if (!file_exists(__DIR__ . '/hashes/')) {
+        mkdir(__DIR__ . '/hashes');
+    }
+    $hashes = array();
 }
 
 /*
@@ -68,13 +59,11 @@ $sql = 'SELECT bills.id, bills.number
 		FROM bills
 		WHERE session_id = ' . $session_id;
 $result = mysql_query($sql);
-if (mysql_num_rows($result) > 0)
-{
-	$bills = array();
-	while ($bill = mysql_fetch_array($result))
-	{
-		$bills[$bill{number}] = $bill['id'];
-	}
+if (mysql_num_rows($result) > 0) {
+    $bills = array();
+    while ($bill = mysql_fetch_array($result)) {
+        $bills[$bill{number}] = $bill['id'];
+    }
 }
 
 /*
@@ -92,132 +81,111 @@ mysql_query($sql);
 /*
  * Step through each row in the CSV file, one by one.
  */
-while (($summary = fgetcsv($fp, 1000, ',')) !== FALSE)
-{
+while (($summary = fgetcsv($fp, 1000, ',')) !== false) {
+    # If this is something other than a header row, parse it.
+    if (isset($first)) {
+        unset($first);
+        continue;
+    }
 
-	# If this is something other than a header row, parse it.
-	if (isset($first))
-	{
-		unset($first);
-		continue;
-	}
+    /*
+     * Rename each field to something reasonable.
+     */
+    $new_headers = array(
+            'number',
+            'doc_id',
+            'type',
+            'text'
+        );
+    foreach ($new_headers as $old => $new) {
+        $summary[$new] = $summary[$old];
+        unset($summary[$old]);
+    }
 
-	/*
-	 * Rename each field to something reasonable.
-	 */
-	$new_headers = array(
-			'number',
-			'doc_id',
-			'type',
-			'text'
-		);
-	foreach ($new_headers as $old => $new)
-	{
-		$summary[$new] = $summary[$old];
-		unset($summary[$old]);
-	}
-
-	/*
-	 * Change the format of the bill number. In this file, the numeric portions are left-padded
-	 * with zeros, so that e.g. HB1 is rendered as HB0001. Here we change them to e.g. HB1.
-	 */
+    /*
+     * Change the format of the bill number. In this file, the numeric portions are left-padded
+     * with zeros, so that e.g. HB1 is rendered as HB0001. Here we change them to e.g. HB1.
+     */
     $suffix = substr($summary['number'], 2) + 0;
     $summary['number'] = substr($summary['number'], 0, 2) . $suffix;
 
 
-	/*
-	 * Before we proceed any farther, see if this record is either new or different than last
-	 * time that we examined it.
-	 */
-	$hash = md5(serialize($summary));
-	$number = strtolower($summary['number']);
+    /*
+     * Before we proceed any farther, see if this record is either new or different than last
+     * time that we examined it.
+     */
+    $hash = md5(serialize($summary));
+    $number = strtolower($summary['number']);
 
-	if ( isset($hashes[$number]) && ($hash == $hashes[$number]) )
-	{
-		continue;
-	}
-	else
-	{
+    if (isset($hashes[$number]) && ($hash == $hashes[$number])) {
+        continue;
+    } else {
+        $hashes[$number] = $hash;
+        if (!isset($hashes[$number])) {
+            $log->put('Adding summary ' . $summary['number'] . '.', 2);
+        } else {
+            $log->put('Updating summary ' . $summary['number'] . '.', 1);
+        }
+    }
 
-		$hashes[$number] = $hash;
-		if (!isset($hashes[$number]))
-		{
-			$log->put('Adding summary ' . $summary['number'] . '.', 2);
-		}
-		else
-		{
-			$log->put('Updating summary ' . $summary['number'] . '.', 1);
-		}
+    /*
+     * Remove the paragraph tags, newlines, NBSPs and double spaces.
+     */
+    $summary['text'] = str_replace("\r", ' ', $summary['text']);
+    $summary['text'] = str_replace("\n", ' ', $summary['text']);
+    $summary['text'] = str_replace('&nbsp;', ' ', $summary['text']);
+    $summary['text'] = str_replace('  ', ' ', $summary['text']);
+    $summary['text'] = str_replace('\u00a0', ' ', $summary['text']);
 
-	}
+    # There is often an HTML mistake in this tag, so we perform this replacement after
+    # running HTML Purifier, not before.
+    $summary['text'] = str_replace('<br clear="all" /> ', ' ', $summary['text']);
+    $summary['text'] = strip_tags($summary['text'], '<b><i><em><strong>');
 
-	/*
-	 * Remove the paragraph tags, newlines, NBSPs and double spaces.
-	 */
-	$summary['text'] = str_replace("\r", ' ', $summary['text']);
-	$summary['text'] = str_replace("\n", ' ', $summary['text']);
-	$summary['text'] = str_replace('&nbsp;', ' ', $summary['text']);
-	$summary['text'] = str_replace('  ', ' ', $summary['text']);
-	$summary['text'] = str_replace('\u00a0', ' ', $summary['text']);
+    # Run the summary through HTML Purifier.
+    #$config = HTMLPurifier_Config::createDefault();
+    #$purifier = new HTMLPurifier($config);
+    #$summary['text'] = $purifier->purify($summary['text']);
 
-	# There is often an HTML mistake in this tag, so we perform this replacement after
-	# running HTML Purifier, not before.
-	$summary['text'] = str_replace('<br clear="all" /> ', ' ', $summary['text']);
-	$summary['text'] = strip_tags($summary['text'], '<b><i><em><strong>');
+    # Clean up the bolding, so that we don't bold a blank space.
+    $summary['text'] = str_replace(' </b>', '</b> ', $summary['text']);
 
-	# Run the summary through HTML Purifier.
-	#$config = HTMLPurifier_Config::createDefault();
-	#$purifier = new HTMLPurifier($config);
-	#$summary['text'] = $purifier->purify($summary['text']);
+    # Trim off any whitespace.
+    $summary['text'] = trim($summary['text']);
 
-	# Clean up the bolding, so that we don't bold a blank space.
-	$summary['text'] = str_replace(' </b>', '</b> ', $summary['text']);
+    # Hack off a hanging non-breaking space, if there is one.
+    if (substr($summary['text'], -7) == ' &nbsp;') {
+        $summary['text'] = substr($summary['text'], 0, -8);
+    }
 
-	# Trim off any whitespace.
-	$summary['text'] = trim($summary['text']);
+    /*
+     * If we have any summary text, store it in the database.
+     */
+    if (!empty($summary['text'])) {
+        /*
+         * Look up the bill ID for this bill number.
+         */
+        $bill_id = $bills[strtolower($summary{number})];
+        if (empty($bill_id)) {
+            $log->put('Summary found for ' . $summary['number']
+                . ', but we have no record of that bill.', 2);
+            continue;
+        }
 
-	# Hack off a hanging non-breaking space, if there is one.
-	if (substr($summary['text'], -7) == ' &nbsp;')
-	{
-		$summary['text'] = substr($summary['text'], 0, -8);
-	}
-
-	/*
-	 * If we have any summary text, store it in the database.
-	 */
-	if (!empty($summary['text']))
-	{
-
-		/*
-		 * Look up the bill ID for this bill number.
-		 */
-		$bill_id = $bills[strtolower($summary{number})];
-		if (empty($bill_id))
-		{
-			$log->put('Summary found for ' . $summary['number']
-				. ', but we have no record of that bill.', 2);
-			continue;
-		}
-
-		/*
-		 * Commit this to the database.
-		 */
-		$sql = 'UPDATE bills
+        /*
+         * Commit this to the database.
+         */
+        $sql = 'UPDATE bills
 				SET summary="' . mysql_real_escape_string($summary['text']) . '"
 				WHERE id=' . $bill_id;
-		$result = mysql_query($sql);
-		if (!$result)
-		{
-			$log->put('Insertion of '. strtoupper($summary['number']) . ' summary failed. '
-				. 'Error: ' . mysql_error() . ' SQL: ' . $sql, 6);
-		}
-
-	}
-	else
-	{
-		$log->put('Summary of ' . strtoupper($summary['number']) . ' is blank.', 2);
-	}
-
+        $result = mysql_query($sql);
+        if (!$result) {
+            $log->put('Insertion of ' . strtoupper($summary['number']) . ' summary failed. '
+                . 'Error: ' . mysql_error() . ' SQL: ' . $sql, 6);
+        }
+    } else {
+        $log->put('Summary of ' . strtoupper($summary['number']) . ' is blank.', 2);
+    }
 } // end looping through lines in this CSV file
 
 # Close the CSV file.
