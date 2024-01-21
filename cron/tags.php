@@ -13,6 +13,7 @@ $sql = 'SELECT bills.id, bills.catch_line, bills.summary
         LEFT JOIN tags
         ON bills.id=tags.bill_id
         WHERE
+            session_id = ' . SESSION_ID . ' AND
             tags.bill_id IS NULL AND
             summary IS NOT NULL
         ORDER BY
