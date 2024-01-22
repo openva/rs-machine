@@ -23,8 +23,7 @@ $stmt = $GLOBALS['dbh']->prepare($sql);
 $stmt->execute();
 $bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-if (count($bills) == 0)
-{
+if (count($bills) == 0) {
     return;
 }
 
