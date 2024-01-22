@@ -23,6 +23,11 @@ $stmt = $GLOBALS['dbh']->prepare($sql);
 $stmt->execute();
 $bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+if (count($bills) == 0)
+{
+    return;
+}
+
 foreach ($bills as &$bill) {
     $bill['summary'] = strip_tags($bill['summary']);
 }
