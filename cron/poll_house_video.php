@@ -171,23 +171,34 @@ foreach ($video_list->ContentEntityDatas as $section) {
             $pattern_match = '/"Url":"(.+\.mp4)"/';
             preg_match($pattern_match, $video_html, $matches);
             if (preg_match($pattern_match, $video_html, $matches) != true) {
-                $log->put('Skipping video, because no video URL could be found on the web page: '
-                    . $video_url, 3);
 
-                /*
-                 * Remove this GUID from the list, so it won't be cached as completed, so it will
-                 * be checked anew next time this runs.
-                 */
-                foreach ($guids as $key => $guid) {
-                    if ($guid == $video->Id) {
-                        unset($guids[$key]);
-                        $guids = array_values($guids);
+                // If there's no MP4, there may be a M3U playlist
+                $pattern_match = '/"Url":"(.+\.m3u8)"/';
+                preg_match($pattern_match, $video_html, $matches);
+                if (preg_match($pattern_match, $video_html, $matches) != true) {
+
+                    $log->put('Skipping video, because no video URL could be found on the web page: '
+                        . $video_url, 3);
+
+                    /*
+                    * Remove this GUID from the list, so it won't be cached as completed, so it will
+                    * be checked anew next time this runs.
+                    */
+                    foreach ($guids as $key => $guid) {
+                        if ($guid == $video->Id) {
+                            unset($guids[$key]);
+                            $guids = array_values($guids);
+                        }
                     }
+                    continue;
                 }
-                continue;
             }
 
-            $url = $matches[1];
+            /*
+             * We don't actually want playlist.m3u8, but instead the chunklist.m3u8 that it refers
+             * to within its contents
+             */
+            $url = str_replace('playlist', 'chunklist', $matches[1]);
 
             /*
              * Put together our final array of data about this video.
