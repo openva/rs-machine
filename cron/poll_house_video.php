@@ -171,12 +171,10 @@ foreach ($video_list->ContentEntityDatas as $section) {
             $pattern_match = '/"Url":"(.+\.mp4)"/';
             preg_match($pattern_match, $video_html, $matches);
             if (preg_match($pattern_match, $video_html, $matches) != true) {
-
                 // If there's no MP4, there may be a M3U playlist
                 $pattern_match = '/"Url":"(.+\.m3u8)"/';
                 preg_match($pattern_match, $video_html, $matches);
                 if (preg_match($pattern_match, $video_html, $matches) != true) {
-
                     $log->put('Skipping video, because no video URL could be found on the web page: '
                         . $video_url, 3);
 
