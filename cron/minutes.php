@@ -109,6 +109,14 @@ foreach ($chambers as $chamber => $listing_url) {
                     $minutes = str_replace(' - Agreed to', " - Agreed to<br>\n", $minutes);
                 }
 
+                /*
+                 * Minutes sometimes display vote results (e.g., "38-Y 2-N") with a non-breaking
+                 * hyphen instead of an en dash. An en dash is the correct way to indicate this,
+                 * but also it's within the Latin-1 codeset, which is how we encode minutes, for
+                 * historical reasons.
+                 */
+                $minutes = str_replace('‑', '–', $minutes);
+
                 # Prepare them for MySQL.
                 $minutes = mysql_real_escape_string($minutes);
 
