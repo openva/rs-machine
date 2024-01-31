@@ -84,13 +84,13 @@ foreach ($chambers as $chamber => $listing_url) {
                 # Determine where to end the minutes. We have three versions of this strpos() to
                 # accomodation variations in the data, primarily between the house and senate.
                 $end = strpos($minutes, 'KEY: A');
-                if ($end == false) {
+                if ($end === false) {
                     $end = strpos($minutes, 'KEY:  A');
-                    if ($end == false) {
                         $end = strpos($minutes, '<hr>');
+                    if ($end === false) {
                     }
-                    if ($end == false) {
                         $end = strpos($minutes, 'iFrame Resizer');
+                    if ($end === false) {
                     }
                 }
                 if ($end != false) {
