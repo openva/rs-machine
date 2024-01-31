@@ -90,9 +90,6 @@ foreach ($chambers as $chamber => $listing_url) {
                         $end = strpos($minutes, '<hr>');
                     }
                     if ($end == false) {
-                        $end = strpos($minutes, '<hr>');
-                    }
-                    if ($end == false) {
                         $end = strpos($minutes, 'iFrame Resizer');
                     }
                 }
