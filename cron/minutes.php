@@ -86,11 +86,11 @@ foreach ($chambers as $chamber => $listing_url) {
                 $end = strpos($minutes, 'KEY: A');
                 if ($end === false) {
                     $end = strpos($minutes, 'KEY:  A');
-                        $end = strpos($minutes, '<hr>');
                     if ($end === false) {
+                        $end = stripos($minutes, '<hr>');
                     }
-                        $end = strpos($minutes, 'iFrame Resizer');
                     if ($end === false) {
+                        $end = stripos($minutes, 'iFrame Resizer');
                     }
                 }
                 if ($end != false) {
