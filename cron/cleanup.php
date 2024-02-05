@@ -494,9 +494,9 @@ if (mysql_num_rows($result) > 0) {
     while ($bill = mysql_fetch_array($result)) {
         if (!empty($bill['tags'])) {
             $tags = explode(',', $bill['tags']);
-            $hash[$bill{'hash'}][$bill{'id'}] = $tags;
+            $hash[$bill['hash']][$bill['id']] = $tags;
         } else {
-            $hash[$bill{'hash'}][$bill{'id'}] = array();
+            $hash[$bill['hash']][$bill['id']] = array();
         }
     }
 
@@ -578,7 +578,7 @@ if (mysql_num_rows($result) > 0) {
                 # Convert this indexed array back to an associative array by restoring its original
                 # keys.
                 for ($i = 0; $i < count($keys); $i++) {
-                    $bill[$keys{$i}] = $bill[$i];
+                    $bill[$keys[$i]] = $bill[$i];
                     unset($bill[$i]);
                 }
             }
