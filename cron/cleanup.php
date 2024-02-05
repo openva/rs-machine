@@ -113,24 +113,31 @@ $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed committee"
-						WHERE status LIKE "Left in %" AND translation IS NULL');
+						WHERE status LIKE "Left in %" AND
+							translation IS NULL AND
+							session_id = :session_id');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed committee"
-						WHERE status LIKE "Tabled in %" AND translation IS NULL');
+						WHERE
+							status LIKE "Tabled in %" AND
+							translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed committee"
-						WHERE (status LIKE "Passed by in %"
-						OR status LIKE "Passed by indefinitely%")
-						AND translation IS NULL');
+						WHERE
+							(status LIKE "Passed by in %"
+							OR status LIKE "Passed by indefinitely%") AND
+						translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 					SET translation="failed committee"
-					WHERE status LIKE "Failed to report%" AND translation IS NULL');
+					WHERE
+						status LIKE "Failed to report%" AND
+						translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
@@ -144,54 +151,65 @@ $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed committee"
-						WHERE status LIKE "Stricken from docket%" AND translation IS NULL');
+						WHERE
+							status LIKE "Stricken from docket%" AND
+							translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed subcommittee"
-						WHERE (status LIKE "Subcommittee recommends passing by indefinitely%"
-						OR status LIKE "Subcommittee recommends laying on the table"
-						OR status LIKE "Subcommittee failed to recommend reporting%"
-						OR status LIKE "Subcommittee recommends striking from the docket%")
-						AND translation IS NULL');
+						WHERE
+							(status LIKE "Subcommittee recommends passing by indefinitely%" OR
+							status LIKE "Subcommittee recommends laying on the table" OR 
+							status LIKE "Subcommittee failed to recommend reporting%" OR
+							status LIKE "Subcommittee recommends striking from the docket%") AND
+						translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="passed subcommittee"
-						WHERE status LIKE "Subcommittee recommends reporting%"
-						AND translation IS NULL');
+						WHERE
+							status LIKE "Subcommittee recommends reporting%" AND
+							translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="incorporated"
-						WHERE status LIKE "Incorporated%"
-						AND translation IS NULL');
+						WHERE
+							status LIKE "Incorporated%" AND 
+							translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="stricken"
-						WHERE status LIKE "Stricken at request of patron%"
-						AND translation IS NULL');
+						WHERE
+							status LIKE "Stricken at request of patron%" AND
+							translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="passed committee"
-						WHERE (status LIKE "Reported from %" OR status LIKE "Discharged from %"
-							OR status LIKE "Rereferred from %")
-						AND translation IS NULL');
+						WHERE
+								(status LIKE "Reported from %" OR
+								status LIKE "Discharged from %" OR
+								status LIKE "Rereferred from %")
+							AND translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="passed house"
-						WHERE (status LIKE "%and passed House%" OR status LIKE "Agreed to by House%"
-							OR status LIKE "Passed House%")
-						AND translation IS NULL');
+						WHERE
+								(status LIKE "%and passed House%" OR
+								status LIKE "Agreed to by House%" OR
+								status LIKE "Passed House%")
+							AND translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed house"
-						WHERE status LIKE "%engrossment refused by House%"
-						AND translation IS NULL');
+						WHERE
+							status LIKE "%engrossment refused by House%" AND 
+							translation IS NULL');
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
