@@ -223,7 +223,7 @@ while ($bill = mysql_fetch_array($result)) {
 					latitude=' . $coordinates['latitude'] . ',
 					longitude=' . $coordinates['longitude'] . ',
                     coordinates = Point(' . $coordinates['longitude'] . ', '
-                    . $coordinates['longitude'] .')';
+                    . $coordinates['longitude'] . ')';
         $place_result = mysql_query($sql);
         if ($place_result == false) {
             $log->put('Error: Could not add place names for ' . strtoupper($bill['number'])
