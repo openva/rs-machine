@@ -98,6 +98,14 @@ foreach ($bills as $bill) {
     }
     $summary = $responseData['choices'][0]['message']['content'];
 
+    // Link to the fiscal impact statement
+    $summary = preg_replace('/fiscal impact statement/i',
+        '<a href="' . $url . '">fiscal impact statement</a>', $summary);
+
+    // Add a disclaimer
+    $summary = '<p>' . $summary . '</p>
+        <p class="openai">Summary generated automatically by OpenAI.</p>';
+
     /*
     * Step 4: Save the Summary
     */
