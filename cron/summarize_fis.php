@@ -28,7 +28,7 @@ if (mysqli_num_rows($result) > 0) {
 foreach ($bills as $bill) {
 
     // Assemble the URL
-    $url = 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_ID . '+oth+'
+    $url = 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+oth+'
         . mb_strtoupper($bill['number']) . 'F' . $bill['impact_statement_id'] . '+PDF';
 
     /*
