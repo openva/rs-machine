@@ -56,7 +56,7 @@ foreach ($bills as $bill) {
     */
     $text = file_get_contents($tmpTxtFile);
     if (!$text) {
-        die("Failed to convert PDF to text");
+        continue;
     }
 
     /*
