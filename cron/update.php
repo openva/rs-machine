@@ -194,6 +194,11 @@ if (($type == 'all') || ($type == 'checks')) {
     require 'checks.php';
 }
 
+# Summarize fiscal impact statements
+if (($type == 'all') || ($type == 'summarize_fis')) {
+    require 'summarize_fis.php';
+}
+
 # UPDATE DASHBOARD SMART PORTFOLIOS
 # Step through every smart portfolio and update its constituent bills.
 if (($type == 'all') || ($type == 'photosynthesis')) {
