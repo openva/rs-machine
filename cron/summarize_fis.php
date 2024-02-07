@@ -110,7 +110,7 @@ foreach ($bills as $bill) {
     * Step 4: Save the Summary
     */
     $sql = 'UPDATE bills
-            SET notes = ' . mysqli_real_escape_string($GLOBALS['db'], $summary) . '
+            SET notes = "' . mysqli_real_escape_string($GLOBALS['db'], $summary) . '"
             WHERE id = ' . $bill['id'];
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false) {
