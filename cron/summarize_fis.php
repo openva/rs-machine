@@ -56,6 +56,8 @@ foreach ($bills as $bill) {
     */
     $text = file_get_contents($tmpTxtFile);
     if (!$text) {
+        $log->put('The fiscal impact statement for ' . $bill['number'] . ' (' . $url . ') doesn’t
+            appear to be a PDF. Skipping.', 3);
         continue;
     }
 
