@@ -42,8 +42,8 @@ if (LEGISLATIVE_SEASON == true) {
                     FROM `bills_status`
                     WHERE date_created > NOW() - INTERVAL 24 HOUR
                     ORDER BY date_created DESC';
-            $result = mysql_query($sql);
-            if (mysql_num_rows($result) == 0) {
+            $result = mysqli_query($GLOBALS['db'], $sql);
+            if (mysqli_num_rows($result) == 0) {
                 $log->put('Error: No bills have advanced in the past 24 hours. Bill histories are '
                     . 'not being updated. Make sure that history.csv is being updated, and that '
                     . 'data is being loaded correctly.', 6);

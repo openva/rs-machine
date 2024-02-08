@@ -23,9 +23,9 @@ $sql = 'SELECT bills_full_text.id, bills_full_text.number, sessions.lis_id
 			bills.date_introduced DESC,
 			bills_full_text.date_introduced DESC';
 
-$result = mysql_query($sql);
+$result = mysqli_query($GLOBALS['db'], $sql);
 
-if (mysql_num_rows($result) == 0) {
+if (mysqli_num_rows($result) == 0) {
     $log->put('Found no bills lacking their full text.', 1);
     return false;
 }
@@ -39,7 +39,7 @@ if (mysql_num_rows($result) == 0) {
  */
 $server_errors = 0;
 
-while ($text = mysql_fetch_array($result)) {
+while ($text = mysqil_fetch_array($result)) {
     # Retrieve the full text.
     $url = 'https://leg1.state.va.us/cgi-bin/legp504.exe?' . $text['lis_id'] . '+ful+'
         . strtoupper($text['number']);
@@ -186,7 +186,7 @@ while ($text = mysql_fetch_array($result)) {
         $sql = 'UPDATE bills_full_text
 				SET failed_retrievals = failed_retrievals+1
 				WHERE id=' . $text['id'];
-        @mysql_query($sql);
+        mysqli_query($GLOBALS['db'], $sql);
 
         # Ignore bills that have been codified into law -- we don't need to be
         # told about those.

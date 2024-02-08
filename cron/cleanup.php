@@ -70,8 +70,8 @@ $result = $sql->execute();
         FROM bills_status
         WHERE status LIKE "Assigned to%sub%"
         AND (translation IS NULL OR translation = "assigned to subcommittee")';
-$result = mysql_query($sql);
-if (@mysql_num_rows($result) > 0)
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0)
 {
     while ($status = mysqli_fetch_array($result))
     {
@@ -282,7 +282,7 @@ $result = $sql->execute();
 $sql = 'UPDATE bills
 		SET status="introduced"
 		WHERE (status IS NULL OR status="") AND session_id=' . $session_id;
-$result = mysql_query($sql);
+$result = mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # UPDATE BILLS' OUTCOME FLAG
@@ -294,13 +294,13 @@ $sql = 'UPDATE bills
 		WHERE (status="failed committee" OR status="failed" OR status="failed house"
 			OR status="failed senate" OR status="vetoed by governor" OR status="stricken")
 		AND (outcome IS NULL OR outcome="passed") AND session_id=' . $session_id;
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 $sql = 'UPDATE bills
 		SET outcome="passed"
 		WHERE (status="signed by governor" OR status="enacted")
 		AND (outcome IS NULL OR outcome="failed") AND session_id=' . $session_id;
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 $sql = 'UPDATE bills
 		SET outcome = NULL
@@ -308,7 +308,7 @@ $sql = 'UPDATE bills
 		status != "failed house"
 		AND status != "failed senate" AND status != "vetoed by governor" AND status != "stricken"
 		AND status != "signed by governor" AND status != "enacted" AND session_id=' . $session_id;
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # UPDATE BILLS' FULL TEXT WHERE IT'S CURRENTLY BLANK
@@ -323,7 +323,7 @@ $sql = 'UPDATE bills
 			ORDER BY date_introduced DESC
 			LIMIT 1)
 		WHERE session_id=' . $session_id . ' AND full_text IS NULL';
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # PERIODICALLY SYNCHRONIZE BILLS' FULL TEXT
@@ -342,7 +342,7 @@ $sql = 'UPDATE bills
 		WHERE session_id=' . $session_id . '
 		ORDER BY RAND()
 		LIMIT 50';
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # CLEAN UP STRAY CONTROL CHARACTERS
@@ -351,7 +351,7 @@ mysql_query($sql);
 ###
 $sql = 'UPDATE bills
 		SET summary = REPLACE(summary, "Â", "")';
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # UPDATE BILLS' SUMMARY HASHES
@@ -361,7 +361,7 @@ mysql_query($sql);
 $sql = 'UPDATE bills
 		SET summary_hash = md5(summary)
 		WHERE summary_hash IS NULL';
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # MARK BILLS AS INCORPORATED INTO ANOTHER BILL
@@ -379,9 +379,9 @@ $sql = 'SELECT id, session_id, (
 		FROM bills
 		WHERE incorporated_into IS NULL
 		HAVING incorporated IS NOT NULL';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
-    while ($bill = mysql_fetch_array($result)) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
+    while ($bill = mysqli_fetch_array($result)) {
         $bill = array_map('stripslashes', $bill);
 
         # Extract the target bill number from the incorporation text.
@@ -397,15 +397,15 @@ if (mysql_num_rows($result) > 0) {
 					FROM bills
 					WHERE number="' . $bill['incorporated_into'] . '"
 					AND session_id=' . $bill['session_id'];
-            $result2 = mysql_query($sql);
+            $result2 = mysqli_query($GLOBALS['db'], $sql);
             if ($result2 !== false) {
-                $tmp = mysql_fetch_array($result2);
+                $tmp = mysqli_fetch_array($result2);
                 $bill['incorporated_into'] = $tmp['id'];
 
                 $sql = 'UPDATE bills
 						SET incorporated_into = ' . $bill['incorporated_into'] . '
 						WHERE id=' . $bill['id'];
-                $result2 = mysql_query($sql);
+                $result2 = mysqli_query($GLOBALS['db'], $sql);
             }
         }
     }
@@ -427,13 +427,13 @@ $sql = 'SELECT bills.summary_hash AS hash, bills.id,
 		WHERE bills.id != bills2.id
 		GROUP BY bills.id
 		ORDER BY bills.summary_hash';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     # Initialize the array.
     $hash = array();
 
     # Iterate through the bills and build up an array of them.
-    while ($bill = mysql_fetch_array($result)) {
+    while ($bill = mysqli_fetch_array($result)) {
         if (!empty($bill['tags'])) {
             $tags = explode(',', $bill['tags']);
             $hash[$bill['hash']][$bill['id']] = $tags;
@@ -541,7 +541,7 @@ if (mysql_num_rows($result) > 0) {
                         $sql = 'INSERT INTO tags
 								SET bill_id=' . $bill_id . ', tag="' . $tag . '",
 								user_id=0, date_created=now()';
-                        mysql_query($sql);
+                        mysqli_query($GLOBALS['db'], $sql);
                     }
                 }
             }
@@ -586,7 +586,7 @@ $sql = 'UPDATE bills
 				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= ' . $days . ')) * 2
 			)
 		WHERE session_id=' . $session_id;
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # UPDATE BILLS' INTRESTINGNESS RANKING
@@ -619,7 +619,7 @@ $sql = 'UPDATE bills
 				WHERE bill_id=bills.id) * 2
 			)
 		WHERE session_id=' . $session_id;
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 
 ###
@@ -633,7 +633,7 @@ $sql = 'UPDATE bills
 			(SELECT COUNT(*)
 			FROM bills_copatrons
 			WHERE bill_id=bills.id)';
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 
 ###
@@ -646,7 +646,7 @@ $sql = 'DELETE FROM bills_full_text
 			(SELECT COUNT(*)
 			FROM bills
 			WHERE id=bills_full_text.bill_id) = 0';
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # UPDATE VOTES CONTENTION RANKING
@@ -658,9 +658,9 @@ mysql_query($sql);
 $sql = 'SELECT id, tally
 		FROM votes
 		WHERE contested IS NULL';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
-    while ($vote = mysql_fetch_array($result)) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
+    while ($vote = mysqli_fetch_array($result)) {
         # If the vote is more than XX-YY (such as XX-YY-ZZ, or XX-YY-ZZ-AA), then we hack off
         # everything after XX-YY.
         if (substr_count($vote['tally'], '-') > 1) {
@@ -708,6 +708,6 @@ if (mysql_num_rows($result) > 0) {
             $sql .= ', partisanship=0';
         }
         $sql .= ' WHERE id=' . $vote['id'];
-        mysql_query($sql);
+        mysqli_query($GLOBALS['db'], $sql);
     }
 }

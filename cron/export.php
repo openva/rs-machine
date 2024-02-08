@@ -158,8 +158,8 @@ $sql = 'SELECT CONCAT(UPPER(SUBSTRING(committees.chamber, 1, 1)), SUBSTRING(comm
 			ON committee_members.representative_id = representatives.id
 		WHERE committees.parent_id IS NULL AND committee_members.date_ended IS NULL
 		ORDER BY committees.chamber ASC, committees.name ASC, position DESC';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     $committees = array();
     while ($membership = mysql_fetch_array($result)) {
         if (empty($membership['position'])) {
@@ -182,9 +182,9 @@ $sql = 'SELECT sessions.year, bills_full_text.number, bills_full_text.text
 		WHERE bills_full_text.text IS NOT NULL AND bills.number IS NOT NULL
 		AND bills.session_id = ' . SESSION_ID . '
 		ORDER BY sessions.year ASC, bills_full_text.number ASC';
-$result = mysql_query($sql);
+$result = mysqli_query($GLOBALS['db'], $sql);
 
-if (mysql_num_rows($result) > 0) {
+if (mysqli_num_rows($result) > 0) {
     if (file_exists($downloads_dir . 'bills/') === false) {
         $success = mkdir($downloads_dir . 'bills/');
         if ($success === false) {
@@ -195,7 +195,7 @@ if (mysql_num_rows($result) > 0) {
     # Rather than check each time if the year's directory exists, just keep track here.
     $exists = array();
 
-    while ($bill = mysql_fetch_array($result, MYSQL_ASSOC)) {
+    while ($bill = mysqli_fetch_array($GLOBALS['db'],$result, MYSQL_ASSOC)) {
         $bill = array_map('stripslashes', $bill);
 
         # Neaten up the bill text.
@@ -251,10 +251,10 @@ if (is_writeable($filename)) {
 			LEFT JOIN bills
 				ON video_clips.bill_id = bills.id
 			ORDER BY files.date ASC, files.chamber ASC, video_clips.time_start ASC';
-    $result = mysql_query($sql);
-    if (mysql_num_rows($result) > 0) {
+    $result = mysqli_query($GLOBALS['db'], $sql);
+    if (mysqli_num_rows($result) > 0) {
         $clips = array();
-        while ($clip = mysql_fetch_array($result, MYSQL_ASSOC)) {
+        while ($clip = mysqli_fetch_array($result, MYSQL_ASSOC)) {
             if (substr($clip['path'], 0, 1) == '/') {
                 $clip['path'] = 'https://www.richmondsunlight.com' . $clip['path'];
             }

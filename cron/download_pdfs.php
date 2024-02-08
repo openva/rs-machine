@@ -45,9 +45,9 @@ $sql = 'SELECT bills_full_text.number
 		LEFT JOIN bills
 		ON bills_full_text.bill_id = bills.id
 		WHERE bills.session_id = ' . SESSION_ID;
-$result = mysql_query($sql);
+$result = mysqli_query($GLOBALS['db'], $sql);
 $bills = array();
-while ($tmp = mysql_fetch_array($result)) {
+while ($tmp = mysqli_fetch_array($result)) {
     $bills[] = strtolower($tmp['number']);
 }
 

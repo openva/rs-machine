@@ -25,12 +25,12 @@ $sql = 'SELECT c1.id, c1.lis_id, c2.name AS parent, c1.name, c1.chamber
 		LEFT JOIN committees AS c2
 			ON c1.parent_id=c2.id
 		ORDER BY c1.chamber, c2.name, c1.name';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) == 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) == 0) {
     $log->put('No subcommittees were found, which seems bad.', 7);
     return false;
 }
-while ($committee = mysql_fetch_array($result)) {
+while ($committee = mysqli_fetch_array($result)) {
     $committee = array_map('stripslashes', $committee);
 
     # If this is a subcommittee, shuffle around the array keys.
@@ -83,10 +83,10 @@ while ($committee = mysql_fetch_array($result)) {
 $sql = 'SELECT committee_id, date, time, timedesc, description, location
 		FROM meetings
 		WHERE session_id=' . SESSION_ID . ' AND date >= now()';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     $upcoming = array();
-    while ($tmp = mysql_fetch_array($result)) {
+    while ($tmp = mysqli_fetch_array($result)) {
         $tmp = array_map('stripslashes', $tmp);
         $upcoming[] = $tmp;
     }
@@ -302,12 +302,12 @@ foreach ($csv as &$meeting) {
     if (!empty($meeting['committee_id'])) {
         $sql .= ', committee_id=' . $meeting['committee_id'];
     }
-    $result = mysql_query($sql);
+    $result = mysqli_query($GLOBALS['db'], $sql);
 
     if (!$result) {
         $log->put('Failed to add meeting ' . $meeting['description'] . ' on ' . $meeting['date']
             . '. ' . $sql . "\n\n" . mysql_error(), 5);
-    } elseif (mysql_affected_rows($result) > 0) {
+    } elseif (mysqli_affected_rows($result) > 0) {
         $log->put('Added meeting ' . $meeting['description'] . ' on ' . $meeting['date'] . '.', 1);
     }
 }
@@ -318,4 +318,4 @@ $sql = 'DELETE m1
 		FROM meetings m1, meetings m2
 		WHERE m1.date=m2.date AND m1.time=m2.time AND m1.location=m2.location
 		AND m1.description=m2.description AND m1.id < m2.id';
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);

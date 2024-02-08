@@ -35,7 +35,7 @@ $row_count = mysql_num_rows($result);
 
 if ($row_count > 0) {
     $i = 1;
-    while ($vote = @mysql_fetch_array($result)) {
+    while ($vote = mysql_fetch_array($result)) {
         # End the prior vote-tallying session and start a new one.
         if ((isset($vote_id) && ($vote['id'] != $vote_id)) || ($i == $row_count)) {
             # This stanza is necessary to parse the data in the last line of results.

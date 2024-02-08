@@ -31,9 +31,9 @@ $sql = 'SELECT bills_full_text.id AS full_text_id, bills.id, bills_full_text.tex
 			WHERE bill_id=bills_full_text.bill_id) = 0
 		ORDER BY RAND()
 		LIMIT 100';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
-    while ($bill = mysql_fetch_array($result)) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
+    while ($bill = mysqli_fetch_array($result)) {
         $bill = array_map('stripslashes', $bill);
         # We want to strip out HTML (save for paragraphs), carriage returns, and extra spaces.
         # We're basically just looking for straight text here.
@@ -96,7 +96,7 @@ if (mysql_num_rows($result) > 0) {
             $sql = 'INSERT INTO bills_section_numbers
 					SET full_text_id=' . $bill['full_text_id'] . ', bill_id=' . $bill['id'] . ',
 					section_number="' . $match . '", date_created=now()';
-            mysql_query($sql);
+            mysqli_query($GLOBALS['db'], $sql);
         }
     }
 }

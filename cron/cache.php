@@ -20,9 +20,9 @@ $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 $sql = 'SELECT id, number
 		FROM bills
 		WHERE session_id = ' . SESSION_ID;
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
-    while ($bill = mysql_fetch_array($result)) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
+    while ($bill = mysqli_fetch_array($result)) {
         /*
          * Cache this bill ID and number in Memcached, setting a far-off expiry date.
          */

@@ -23,14 +23,14 @@ $sql = 'SELECT committees.id, committees.lis_id, c2.lis_id AS parent_lis_id, com
 		LEFT JOIN committees AS c2
 			ON committees.parent_id = c2.id
 		WHERE committees.chamber="senate" AND committees.lis_id IS NOT NULL';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) == 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) == 0) {
     $log->put('No subcommittees were found, which seems bad.', 10);
     return false;
 }
 
 $committees = array();
-while ($committee = mysql_fetch_array($result)) {
+while ($committee = mysqli_fetch_array($result)) {
     # If this is a subcommittee, pad out its parent ID for use in the URL.
     if (!empty($committee['parent_lis_id'])) {
         $committee['parent_lis_id'] = str_pad($committee['parent_lis_id'], 2, 0, STR_PAD_LEFT);
@@ -92,7 +92,7 @@ foreach ($committees as $committee) {
             # method of deleting old bills.)
             $sql = 'DELETE FROM dockets
 					WHERE date="' . $date['full'] . '" AND committee_id=' . $committee['id'];
-            mysql_query($sql);
+            mysqli_query($GLOBALS['db'], $sql);
 
             foreach ($bill[0] as $bill) {
                 # Convert the bills to the simplest form.
@@ -109,7 +109,7 @@ foreach ($committees as $committee) {
 							WHERE number = "' . $bill . '" AND session_id = ' . SESSION_ID . '),
 						date_created = now()
 						ON DUPLICATE KEY UPDATE id=id';
-                mysql_query($sql);
+                mysqli_query($GLOBALS['db'], $sql);
             }
         }
 
