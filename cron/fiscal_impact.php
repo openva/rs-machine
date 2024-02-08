@@ -41,8 +41,8 @@ foreach ($fis_data as $statement) {
 foreach ($fis as $bill_number => $fis_id)
 {
     $sql = 'UPDATE bills
-            SET impact_statement_id= "' . $fis_id . '"
-            WHERE number=" ' . $bill_number . '" AND
+            SET impact_statement_id = "' . $fis_id . '"
+            WHERE number = "' . $bill_number . '" AND
             session_id = ' . SESSION_ID;
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false) {
