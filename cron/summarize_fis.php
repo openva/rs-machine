@@ -116,11 +116,11 @@ foreach ($bills as $bill) {
             WHERE id = ' . $bill['id'];
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false) {
-        $log->put('Error: Adding a fiscal impact statement for ' . $bill['number'] . ' failed: '
+        $log->put('Error: Adding a fiscal impact summary for ' . $bill['number'] . ' failed: '
             . mysqli_error($GLOBALS['db']), 4);
     }
     else {
-        $log->put('Added a fiscal impact statement for ' . $bill['number'] . '.', 3);
+        $log->put('Added a fiscal impact summary for ' . $bill['number'] . '.', 3);
     }
 
     /*
