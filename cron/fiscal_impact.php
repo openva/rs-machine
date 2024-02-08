@@ -13,7 +13,7 @@ Should this be in a new table?
 */
 
 // Get the CSV
-$filename = 'FiscalImpactStatements.csv';
+$filename = __DIR__ . '/FiscalImpactStatements.csv';
 if (!file_exists($filename) || !is_readable($filename)) {
     exit($filename . ' not found or is not readable');
 }
