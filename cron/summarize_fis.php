@@ -29,7 +29,7 @@ foreach ($bills as $bill) {
 
     // Assemble the URL
     $url = 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+oth+'
-        . mb_strtoupper($bill['number']) . 'F' . $bill['impact_statement_id'] . '+PDF';
+        . mb_strtoupper($bill['number']) . $bill['impact_statement_id'] . '+PDF';
 
     /*
     * Step 1: Download the PDF
