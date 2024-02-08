@@ -188,7 +188,12 @@ if (($type == 'all') || ($type == 'checks')) {
     require 'checks.php';
 }
 
-# Summarize fiscal impact statements
+# Retrieve parse fiscal impact statements CSV.
+if (($type == 'all') || ($type == 'fiscal_impact')) {
+    require 'fiscal_impact.php';
+}
+
+# Summarize fiscal impact statements.
 if (($type == 'all') || ($type == 'summarize_fis')) {
     require 'summarize_fis.php';
 }

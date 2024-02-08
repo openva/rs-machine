@@ -43,6 +43,10 @@
 # Updates the sections of the code referred to within each bill.
 5,15,25,35,45,55 * * 1-3,10-12 * /usr/bin/php rs-machine/cron/update.php code_sections
 
+# Update the fiscal_impact statements
+52 11,13,15,17,19,21 * * * /usr/bin/expect rs-machine/cron/sftp.sh FiscalImpactStatements.csv rs-machine/cron/FiscalImpactStatements.csv
+53 11,13,15,17,19,21 * * * /usr/bin/php rs-machine/cron/update.php fiscal_impact
+
 # Re-zip the current year's downloadable bill full-text HTML.
 * 3 * * * /usr/bin/zip -rj rs-machine/downloads/bills/2022 rs-machine/downloads/bills/2022
 
