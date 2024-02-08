@@ -154,7 +154,7 @@ while ($text = mysql_fetch_array($result)) {
 
         # Put the data back into the database, but clean it up first.
         $full_text = trim($full_text);
-        $full_text = @mysql_real_escape_string($full_text);
+        $full_text = mysqli_real_escape_string($full_text);
 
         if (!empty($full_text)) {
             # We store the bill's text, and also reset the counter that tracks failed attempts
@@ -162,7 +162,7 @@ while ($text = mysql_fetch_array($result)) {
             $sql = 'UPDATE bills_full_text
 					SET text="' . $full_text . '", failed_retrievals=0
 					WHERE id=' . $text['id'];
-            $result2 = @mysql_query($sql);
+            $result2 = mysqli_query($GLOBALS['db'], $sql);
             if (!$result2) {
                 $log->put('Insertion of  ' . strtoupper($text['number']) . ' bill text failed.', 5);
             } else {

@@ -73,7 +73,7 @@ $result = $sql->execute();
 $result = mysql_query($sql);
 if (@mysql_num_rows($result) > 0)
 {
-    while ($status = @mysql_fetch_array($result))
+    while ($status = mysqli_fetch_array($result))
     {
 
     }
