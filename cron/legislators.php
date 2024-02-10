@@ -140,7 +140,7 @@ $sql = 'SELECT
 		FROM representatives
 		WHERE
 			date_ended IS NULL
-		ORDER BY RAND()
+		ORDER BY date_modified ASC
 		LIMIT 10';
 $stmt = $db->prepare($sql);
 $stmt->execute();
