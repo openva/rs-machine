@@ -58,21 +58,6 @@ $result = $sql->execute();
 # series on every bill's page.
 ###
 
-# Specify which subcommittee that a bill is in.
-/*$sql = 'SELECT id, status
-        FROM bills_status
-        WHERE status LIKE "Assigned to%sub%"
-        AND (translation IS NULL OR translation = "assigned to subcommittee")';
-$result = mysqli_query($GLOBALS['db'], $sql);
-if (mysqli_num_rows($result) > 0)
-{
-    while ($status = mysqli_fetch_array($result))
-    {
-
-    }
-}*/
-
-
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="introduced"
 						WHERE status LIKE "Prefiled %" AND translation IS NULL');
