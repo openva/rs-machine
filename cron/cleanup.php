@@ -2,17 +2,10 @@
 
 ###
 # MISC. DATA CLEAN UP FUNCTIONS
-# By Waldo Jaquith <waldo@jaquith.org>
-# 12/04/2008
 #
 # PURPOSE
 # Does all of the nice conversions of data that make Richmond Sunlight something other than a
-# parroting of LIS data. This was actually written over the course of years--the above date is just
-# when it was forked off of update.php and put into its own file.
-#
-# NOTES
-# This won't work if called on its own--it will only function when invoked from within
-# update.php.
+# parroting of LIS data.
 #
 ###
 
