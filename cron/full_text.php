@@ -39,7 +39,7 @@ if (mysqli_num_rows($result) == 0) {
  */
 $server_errors = 0;
 
-while ($text = mysqil_fetch_array($result)) {
+while ($text = mysqli_fetch_array($result)) {
     # Retrieve the full text.
     $url = 'https://leg1.state.va.us/cgi-bin/legp504.exe?' . $text['lis_id'] . '+ful+'
         . strtoupper($text['number']);
