@@ -131,8 +131,7 @@ if (isset($_GLOBAL['history'])) {
             } else {
                 $bill['current_chamber'] = $bill['chamber'];
             }
-            $bill['date'] = strtotime($bill['date']);
-            $bill['date'] = date('Y-m-d', $bill['date']);
+            $bill['date'] = date('Y-m-d', strtotime($bill['date']));
 
             # Only insert the data if we have a reasonable date.
             if ($bill['date'] != '1969-12-31') {
