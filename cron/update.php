@@ -37,8 +37,8 @@ if (LEGISLATIVE_SEASON == false) {
     exit();
 }
 
-# Set a time limit of 10 minutes for this script to run.
-set_time_limit(600);
+# Set a time limit of 20 minutes for this script to run.
+set_time_limit(1200);
 
 # FUNDAMENTAL VARIABLES
 $session_id = SESSION_ID;
