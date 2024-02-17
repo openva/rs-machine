@@ -208,7 +208,7 @@ $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed house"
-						WHERE status LIKE "Defeated by House%"
+						WHERE status LIKE "Failed to pass in House" OR status LIKE "Defeated by House%"
 						AND translation IS NULL');
 $result = $sql->execute();
 
