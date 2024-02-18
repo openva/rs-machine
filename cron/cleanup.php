@@ -60,12 +60,20 @@ $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="introduced"
-						WHERE status LIKE "Prefiled %" AND translation IS NULL');
+						WHERE
+							status LIKE "Prefiled %" AND
+							translation IS NULL AND
+							session_id= :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="in subcommittee"
-						WHERE status LIKE "Assigned%sub%" AND translation IS NULL');
+						WHERE
+							status LIKE "Assigned%sub%" AND
+							translation IS NULL AND
+							session_id= :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
@@ -94,6 +102,7 @@ $sql = $dbh->prepare('UPDATE bills_status
 						WHERE status LIKE "Left in %" AND
 							translation IS NULL AND
 							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
@@ -186,8 +195,10 @@ $sql = $dbh->prepare('UPDATE bills_status
 						WHERE
 								(status LIKE "Reported from %" OR
 								status LIKE "Discharged from %" OR
-								status LIKE "Rereferred from %")
-							AND translation IS NULL');
+								status LIKE "Rereferred from %") AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
@@ -195,65 +206,101 @@ $sql = $dbh->prepare('UPDATE bills_status
 						WHERE
 								(status LIKE "%and passed House%" OR
 								status LIKE "Agreed to by House%" OR
-								status LIKE "Passed House%")
-							AND translation IS NULL');
+								status LIKE "Passed House%") AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed house"
 						WHERE
 							status LIKE "%engrossment refused by House%" AND 
-							translation IS NULL');
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed house"
-						WHERE status LIKE "Failed to pass in House" OR status LIKE "Defeated by House%"
-						AND translation IS NULL');
+						WHERE
+							(status LIKE "Failed to pass in House" OR
+							status LIKE "Defeated by House%") AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="passed senate"
 						WHERE (status LIKE "%and passed Senate%" OR status LIKE "Agreed to by Senate%"
-							OR status LIKE "Passed Senate%")
-						AND translation IS NULL');
+							OR status LIKE "Passed Senate%") AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="failed senate"
-						WHERE (status LIKE "Failed to pass in Senate" OR status LIKE "%defeated by Senate%")
-						AND translation IS NULL');
+						WHERE
+							(status LIKE "Failed to pass in Senate" OR status LIKE "%defeated by Senate%") AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="enacted"
-						WHERE status LIKE "Enacted%" AND translation IS NULL');
+						WHERE
+							status LIKE "Enacted%" AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="signed by governor"
-						WHERE status LIKE "%Approved by Governor%" AND translation IS NULL');
+						WHERE
+							status LIKE "%Approved by Governor%" AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="signed by governor"
-						WHERE status LIKE "%Governor\'s recommendation adopted%"
-						AND translation IS NULL');
+						WHERE
+							status LIKE "%Governor\'s recommendation adopted%" AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="vetoed by governor"
-						WHERE status LIKE "%Vetoed by Governor%" AND translation IS NULL');
+						WHERE
+							status LIKE "%Vetoed by Governor%" AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="passed"
-						WHERE status LIKE "%Signed by President%" AND translation IS NULL');
+						WHERE
+							status LIKE "%Signed by President%" AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
 						SET translation="enacted"
-						WHERE status LIKE "%veto overridden%" AND translation IS NULL');
+						WHERE
+							status LIKE "%veto overridden%" AND
+							translation IS NULL AND
+							session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 # UPDATE BILLS TABLE STATUS FROM STATUS TABLE
@@ -275,7 +322,9 @@ $result = $sql->execute();
 ###
 $sql = 'UPDATE bills
 		SET status="introduced"
-		WHERE (status IS NULL OR status="") AND session_id=' . $session_id;
+		WHERE
+			(status IS NULL OR status="") AND
+			session_id=' . $session_id;
 $result = mysqli_query($GLOBALS['db'], $sql);
 
 ###
@@ -344,7 +393,8 @@ mysqli_query($GLOBALS['db'], $sql);
 # Western mish-mash), some goofy characters tend to show up.
 ###
 $sql = 'UPDATE bills
-		SET summary = REPLACE(summary, "Â", "")';
+		SET summary = REPLACE(summary, "Â", "")
+		WHERE session_id=' . $session_id;
 mysqli_query($GLOBALS['db'], $sql);
 
 ###
@@ -354,7 +404,9 @@ mysqli_query($GLOBALS['db'], $sql);
 ###
 $sql = 'UPDATE bills
 		SET summary_hash = md5(summary)
-		WHERE summary_hash IS NULL';
+		WHERE
+			summary_hash IS NULL AND
+			session_id = ' . $session_id;
 mysqli_query($GLOBALS['db'], $sql);
 
 ###
@@ -371,7 +423,9 @@ $sql = 'SELECT id, session_id, (
 			LIMIT 1
 			) AS incorporated
 		FROM bills
-		WHERE incorporated_into IS NULL
+		WHERE
+			incorporated_into IS NULL AND
+			session_id = ' . $session_id . '
 		HAVING incorporated IS NOT NULL';
 $result = mysqli_query($GLOBALS['db'], $sql);
 if (mysqli_num_rows($result) > 0) {
@@ -398,7 +452,7 @@ if (mysqli_num_rows($result) > 0) {
 
                 $sql = 'UPDATE bills
 						SET incorporated_into = ' . $bill['incorporated_into'] . '
-						WHERE id=' . $bill['id'];
+						WHERE id = ' . $bill['id'];
                 $result2 = mysqli_query($GLOBALS['db'], $sql);
             }
         }
@@ -418,7 +472,9 @@ $sql = 'SELECT bills.summary_hash AS hash, bills.id,
 		ON bills.id = tags.bill_id
 		LEFT JOIN bills AS bills2
 		ON bills.summary_hash=bills2.summary_hash
-		WHERE bills.id != bills2.id
+		WHERE
+			bills.id != bills2.id
+			AND bills.session_id = ' . $session_id . '
 		GROUP BY bills.id
 		ORDER BY bills.summary_hash';
 $result = mysqli_query($GLOBALS['db'], $sql);
@@ -626,7 +682,8 @@ $sql = 'UPDATE bills
 		SET copatrons =
 			(SELECT COUNT(*)
 			FROM bills_copatrons
-			WHERE bill_id=bills.id)';
+			WHERE bill_id=bills.id)
+		WHERE session_id = ' . $session_id;
 mysqli_query($GLOBALS['db'], $sql);
 
 
@@ -639,7 +696,9 @@ $sql = 'DELETE FROM bills_full_text
 		AND 
 			(SELECT COUNT(*)
 			FROM bills
-			WHERE id=bills_full_text.bill_id) = 0';
+			WHERE
+				id=bills_full_text.bill_id) = 0 AND
+				session_id = ' . $session_id;
 mysqli_query($GLOBALS['db'], $sql);
 
 ###
