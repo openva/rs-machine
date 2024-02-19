@@ -195,7 +195,7 @@ if (mysqli_num_rows($result) > 0) {
     # Rather than check each time if the year's directory exists, just keep track here.
     $exists = array();
 
-    while ($bill = mysqli_fetch_array($GLOBALS['db'],$result, MYSQL_ASSOC)) {
+    while ($bill = mysqli_fetch_array($GLOBALS['db'], $result, MYSQL_ASSOC)) {
         $bill = array_map('stripslashes', $bill);
 
         # Neaten up the bill text.
