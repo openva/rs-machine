@@ -211,15 +211,15 @@ $sql = 'SELECT chamber, date, committee_id,
 			WHEN committee_id IS NOT NULL THEN "committee" END
 		AS type
 		FROM files';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) == 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) == 0) {
     $log->put('Could not get a list of existing videos to know if ' . $video['date'] . ', at '
         . $video['url'] . ', is new. Ending.', 5);
     exit(1);
 }
 
 $existing_videos = array();
-while ($existing_video = mysql_fetch_assoc($result)) {
+while ($existing_video = mysqli_fetch_assoc($GLOBALS['db'], $result)) {
     $existing_videos[] = $existing_video;
 }
 

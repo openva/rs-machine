@@ -26,7 +26,7 @@
      $sql = 'UPDATE video_index
 			SET linked_id=' . $linked_id . '
 			WHERE id=' . $chyron_id;
-     $result = mysql_query($sql);
+     $result = mysqli_query($GLOBALS['db'], $sql);
      if (!$result) {
          echo '<p style="color: #f00;">Insert of chyron ID ' . $chyron_id . ' failed.</p>';
          return false;
@@ -64,9 +64,9 @@
 			LIMIT 1';
  }
 
- $result = mysql_query($sql);
- if (mysql_num_rows($result) > 0) {
-     $video = mysql_fetch_array($result);
+ $result = mysqli_query($GLOBALS['db'], $sql);
+ if (mysqli_num_rows($result) > 0) {
+     $video = mysqli_fetch_array($result);
 
      # Get a list of all bills that were addressed on that date (in bills_status).
      $sql = 'SELECT DISTINCT bills_status.bill_id AS id, bills.number
@@ -74,8 +74,8 @@
 			LEFT JOIN bills
 				ON bills_status.bill_id = bills.id
 			WHERE bills_status.date = "' . $video['date'] . '"';
-     $result = mysql_query($sql);
-     if (mysql_num_rows($result) == 0) {
+     $result = mysqli_query($GLOBALS['db'], $sql);
+     if (mysqli_num_rows($result) == 0) {
          # If we can't get the bills heard on this date (generally because we're
          # parsing the video on the same ay that it was recorded), then use all
          # bill numbers from this session, instead.
@@ -89,11 +89,11 @@
 						OR
 						date_ended IS NULL)
 				)';
-         $result = mysql_query($sql);
+         $result = mysqli_query($GLOBALS['db'], $sql);
      }
 
      # Build up an array of bills, using the ID as the key and the number as the content.
-     while ($bill = mysql_fetch_array($result)) {
+     while ($bill = mysqli_fetch_array($result)) {
          $bills[$bill{'id'}] = $bill['number'];
      }
 
@@ -107,10 +107,10 @@
 				AND ("' . $video['date'] . '" < date_ended OR date_ended IS NULL)
 				ORDER BY date_started DESC
 				LIMIT 1)';
-     $result = mysql_query($sql);
-     if (mysql_num_rows($result) > 0) {
+     $result = mysqli_query($GLOBALS['db'], $sql);
+     if (mysqli_num_rows($result) > 0) {
          # Build up an array of bills, using the ID as the key and the number as the content.
-         while ($bill = mysql_fetch_array($result)) {
+         while ($bill = mysqli_fetch_array($result)) {
              $all_bills[$bill{id}] = $bill['number'];
          }
      }
@@ -122,8 +122,8 @@
 			AND ignored = "n"
 			ORDER BY time ASC';
 
-     $result = mysql_query($sql);
-     while ($chyron = mysql_fetch_array($result)) {
+     $result = mysqli_query($GLOBALS['db'], $sql);
+     while ($chyron = mysqli_fetch_array($result)) {
          # Strip out any spaces in the bill number -- just compare the bills straight up. Although
          # bill numbers in the chyrons have spaces between the prefix ("HB") and the number ("1"),
          # the OCR software doesn't always catch that. Better to just ignore the spaces entirely.
@@ -199,9 +199,9 @@
 			WHERE file_id = ' . $video['file_id'] . '
 			AND TYPE = "bill"
 			AND linked_id IS NULL';
-     $result = mysql_query($sql);
-     if (mysql_num_rows($result) > 0) {
-         while ($unresolved = mysql_fetch_array($result)) {
+     $result = mysqli_query($GLOBALS['db'], $sql);
+     if (mysqli_num_rows($result) > 0) {
+         while ($unresolved = mysqli_fetch_array($result)) {
              # Retrieve a list of linked IDs present for fifteen seconds on either side of this
              # unknown chyron.
              $sql = 'SELECT DISTINCT linked_id
@@ -213,11 +213,11 @@
 						AND
 						(TIMEDIFF("' . $unresolved['time'] . '", time)>=-15)
 					)';
-             $result2 = mysql_query($sql);
+             $result2 = mysqli_query($GLOBALS['db'], $sql);
              # If we've got just one row—which is to say that there's only one bill discussed in this
              # thirty-second window—then we'll take it.
-             if (mysql_num_rows($result2) === 1) {
-                 $resolved = mysql_fetch_array($result2);
+             if (mysqli_num_rows($result2) === 1) {
+                 $resolved = mysqli_fetch_array($result2);
                  insert_match($resolved['linked_id'], $unresolved['id']);
              }
          }
@@ -249,13 +249,13 @@
 		LEFT JOIN districts
 			ON representatives.district_id = districts.id';
 // LIMIT THIS TO THOSE LEGISLATORS WHO ARE IN OFFICE ON THE DATE OF THIS VIDEO
- $result = mysql_query($sql);
- if (mysql_num_rows($result) > 0) {
+ $result = mysqli_query($GLOBALS['db'], $sql);
+ if (mysqli_num_rows($result) > 0) {
      # Initalize the arrays.
      $legislators = array();
 
      # Iterate through the MySQL results and store them in an array.
-     while ($legislator = mysql_fetch_array($result)) {
+     while ($legislator = mysqli_fetch_array($result)) {
          $legislator = array_map('stripslashes', $legislator);
 
          # Depending on the chamber, assign the legislator's prefix.
@@ -284,10 +284,10 @@
 		LEFT JOIN districts
 			ON representatives.district_id = districts.id';
 // LIMIT THIS TO THOSE LEGISLATORS WHO ARE IN OFFICE ON THE DATE OF THIS VIDEO
- $result = mysql_query($sql);
- if (mysql_num_rows($result) > 0) {
+ $result = mysqli_query($GLOBALS['db'], $sql);
+ if (mysqli_num_rows($result) > 0) {
      # Iterate through the MySQL results and store them in an array.
-     while ($legislator = mysql_fetch_array($result)) {
+     while ($legislator = mysqli_fetch_array($result)) {
          $legislator = array_map('stripslashes', $legislator);
 
          # Depending on the chamber, assign the legislator's prefix.
@@ -317,10 +317,10 @@
 		GROUP BY raw_text
 		ORDER BY number DESC
 		LIMIT 500';
- $result = mysql_query($sql);
- if (mysql_num_rows($result) > 0) {
+ $result = mysqli_query($GLOBALS['db'], $sql);
+ if (mysqli_num_rows($result) > 0) {
      $priors = array();
-     while ($tmp = mysql_fetch_array($result)) {
+     while ($tmp = mysqli_fetch_array($result)) {
          $tmp['raw_text'] = stripslashes($tmp['raw_text']);
          # We can't use a newline in an array key.
          $tmp['raw_text'] = str_replace("\n", ' ', $tmp['raw_text']);
@@ -334,9 +334,9 @@
 		WHERE TYPE = "legislator" AND linked_id IS NOT NULL
 		ORDER BY date_created DESC
 		LIMIT 2000';
- $result = mysql_query($sql);
- if (mysql_num_rows($result) > 0) {
-     while ($tmp = mysql_fetch_array($result)) {
+ $result = mysqli_query($GLOBALS['db'], $sql);
+ if (mysqli_num_rows($result) > 0) {
+     while ($tmp = mysqli_fetch_array($result)) {
          $tmp['raw_text'] = stripslashes($tmp['raw_text']);
          # We can't use a newline in an array key.
          $tmp['raw_text'] = str_replace("\n", ' ', $tmp['raw_text']);
@@ -355,13 +355,13 @@
 		AND raw_text NOT LIKE "%in Recess%" AND raw_text NOT LIKE "%at Ease%"
 		ORDER BY date_created DESC
 		LIMIT 5000';
- $result = mysql_query($sql);
+ $result = mysqli_query($GLOBALS['db'], $sql);
 # If there are no chyrons in need of resolution, then we can stop right now. (This is vanishingly
 # unlikely.)
- if (mysql_num_rows($result) == 0) {
+ if (mysqli_num_rows($result) == 0) {
      exit;
  }
- while ($chyron = mysql_fetch_array($result)) {
+ while ($chyron = mysqli_fetch_array($result)) {
      $chyron['raw_text'] = stripslashes($chyron['raw_text']);
 
      # Break up the chyron text into the first and second lines, the first dealing with who the
@@ -466,8 +466,8 @@
 		LEFT JOIN video_clips
 			ON video_index.file_id = video_clips.file_id
 		WHERE video_clips.file_id IS NULL';
- $result = mysql_query($sql);
- while ($file = mysql_fetch_array($result)) {
+ $result = mysqli_query($GLOBALS['db'], $sql);
+ while ($file = mysqli_fetch_array($result)) {
      $video->id = $file['id'];
      $video->store_clips();
      echo '<p>Indexed video clips for file ' . $file['id'] . '.</p>';

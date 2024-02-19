@@ -47,8 +47,8 @@ $sql = 'SELECT TIMESTAMPDIFF(SECOND, TIMESTAMP(meetings.date, meetings.time), NO
 		HAVING time < 0
 		ORDER BY time DESC
 		LIMIT 1';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     $meeting = mysql_fetch_object($result);
     exit((string) abs($meeting->time));
 } else {

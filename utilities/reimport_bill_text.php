@@ -29,12 +29,12 @@ connect_to_db();
 $sql = 'SELECT bills_full_text.id, bills_full_text.text
 		FROM bills_full_text
 		WHERE id=' . $_GET['id'];
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     # Fire up HTML Purifier.
     $purifier = new HTMLPurifier();
 
-    while ($bill = mysql_fetch_array($result)) {
+    while ($bill = mysqli_fetch_array($result)) {
         die(mb_detect_encoding($bill['text']));
 
         # Put the data back into the database, but clean it up first.
@@ -44,9 +44,9 @@ if (mysql_num_rows($result) > 0) {
         # We store the bill's text, and also reset the counter that tracks failed attempts
         # to retrieve the text from the legislature's website.
         $sql = 'UPDATE bills_full_text
-				SET text="' . mysql_real_escape_string($bill['text']) . '"
+				SET text="' . mysqli_real_escape_string($GLOBALS['db'], $bill['text']) . '"
 				WHERE id=' . $bill['id'];
-        mysql_query($sql);
+        mysqli_query($GLOBALS['db'], $sql);
         echo '<li>' . $bill['id'] . '</li>';
     }
 }

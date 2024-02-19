@@ -11,9 +11,9 @@
 # PAGE CONTENT
 $sql = 'SELECT date, chamber
 		FROM minutes';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
-    while ($tmp = mysql_fetch_array($result)) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
+    while ($tmp = mysqli_fetch_array($result)) {
         $past_minutes[] = $tmp;
     }
 }
@@ -115,7 +115,7 @@ foreach ($chambers as $chamber => $listing_url) {
                 $minutes = str_replace('‑', '–', $minutes);
 
                 # Prepare them for MySQL.
-                $minutes = mysql_real_escape_string($minutes);
+                $minutes = mysqli_real_escape_string($GLOBALS['db'], $minutes);
 
                 # If, after all that, we still have any text in these minutes, picking an arbitrary
                 # length of 150 characters.
@@ -125,7 +125,7 @@ foreach ($chambers as $chamber => $listing_url) {
 							SET date = "' . $date . '", chamber="' . $chamber . '",
 							text="' . $minutes . '"';
                     echo $sql;
-                    $result = mysql_query($sql);
+                    $result = mysqli_query($GLOBALS['db'], $sql);
                     if (!$result) {
                         $log->put('Inserting the minutes for ' . $date . ' in ' . $chamber
                             . ' failed. ' . $sql, 7);

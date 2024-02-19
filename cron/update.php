@@ -204,8 +204,8 @@ if (($type == 'all') || ($type == 'photosynthesis')) {
     $sql = 'SELECT id
 			FROM dashboard_portfolios
 			WHERE watch_list_id IS NOT NULL';
-    $result = mysql_query($sql);
-    while ($portfolio = mysql_fetch_array($result)) {
+    $result = mysqli_query($GLOBALS['db'], $sql);
+    while ($portfolio = mysqli_fetch_array($result)) {
         populate_smart_portfolio($portfolio['id']);
     }
 }

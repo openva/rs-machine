@@ -23,8 +23,8 @@
 			WHERE zip IS NOT NULL AND latitude IS NULL AND longitude IS NULL
 			ORDER BY date_created DESC
 			LIMIT 50';
-    $result = mysql_query($sql);
-while ($user = mysql_fetch_array($result)) {
+    $result = mysqli_query($GLOBALS['db'], $sql);
+while ($user = mysqli_fetch_array($result)) {
     $location = new Location();
     $location->zip = $user['zip'];
     $coordinates = $location->get_coordinates();
@@ -33,7 +33,7 @@ while ($user = mysql_fetch_array($result)) {
 					SET latitude=' . $coordinates['latitude'] . ', longitude=' . $coordinates['longitude'] . ', city="' . $coordinates['city'] . '",
 					state="' . $coordinates['statecode'] . '"
 					WHERE id=' . $user['id'];
-        mysql_query($sql);
+        mysqli_query($GLOBALS['db'], $sql);
     }
 }
 

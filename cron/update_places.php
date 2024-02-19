@@ -61,8 +61,8 @@ $sql = 'SELECT
 				WHERE bill_id=bills.id) = 0
 		ORDER BY RAND()
 		LIMIT 10';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) == 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) == 0) {
     return;
 }
 
@@ -98,7 +98,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 /*
  * Iterate through the bills.
  */
-while ($bill = mysql_fetch_array($result)) {
+while ($bill = mysqli_fetch_array($result)) {
     $bill = array_map('stripslashes', $bill);
 
     /*
@@ -200,17 +200,17 @@ while ($bill = mysql_fetch_array($result)) {
 						municipality IS NOT NULL';
         }
 
-        $coordinates_result = mysql_query($sql);
+        $coordinates_result = mysqli_query($GLOBALS['db'], $sql);
 
         /*
          * If there's no result, or if there's more than one result (which we have no way to
          * pick between), skip this town.
          */
-        if (($coordinates_result == false) || (mysql_num_rows($coordinates_result) > 1)) {
+        if (($coordinates_result == false) || (mysqli_num_rows($coordinates_result) > 1)) {
             continue;
         }
 
-        $coordinates = mysql_fetch_array($coordinates_result);
+        $coordinates = mysqli_fetch_array($coordinates_result);
 
         if (empty($coordinates['latitude']) || empty($coordinates['longitude'])) {
             continue;
@@ -224,10 +224,10 @@ while ($bill = mysql_fetch_array($result)) {
 					longitude=' . $coordinates['longitude'] . ',
                     coordinates = Point(' . $coordinates['longitude'] . ', '
                     . $coordinates['longitude'] . ')';
-        $place_result = mysql_query($sql);
+        $place_result = mysqli_query($GLOBALS['db'], $sql);
         if ($place_result == false) {
             $log->put('Error: Could not add place names for ' . strtoupper($bill['number'])
-                . ': ' . mysql_error($place_result) . ', ' . $sql, 4);
+                . ': ' . mysqli_error($GLOBALS['db'], $place_result) . ', ' . $sql, 4);
         }
     }
 

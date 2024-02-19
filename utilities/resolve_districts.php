@@ -25,8 +25,8 @@
 			AND senate_district_id IS NULL
 			ORDER BY date_created DESC
 			LIMIT 10';
-    $result = mysql_query($sql);
-while ($user = mysql_fetch_array($result)) {
+    $result = mysqli_query($GLOBALS['db'], $sql);
+while ($user = mysqli_fetch_array($result)) {
     $location = new Location();
     $location->latitude = $user['latitude'];
     $location->longitude = $user['longitude'];
@@ -36,7 +36,7 @@ while ($user = mysql_fetch_array($result)) {
 					SET house_district_id=' . $districts->house . ', senate_district_id=' . $districts->senate . '
 					WHERE id=' . $user['id'];
         echo '<p>' . $sql . '</p>';
-        mysql_query($sql);
+        mysqli_query($GLOBALS['db'], $sql);
     }
 }
 

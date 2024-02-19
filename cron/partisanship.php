@@ -18,13 +18,13 @@ $sql = 'SELECT id
 		FROM representatives
 		WHERE date_ended IS NULL
 		OR date_ended >= now()';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) == 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) == 0) {
     $log->put('There are no legislators in the database, which seems bad?', 10);
     return false;
 }
 
-while ($legislator = mysql_fetch_array($result)) {
+while ($legislator = mysqli_fetch_array($result)) {
     # COPATRONING STATS
     # Calculate the percentage of the bills copatroned by this legislator that were introduced by
     # each party.
@@ -36,9 +36,9 @@ while ($legislator = mysql_fetch_array($result)) {
 				ON bills.chief_patron_id=representatives.id
 			WHERE bills_copatrons.legislator_id=' . $legislator['id'] . '
 			GROUP BY representatives.party';
-    $result2 = mysql_query($sql);
+    $result2 = mysqli_query($GLOBALS['db'], $sql);
     $tmp = array();
-    while ($copatron = mysql_fetch_array($result2)) {
+    while ($copatron = mysqli_fetch_array($result2)) {
         $tmp[$copatron{'party'}] = $copatron['number'];
     }
     $total = array_sum($tmp);
@@ -70,9 +70,9 @@ while ($legislator = mysql_fetch_array($result)) {
 				FROM bills
 				WHERE chief_patron_id = ' . $legislator['id'] . ')
 			GROUP BY representatives.party';
-    $result2 = mysql_query($sql);
+    $result2 = mysqli_query($GLOBALS['db'], $sql);
     $tmp = array();
-    while ($copatron = mysql_fetch_array($result2)) {
+    while ($copatron = mysqli_fetch_array($result2)) {
         $tmp[$copatron{'party'}] = $copatron['number'];
     }
     $total = array_sum($tmp);
@@ -106,9 +106,9 @@ while ($legislator = mysql_fetch_array($result)) {
 					FROM bills_copatrons
 					WHERE legislator_id=' . $legislator['id'] . ')
 			GROUP BY representatives.party';
-    $result2 = mysql_query($sql);
+    $result2 = mysqli_query($GLOBALS['db'], $sql);
     $tmp = array();
-    while ($copatron = mysql_fetch_array($result2)) {
+    while ($copatron = mysqli_fetch_array($result2)) {
         $tmp[$copatron{'party'}] = $copatron['number'];
     }
     $total = array_sum($tmp);
@@ -139,10 +139,10 @@ while ($legislator = mysql_fetch_array($result)) {
 				WHERE date_ended IS NULL
 				OR date_ended >= NOW( )
 				GROUP BY party';
-        $result2 = mysql_query($sql);
-        if (mysql_num_rows($result2) > 0) {
+        $result2 = mysqli_query($GLOBALS['db'], $sql);
+        if (mysqli_num_rows($result2) > 0) {
             $tmp = array();
-            while ($chamber = mysql_fetch_array($result2)) {
+            while ($chamber = mysqli_fetch_array($result2)) {
                 $tmp[$chamber{'party'}] = $chamber['number'];
             }
             $total = array_sum($tmp);
@@ -153,7 +153,7 @@ while ($legislator = mysql_fetch_array($result)) {
             $sql = 'UPDATE representatives
 					SET partisanship=' . $partisanship . '
 					WHERE id=' . $legislator['id'];
-            mysql_query($sql);
+            mysqli_query($GLOBALS['db'], $sql);
             unset($partisanship);
         }
     } // end parsing $partisanship array

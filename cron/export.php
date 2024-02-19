@@ -35,11 +35,11 @@ $sql = 'SELECT UPPER(bills.number) AS bill_number, bills.catch_line AS bill_catc
 		LEFT JOIN bills
 			ON bills_section_numbers.bill_id = bills.id
 		WHERE bills.session_id = ' . SESSION_ID;
-$result = mysql_query($sql);
+$result = mysqli_query($GLOBALS['db'], $sql);
 
-if (mysql_num_rows($result) > 0) {
+if (mysqli_num_rows($result) > 0) {
     $changes = array();
-    while ($change = mysql_fetch_array($result, MYSQL_ASSOC)) {
+    while ($change = mysqli_fetch_array($result, MYSQL_ASSOC)) {
         $change['url'] = 'https://www.richmondsunlight.com/bill/' . SESSION_YEAR . '/'
             . strtolower($change['bill_number']) . '/';
         $changes[] = $change;
@@ -63,8 +63,8 @@ $sql = 'SELECT representatives.chamber, representatives.name, representatives.da
 			ON representatives.district_id=districts.id
 		WHERE representatives.date_ended IS NULL OR representatives.date_ended > now()
 		ORDER BY name ASC';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     $csv_header = array('Chamber', 'Name', 'Date Started', 'Party', 'District #',
         'District Description', 'Sex', 'E-Mail', 'Website', 'Place Name', 'Longitude', 'Latitude',
         'LIS ID 1', 'LIS ID 2', 'RS ID', 'SBE ID');
@@ -76,7 +76,7 @@ if (mysql_num_rows($result) > 0) {
     }
     fputcsv($fp, $csv_header);
 
-    while ($bill = mysql_fetch_array($result, MYSQL_ASSOC)) {
+    while ($bill = mysqli_fetch_array($result, MYSQL_ASSOC)) {
         $bill = array_map('stripslashes', $bill);
         fputcsv($fp, $bill);
     }
@@ -97,15 +97,15 @@ $sql = 'SELECT sessions.year, bills.chamber, bills.number, bills.catch_line,
 		ORDER BY sessions.year ASC, bills.chamber DESC,
 		SUBSTRING(bills.number FROM 1 FOR 2) ASC,
 		CAST(LPAD(SUBSTRING(bills.number FROM 3), 4, "0") AS UNSIGNED) ASC';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     $csv_header = array('Year', 'Chamber','Bill #','Catch Line','Patron','Summary','Status','Outcome',
         'Date Introduced');
     # Open a handle to write a file.
     $fp = fopen($downloads_dir . 'bills.csv', 'w');
     fputcsv($fp, $csv_header);
 
-    while ($bill = mysql_fetch_array($result, MYSQL_ASSOC)) {
+    while ($bill = mysqli_fetch_array($result, MYSQL_ASSOC)) {
         $bill = array_map('stripslashes', $bill);
         fputcsv($fp, $bill);
     }
@@ -128,14 +128,14 @@ $sql = 'SELECT sessions.year, UPPER(bills.number) AS bill, bills_section_numbers
 		ORDER BY year ASC,
 		SUBSTRING(bills.number FROM 1 FOR 2) ASC,
 		CAST(LPAD(SUBSTRING(bills.number FROM 3), 4, "0") AS unsigned) ASC';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     $csv_header = array('Year','Bill #','Section #');
     # Open a handle to write a file.
     $fp = fopen($downloads_dir . 'sections.csv', 'w');
     fputcsv($fp, $csv_header);
 
-    while ($bill = mysql_fetch_array($result, MYSQL_ASSOC)) {
+    while ($bill = mysqli_fetch_array($result, MYSQL_ASSOC)) {
         $bill = array_map('stripslashes', $bill);
         fputcsv($fp, $bill);
     }
@@ -161,7 +161,7 @@ $sql = 'SELECT CONCAT(UPPER(SUBSTRING(committees.chamber, 1, 1)), SUBSTRING(comm
 $result = mysqli_query($GLOBALS['db'], $sql);
 if (mysqli_num_rows($result) > 0) {
     $committees = array();
-    while ($membership = mysql_fetch_array($result)) {
+    while ($membership = mysqli_fetch_array($result)) {
         if (empty($membership['position'])) {
             $membership['position'] = 'member';
         }

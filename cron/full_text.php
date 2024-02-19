@@ -154,7 +154,7 @@ while ($text = mysqli_fetch_array($result)) {
 
         # Put the data back into the database, but clean it up first.
         $full_text = trim($full_text);
-        $full_text = mysqli_real_escape_string($full_text);
+        $full_text = mysqli_real_escape_string($GLOBALS['db'], $full_text);
 
         if (!empty($full_text)) {
             # We store the bill's text, and also reset the counter that tracks failed attempts

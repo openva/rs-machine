@@ -58,10 +58,10 @@ if (file_exists($hash_path)) {
 $sql = 'SELECT bills.id, bills.number
 		FROM bills
 		WHERE session_id = ' . $session_id;
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
     $bills = array();
-    while ($bill = mysql_fetch_array($result)) {
+    while ($bill = mysqli_fetch_array($result)) {
         $bills[$bill{number}] = $bill['id'];
     }
 }
@@ -76,7 +76,7 @@ $first = 'yes';
  * being updated. We double it to 100, since there's no hurry here.
  */
 $sql = 'SET innodb_lock_wait_timeout=100';
-mysql_query($sql);
+mysqli_query($GLOBALS['db'], $sql);
 
 /*
  * Step through each row in the CSV file, one by one.
@@ -176,12 +176,12 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== false) {
          * Commit this to the database.
          */
         $sql = 'UPDATE bills
-				SET summary="' . mysql_real_escape_string($summary['text']) . '"
+				SET summary="' . mysqli_real_escape_string($GLOBALS['db'], $summary['text']) . '"
 				WHERE id=' . $bill_id;
-        $result = mysql_query($sql);
+        $result = mysqli_query($GLOBALS['db'], $sql);
         if (!$result) {
             $log->put('Insertion of ' . strtoupper($summary['number']) . ' summary failed. '
-                . 'Error: ' . mysql_error() . ' SQL: ' . $sql, 6);
+                . 'Error: ' . mysqli_error($GLOBALS['db']) . ' SQL: ' . $sql, 6);
         }
     } else {
         $log->put('Summary of ' . strtoupper($summary['number']) . ' is blank.', 2);

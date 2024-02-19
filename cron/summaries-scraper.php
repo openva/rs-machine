@@ -11,9 +11,9 @@ $sql = 'SELECT bills.id, bills.number, sessions.lis_id
 			ON bills.session_id = sessions.id
 		WHERE bills.summary IS NULL AND bills.session_id = ' . $session_id . '
 		ORDER BY RAND()';
-$result = mysql_query($sql);
-if (mysql_num_rows($result) > 0) {
-    while ($bill = mysql_fetch_array($result)) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+if (mysqli_num_rows($result) > 0) {
+    while ($bill = mysqli_fetch_array($result)) {
         # Intialize a cURL session.
         $url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . $bill['lis_id'] . '+sum+'
             . strtoupper($bill['number']);
@@ -92,9 +92,9 @@ if (mysql_num_rows($result) > 0) {
         # Put the data back into the database.
         if (!empty($summary)) {
             $sql = 'UPDATE bills
-					SET summary="' . mysql_real_escape_string($summary) . '"
+					SET summary="' . mysqli_real_escape_string($GLOBALS['db'], $summary) . '"
 					WHERE id=' . $bill['id'];
-            $result2 = mysql_query($sql);
+            $result2 = mysqli_query($GLOBALS['db'], $sql);
             if (!$result2) {
                 $log->put('Insertion of ' . strtoupper($bill['number']) . ' summary failed. SQL: '
                     . $sql, 6);

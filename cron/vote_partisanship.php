@@ -30,12 +30,12 @@ $sql = 'SELECT vote_id AS id, vote, representatives.party, COUNT(*) AS count
 		LEFT JOIN votes ON representatives_votes.vote_id = votes.id
 		WHERE votes.partisanship IS NULL AND votes.id=1345
 		GROUP BY id, party, vote';
-$result = mysql_query($sql);
-$row_count = mysql_num_rows($result);
+$result = mysqli_query($GLOBALS['db'], $sql);
+$row_count = mysqli_num_rows($result);
 
 if ($row_count > 0) {
     $i = 1;
-    while ($vote = mysql_fetch_array($result)) {
+    while ($vote = mysqli_fetch_array($result)) {
         # End the prior vote-tallying session and start a new one.
         if ((isset($vote_id) && ($vote['id'] != $vote_id)) || ($i == $row_count)) {
             # This stanza is necessary to parse the data in the last line of results.

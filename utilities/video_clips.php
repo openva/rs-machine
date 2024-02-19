@@ -31,8 +31,8 @@ if (isset($_GET['id'])) {
 				ON video_index.file_id = video_clips.file_id
 			WHERE video_clips.file_id IS NULL';
 }
-$result = mysql_query($sql);
-while ($file = mysql_fetch_array($result)) {
+$result = mysqli_query($GLOBALS['db'], $sql);
+while ($file = mysqli_fetch_array($result)) {
     $video->id = $file['id'];
     $video->store_clips();
     echo '<p>Indexed ' . $file['id'] . '.</p>';

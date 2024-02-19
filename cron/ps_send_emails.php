@@ -50,16 +50,16 @@ if ($period == 'daily') {
 			FROM bills_status LEFT JOIN bills ON bills_status.bill_id = bills.id
 			WHERE bills_status.session_id=4 AND bills_status.date =  "' . $today . '"
 			ORDER by bills.number ASC, bills_status.date_created ASC, bills_status.id ASC';
-    $result = mysql_query($sql);
+    $result = mysqli_query($GLOBALS['db'], $sql);
 
     # If nothing has happened within this period -- as will happen ~half of the time --
     # simply stop processing.
-if (mysql_num_rows($result) == 0) {
+if (mysqli_num_rows($result) == 0) {
     exit('No actions were found in this period.');
 }
 
     # Store the actions in an array indexed by bill ID.
-while ($status = mysql_fetch_array($result)) {
+while ($status = mysqli_fetch_array($result)) {
     $status = array_map('stripslashes', $status);
     $action[$status{id}][] = $status;
 }
@@ -82,15 +82,15 @@ while ($status = mysql_fetch_array($result)) {
 			WHERE dashboard_user_data.email_active = "y" AND dashboard_user_data.type="paid"
 			AND (dashboard_user_data.expires > now() OR dashboard_user_data.expires IS NULL)
 			HAVING bills IS NOT NULL';
-    $result = mysql_query($sql);
+    $result = mysqli_query($GLOBALS['db'], $sql);
 
     # If no paid users are tracking any bills (it could happen), then simply stop processing.
-if (mysql_num_rows($result) == 0) {
+if (mysqli_num_rows($result) == 0) {
     exit('No paid users are tracking any bills.');
 }
 
     # Step through each user.
-while ($user = mysql_fetch_array($result)) {
+while ($user = mysqli_fetch_array($result)) {
     $user = array_map('stripslashes', $user);
     $user['bills'] = explode(',', $user['bills']);
 

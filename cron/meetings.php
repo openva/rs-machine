@@ -288,7 +288,7 @@ foreach ($csv as &$meeting) {
     }
 
     # Prepare and insert the data into the DB.
-    $meeting = array_map('mysql_real_escape_string', $meeting);
+    $meeting = array_map('addslashes', $meeting);
     $sql = 'INSERT INTO meetings
 			SET date="' . $meeting['date'] . '", description="' . $meeting['description'] . '",
 			session_id=' . SESSION_ID . ', location="' . $meeting['location'] . '",
@@ -306,7 +306,7 @@ foreach ($csv as &$meeting) {
 
     if (!$result) {
         $log->put('Failed to add meeting ' . $meeting['description'] . ' on ' . $meeting['date']
-            . '. ' . $sql . "\n\n" . mysql_error(), 5);
+            . '. ' . $sql . "\n\n" . mysqli_error($GLOBALS['db']), 5);
     } elseif (mysqli_affected_rows($result) > 0) {
         $log->put('Added meeting ' . $meeting['description'] . ' on ' . $meeting['date'] . '.', 1);
     }

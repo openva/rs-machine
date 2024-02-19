@@ -18,10 +18,10 @@ connect_to_db();
 $sql = 'SELECT id, name, sbe_id
 		FROM representatives
 		WHERE (date_ended IS NULL OR date_ended > now()) AND sbe_id IS NOT NULL';
-$result = mysql_query($sql);
+$result = mysqli_query($GLOBALS['db'], $sql);
 
 # Iterate through each legislator, getting the data from the API and saving it for each one.
-while ($legislator = mysql_fetch_array($result)) {
+while ($legislator = mysqli_fetch_array($result)) {
     # Create the URL for this committee query.
     $url = 'http://openva.com/campaign-finance/committees/' . $legislator['sbe_id'] . '.json';
 
@@ -49,8 +49,8 @@ while ($legislator = mysql_fetch_array($result)) {
     $sql = 'UPDATE representatives
 			SET contributions="' . addslashes(serialize($contributions)) . '"
 			WHERE id=' . $legislator['id'];
-    mysql_query($sql);
-    if (mysql_affected_rows() === 1) {
+    mysqli_query($GLOBALS['db'], $sql);
+    if (mysqli_affected_rows($GLOBALS['db']) === 1) {
         echo '<p>Legislator ' . $legislator['name'] . ' updated.</p>';
     } else {
         echo '<p>Legislator ' . $legislator['name'] . ' unaffected.</p>';
