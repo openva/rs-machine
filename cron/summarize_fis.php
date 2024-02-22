@@ -26,6 +26,10 @@ if (mysqli_num_rows($result) > 0) {
 }
 
 foreach ($bills as $bill) {
+    // Sometimes we're not getting bill numbers, unclear why
+    if (!isset($bill['number']) || empty($bill['number'])) {
+        continue;
+    }
 
     // Assemble the URL
     $url = 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+oth+'
