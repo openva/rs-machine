@@ -32,28 +32,28 @@ foreach ($bills as $bill) {
         . mb_strtoupper($bill['number']) . $bill['impact_statement_id'] . '+PDF';
 
     /*
-    * Step 1: Download the PDF
-    */
+     * Step 1: Download the PDF
+     */
     $pdfContent = file_get_contents($url);
     if (!$pdfContent) {
         die("Failed to download PDF");
     }
 
     /*
-    * Save the PDF to a temporary file
-    */
+     * Save the PDF to a temporary file
+     */
     $tmpPdfFile = tempnam(sys_get_temp_dir(), 'pdf');
     file_put_contents($tmpPdfFile, $pdfContent);
 
     /*
-    * Step 2: Convert PDF to Text
-    */
+     * Step 2: Convert PDF to Text
+     */
     $tmpTxtFile = $tmpPdfFile . '.txt';
     exec("pdftotext $tmpPdfFile $tmpTxtFile");
 
     /*
-    * Read the converted text
-    */
+     * Read the converted text
+     */
     $text = file_get_contents($tmpTxtFile);
     if (!$text) {
         $log->put('The fiscal impact statement for ' . $bill['number'] . ' (' . urlencode($url)
@@ -62,8 +62,8 @@ foreach ($bills as $bill) {
     }
 
     /*
-    * Step 3: Submit to OpenAI for Summarization
-    */
+     * Step 3: Submit to OpenAI for Summarization
+     */
     $ch = curl_init('https://api.openai.com/v1/chat/completions');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -109,8 +109,8 @@ foreach ($bills as $bill) {
         <p class="openai">Summary generated automatically by OpenAI.</p>';
 
     /*
-    * Step 4: Save the Summary
-    */
+     * Step 4: Save the Summary
+     */
     $sql = 'UPDATE bills
             SET notes = "' . mysqli_real_escape_string($GLOBALS['db'], $summary) . '"
             WHERE id = ' . $bill['id'];
@@ -124,8 +124,8 @@ foreach ($bills as $bill) {
     }
 
     /*
-    * Clean up temporary files
-    */
+     * Clean up temporary files
+     */
     unlink($tmpPdfFile);
     unlink($tmpTxtFile);
 
