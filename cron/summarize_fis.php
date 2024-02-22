@@ -93,16 +93,18 @@ foreach ($bills as $bill) {
     }
 
     $responseData = json_decode($response, true);
-    if (!isset($responseData['choices'][0]['message']['content']))
-    {
+    if (!isset($responseData['choices'][0]['message']['content'])) {
         $log->put('Error: OpenAI could summarie ' . $bill['number'], 4);
         continue;
     }
     $summary = $responseData['choices'][0]['message']['content'];
 
     // Link to the fiscal impact statement
-    $summary = preg_replace('/fiscal impact statement/i',
-        '<a href="' . $url . '">fiscal impact statement</a>', $summary);
+    $summary = preg_replace(
+        '/fiscal impact statement/i',
+        '<a href="' . $url . '">fiscal impact statement</a>',
+        $summary
+    );
 
     // Add a disclaimer
     $summary = '<p>' . $summary . '</p>
@@ -118,8 +120,7 @@ foreach ($bills as $bill) {
     if ($result === false) {
         $log->put('Error: Adding a fiscal impact summary for ' . $bill['number'] . ' failed: '
             . mysqli_error($GLOBALS['db']), 4);
-    }
-    else {
+    } else {
         $log->put('Added a fiscal impact summary for ' . $bill['number'] . '.', 3);
     }
 
@@ -128,5 +129,4 @@ foreach ($bills as $bill) {
      */
     unlink($tmpPdfFile);
     unlink($tmpTxtFile);
-
 }
