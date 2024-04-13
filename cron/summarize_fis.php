@@ -112,7 +112,7 @@ foreach ($bills as $bill) {
 
     // Add a disclaimer
     $summary = '<p>' . $summary . '</p>
-        <p class="openai">Summary generated automatically by OpenAI.</p>';
+        <p class="openai">Fiscal impact statement automatically summarized by OpenAI.</p>';
 
     /*
      * Step 4: Save the Summary
