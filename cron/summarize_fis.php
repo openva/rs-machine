@@ -76,7 +76,9 @@ foreach ($bills as $bill) {
         'messages' => [
             [
                 "role" => "system",
-                "content" => "What does this Fiscal Impact Statement say that this legislation will cost?"
+                "content" => "What does this Fiscal Impact Statement say that this legislation will
+                    cost? Please provide the answer in a single paragraph, without using numbered
+                    lists or bullet points."
             ],
             [
                 "role" => "user",
