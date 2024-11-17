@@ -77,7 +77,7 @@ if ($html == false) {
     $log->put('Could not load Senate listing. Abandoning efforts.', 5);
     return;
 }
-preg_match_all('/mbr\+S([0-9]{2,3})">(.+)<\/a>/', $html, $senators);
+preg_match_all('/member-information/S([0-9]{2,3})/member-details">(.+)<\/a>/', $html, $senators);
 $tmp = array();
 $i = 0;
 foreach ($senators[1] as $senator) {
