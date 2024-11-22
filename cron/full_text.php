@@ -41,7 +41,7 @@ $server_errors = 0;
 
 while ($text = mysqli_fetch_array($result)) {
     # Retrieve the full text.
-    $url = 'https://leg1.state.va.us/cgi-bin/legp504.exe?' . $text['lis_id'] . '+ful+'
+    $url = 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?' . $text['lis_id'] . '+ful+'
         . strtoupper($text['number']);
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -112,7 +112,7 @@ while ($text = mysqli_fetch_array($result)) {
         # Finally, we're at the text of the bill.
         if (isset($start)) {
             # This is the end of the text.
-            if (stristr($full_text[$i], '</body></html>')) {
+            if (stristr($full_text[$i], '<div id="ftr"></div>')) {
                 break;
             }
 
