@@ -124,7 +124,7 @@ while ($bill = mysqli_fetch_array($result)) {
     }
 
     $data = [
-        'model' => 'gpt-4-1106-preview',
+        'model' => 'gpt-4o',
         'messages' => [
             ['role' => 'system', 'content' => $role],
             ['role' => 'user', 'content' => 'Please extract place names from the following text: '

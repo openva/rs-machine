@@ -60,7 +60,7 @@ foreach ($bills as $bill) {
     $prompt = $bill['catch_line'] . "\n\n" . $bill['summary'];
 
     $data = [
-        'model' => 'gpt-4-1106-preview',
+        'model' => 'gpt-4o',
         'messages' => [
             ['role' => 'system', 'content' => $role],
             ['role' => 'user', 'content' => 'Please provide tags for the following bill: ' . $prompt]
