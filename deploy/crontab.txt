@@ -1,14 +1,14 @@
 # The core update script. This runs hourly at 55 after, 4 minutes after DLAS outputs their data
-55 6-23 * * * /usr/bin/expect rs-machine/cron/sftp.sh BILLS.CSV rs-machine/cron/bills.csv
-55 6-23 * * * /usr/bin/expect rs-machine/cron/sftp.sh Committees.csv rs-machine/cron/committees.csv
+55 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh BILLS.CSV rs-machine/cron/bills.csv
+55 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh Committees.csv rs-machine/cron/committees.csv
 55 6-23 * * * /usr/bin/php rs-machine/cron/update.php
 
 # The update script that handles the advancing of bills. This runs hourly at 2 after, 2 minutes after DLAS outputs their data.
-02 6-23 * * * /usr/bin/expect rs-machine/cron/sftp.sh HISTORY.CSV rs-machine/cron/history.csv
+02 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh HISTORY.CSV rs-machine/cron/history.csv
 02 6-23 * * * /usr/bin/php rs-machine/cron/update.php history
 
 # The daily script that collects and tallies votes. This runs at 3:00, an hour after DLAS outputs their data.
-0 3 * * * /usr/bin/expect rs-machine/cron/sftp.sh VOTE.CSV rs-machine/cron/vote.csv
+0 3 * * * /bin/bash rs-machine/cron/fetch_csv.sh VOTE.CSV rs-machine/cron/vote.csv
 0 3 * * * /usr/bin/php rs-machine/cron/update.php vote
 
 # Collects scheduled meetings and hearings.
@@ -18,7 +18,7 @@
 0 16,20 * * * /usr/bin/php rs-machine/cron/update.php minutes
 
 # Update the bill summaries (which is updated daily at 11:53).
-59 11 * * * /usr/bin/expect rs-machine/cron/sftp.sh Summaries.csv rs-machine/cron/summaries.csv
+59 11 * * * /bin/bash rs-machine/cron/fetch_csv.sh Summaries.csv rs-machine/cron/summaries.csv
 59 11 * * * /usr/bin/php rs-machine/cron/update.php summaries
 
 # Update the bill full text.
@@ -37,14 +37,14 @@
 41 02,16 * * * /usr/bin/php rs-machine/cron/update.php download_pdfs
 
 # Update the legislators listing
-40 12 * * * /usr/bin/expect rs-machine/cron/sftp.sh Members.csv rs-machine/cron/members.csv
+40 12 * * * /bin/bash rs-machine/cron/fetch_csv.sh Members.csv rs-machine/cron/members.csv
 41 12 * * * /usr/bin/php rs-machine/cron/update.php legislators
 
 # Updates the sections of the code referred to within each bill.
 5,15,25,35,45,55 * * 1-3,10-12 * /usr/bin/php rs-machine/cron/update.php code_sections
 
 # Update the fiscal_impact statements
-52 11,13,15,17,19,21 * * * /usr/bin/expect rs-machine/cron/sftp.sh FiscalImpactStatements.csv rs-machine/cron/FiscalImpactStatements.csv
+52 11,13,15,17,19,21 * * * /bin/bash rs-machine/cron/fetch_csv.sh FiscalImpactStatements.csv rs-machine/cron/FiscalImpactStatements.csv
 53 11,13,15,17,19,21 * * * /usr/bin/php rs-machine/cron/update.php fiscal_impact
 
 # Re-zip the current year's downloadable bill full-text HTML.
