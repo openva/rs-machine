@@ -72,12 +72,12 @@ if (IN_SESSION == true && count($known_legislators) > 140) {
 /*
  * Get senators. Their Senate ID (e.g., "S100") is the key, their name is the value.
  */
-$html = get_content('https://lis.virginia.gov/' . SESSION_LIS_ID . '/mbr/MBR.HTM');
+$html = get_content('https://apps.senate.virginia.gov/Senator/index.php');
 if ($html == false) {
     $log->put('Could not load Senate listing. Abandoning efforts.', 5);
     return;
 }
-preg_match_all('/member-information/S([0-9]{2,3})/member-details">(.+)<\/a>/', $html, $senators);
+preg_match_all('/Senator\/memberpage\.php\?id=S([0-9]{2,3}) "><u>(.+)<\/u><\/a>/', $html, $senators);
 $tmp = array();
 $i = 0;
 foreach ($senators[1] as $senator) {
@@ -87,7 +87,7 @@ foreach ($senators[1] as $senator) {
 $senators = $tmp;
 unset($tmp);
 
-$log->put('Retrieved ' . count($senators) . ' senators from senate.virginia.gov.', 1);
+$log->put('Retrieved ' . count($senators) . ' senators from apps.senate.virginia.gov.', 1);
 
 if (count($senators) < 35) {
     $log->put('Too few senators were found to be plausible. Abandoning efforts.', 5);
