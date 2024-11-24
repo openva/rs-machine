@@ -64,7 +64,7 @@ while ($bill = mysqli_fetch_array($result)) {
     }
 
     # Get the HTML of the page for this bill's copatrons.
-    $html = get_content('leg1.state.va.us/cgi-bin/legp504.exe?' . $bill['session_lis_id']
+    $html = get_content('legacylis.virginia.gov/cgi-bin/legp504.exe?' . $bill['session_lis_id']
         . '+mbr+' . strtoupper($bill['number']));
     # Turn the HTML into an array.
     $html = explode("\r", $html);
@@ -75,8 +75,7 @@ while ($bill = mysqli_fetch_array($result)) {
     # approach.
     foreach ($html as $line) {
         if (stristr($line, 'legp504') !== false) {
-            //ereg('href="/cgi-bin/legp504\.exe\?'.$bill['session_lis_id'].'\+mbr\+([A-Z]{1}[0-9]*)"', $line, $copatron);
-            preg_match('/href="\/cgi-bin\/legp504\.exe\?' . $bill['session_lis_id'] . '\+mbr\+([A-Z]{1}[0-9]*)"/', $line, $copatron);
+            preg_match('/href="\/cgi-bin\/legp604\.exe\?' . $bill['session_lis_id'] . '\+mbr\+([A-Z]{1}[0-9]*)"/', $line, $copatron);
 
             if (!empty($copatron[1])) {
                 # Build up an array of copatrons for this bill.

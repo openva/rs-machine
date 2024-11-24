@@ -32,7 +32,7 @@ foreach ($bills as $bill) {
     }
 
     // Assemble the URL
-    $url = 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+oth+'
+    $url = 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+oth+'
         . mb_strtoupper($bill['number']) . $bill['impact_statement_id'] . '+PDF';
 
     /*
