@@ -158,7 +158,7 @@ if (($type == 'all') || ($type == 'download_pdfs')) {
     require 'download_pdfs.php';
 }
 
-# Retrieve PDF copies of bills.
+# Update dockets
 if (($type == 'all') || ($type == 'dockets')) {
     require 'dockets.php';
 }
