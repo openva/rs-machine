@@ -46,10 +46,10 @@ foreach ($fis as $bill_number => $fis_id)
             session_id = ' . SESSION_ID;
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false) {
-        $log->put('Error: Adding a fiscal impact statement for ' . $bill_number . ' failed: '
+        $log->put('Error: Adding a fiscal impact statement ID for ' . $bill_number . ' failed: '
             . mysqli_error($GLOBALS['db']), 4);
     }
     else {
-        $log->put('Added a fiscal impact statement for ' . $bill_number . '.', 1);
+        $log->put('Added a fiscal impact statement ID for ' . $bill_number . '.', 1);
     }
 }
