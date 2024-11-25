@@ -38,8 +38,7 @@ foreach ($fis_data as $statement) {
 }
 
 // Insert the records
-foreach ($fis as $bill_number => $fis_id)
-{
+foreach ($fis as $bill_number => $fis_id) {
     $sql = 'UPDATE bills
             SET impact_statement_id = "' . $fis_id . '"
             WHERE number = "' . $bill_number . '" AND
@@ -48,8 +47,11 @@ foreach ($fis as $bill_number => $fis_id)
     if ($result === false) {
         $log->put('Error: Adding a fiscal impact statement ID for ' . $bill_number . ' failed: '
             . mysqli_error($GLOBALS['db']), 4);
-    }
-    else {
+        if (mysqli_error($GLOBALS['db']) == 'MySQL server has gone away') {
+            $log->put('Abandoning insertion of fiscal impact statement IDs.', 5);
+            break;
+        }
+    } else {
         $log->put('Added a fiscal impact statement ID for ' . $bill_number . '.', 1);
     }
 }
