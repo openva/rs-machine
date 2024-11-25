@@ -52,6 +52,6 @@ foreach ($fis as $bill_number => $fis_id) {
             break;
         }
     } else {
-        $log->put('Added a fiscal impact statement ID for ' . $bill_number . '.', 1);
+        $log->put('Added or updated a fiscal impact statement ID for ' . $bill_number . '.', 1);
     }
 }
