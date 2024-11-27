@@ -33,6 +33,19 @@ if (LEGISLATIVE_SEASON == true) {
     }
 
     /*
+     * Make sure that the number of bills in the database equals the number in the CSV.
+     */
+    $csv_lines = file(__DIR__ . '/bills.csv', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) - 1;
+    $sql = 'SELECT *
+            FROM bills
+            WHERE session_id=' . SESSION_ID;
+    $result = mysqli_query($GLOBALS['db'], $sql);
+    $difference = $csv_lines - mysqli_num_rows($result);
+    if ($difference != 0) {
+        $log->put('Error: bills.csv has ' . $difference . ' more records than the database.');
+    }
+
+    /*
     * Make sure that the bill histories are being updated.
     */
     if (IN_SESSION == true) {
