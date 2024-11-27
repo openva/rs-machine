@@ -30,6 +30,9 @@ if (mysqli_num_rows($result) == 0) {
     $log->put('No subcommittees were found, which seems bad.', 7);
     return false;
 }
+
+$committees = array();
+
 while ($committee = mysqli_fetch_array($result)) {
     $committee = array_map('stripslashes', $committee);
 
