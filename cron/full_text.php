@@ -131,6 +131,9 @@ while ($text = mysqli_fetch_array($result)) {
     # tags.  Then provide a domain name for all links.
     $full_text = trim(strip_tags($full_text_clean, '<p><b><i><em><strong><u><a><br><center><s><strike><ins>'));
 
+    # Remove the style attributes from the P tags (which are full of formatting instructions).
+    $full_text = preg_replace('/(<p\b[^>]*?)\s*style="[^"]*"/i', '$1', $full_text);
+
     if (!empty($full_text)) {
         # Replace relative links with absolute ones.
         $full_text = str_ireplace('href="/', 'href="http://lis.virginia.gov/', $full_text);
