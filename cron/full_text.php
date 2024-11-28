@@ -108,19 +108,19 @@ while ($text = mysqli_fetch_array($result)) {
 
         # Finally, we're at the text of the bill.
         if (isset($start)) {
-        
             # Determine where the header text ends and the actual law begins.
             if (stristr($full_text[$i], 'Be it enacted by')) {
                 $law_start = true;
             }
 
-            if (isset($law_start) && ($law_start == true)) {
+            # Replace the legislature's style tags with semantically meaningful tags
+            if (isset($law_start)) {
                 $full_text[$i] = str_replace('<em class=new>', '<ins>', $full_text[$i]);
                 $full_text[$i] = str_replace('</em>', '</ins>', $full_text[$i]);
-            }
 
-            # Finally, append this line to our cleaned-up, stripped-down text.
-            $full_text_clean .= $full_text[$i] . ' ';
+                # Append this line to our cleaned-up, stripped-down text.
+                $full_text_clean .= $full_text[$i] . ' ';
+            }
         }
     }
     unset($full_text);
