@@ -7,7 +7,7 @@
 # twenty tries, we just can't manage to retrieve.
 ###
 /* This only works if there's already an entry in bills_full_text. */
-$sql = 'SELECT bills_full_text.id, bills_full_text.number, sessions.lis_id
+$sql = 'SELECT bills_full_text.id, bills_full_text.number, sessions.lis_id AS session_id
 		FROM bills_full_text
 		LEFT JOIN bills
 			ON bills_full_text.bill_id = bills.id
@@ -41,8 +41,8 @@ $server_errors = 0;
 
 while ($text = mysqli_fetch_array($result)) {
     # Retrieve the full text.
-    $url = 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?' . $text['lis_id'] . '+ful+'
-        . strtoupper($text['number']);
+    $url = 'https://lis.virginia.gov/LegislationText/api/getlegislationhtmlcontentasync?sessionCode=20'
+        . $text['session_id'] . '&documentNumber=' . $text['number'];
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_HEADER, 0);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -82,9 +82,6 @@ while ($text = mysqli_fetch_array($result)) {
 
     curl_close($ch);
 
-    # Convert the legislature's Windows-1252 text to UTF-8.
-    $full_text = iconv('windows-1252', 'UTF-8', $full_text);
-
     # Convert into an array.
     $full_text = explode("\n", $full_text);
 
@@ -111,26 +108,19 @@ while ($text = mysqli_fetch_array($result)) {
 
         # Finally, we're at the text of the bill.
         if (isset($start)) {
-            # This is the end of the text.
-            if (stristr($full_text[$i], '<div id="ftr"></div>')) {
-                break;
+        
+            # Determine where the header text ends and the actual law begins.
+            if (stristr($full_text[$i], 'Be it enacted by')) {
+                $law_start = true;
             }
 
-            # Otherwise, add this line to our bill text.
-            else {
-                # Determine where the header text ends and the actual law begins.
-                if (stristr($full_text[$i], 'Be it enacted by')) {
-                    $law_start = true;
-                }
-
-                if (isset($law_start) && ($law_start == true)) {
-                    $full_text[$i] = str_replace('<i>', '<ins>', $full_text[$i]);
-                    $full_text[$i] = str_replace('</i>', '</ins>', $full_text[$i]);
-                }
-
-                # Finally, append this line to our cleaned-up, stripped-down text.
-                $full_text_clean .= $full_text[$i] . ' ';
+            if (isset($law_start) && ($law_start == true)) {
+                $full_text[$i] = str_replace('<em class=new>', '<ins>', $full_text[$i]);
+                $full_text[$i] = str_replace('</em>', '</ins>', $full_text[$i]);
             }
+
+            # Finally, append this line to our cleaned-up, stripped-down text.
+            $full_text_clean .= $full_text[$i] . ' ';
         }
     }
     unset($full_text);
@@ -144,9 +134,6 @@ while ($text = mysqli_fetch_array($result)) {
     if (!empty($full_text)) {
         # Replace relative links with absolute ones.
         $full_text = str_ireplace('href="/', 'href="http://lis.virginia.gov/', $full_text);
-
-        # Replace links to the state code with links to Virginia Decoded.
-        //$full_text = str_ireplace('href="http://law.lis.virginia.gov/vacode', 'href="https://vacode.org', $full_text);
 
         # Any time that we've just got a question mark hanging out, that should be a section
         # symbol.
