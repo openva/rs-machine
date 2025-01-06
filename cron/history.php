@@ -112,10 +112,10 @@ if (isset($_GLOBAL['history'])) {
         $bill['status'] = $bill[2];
         $bill['lis_vote_id'] = $bill[3];
 
-        # Determine if this is in the House or the Senate.
-        if ($bill['number']{0} == 'h') {
+        # Take a first crack at determining if this bill is in the House or the Senate
+        if ($bill['number'][0] == 'h') {
             $bill['chamber'] = 'house';
-        } elseif ($bill['number']{0} == 's') {
+        } elseif ($bill['number'][0] == 's') {
             $bill['chamber'] = 'senate';
         }
 
