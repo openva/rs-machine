@@ -59,202 +59,209 @@ $result = $sql->execute();
 ###
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="introduced"
-						WHERE
-							status LIKE "Prefiled %" AND
-							translation IS NULL AND
-							session_id= :session_id');
+                        SET translation="introduced"
+                        WHERE
+                            (status LIKE "House: Prefiled %" OR status LIKE "Senate: Prefiled %")
+                            AND translation IS NULL AND
+                            session_id= :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="in subcommittee"
-						WHERE
-							status LIKE "Assigned%sub%" AND
-							translation IS NULL AND
-							session_id= :session_id');
+                        SET translation="in subcommittee"
+                        WHERE
+                            (status LIKE "House: Assigned%sub%" OR status LIKE "Senate: Assigned%sub%")
+                            AND translation IS NULL AND
+                            session_id= :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="in committee"
-						WHERE status LIKE "Referred to Committee%" AND translation IS NULL
-						AND session_id = :session_id');
+                        SET translation="in committee"
+                        WHERE (status LIKE "House: Referred to Committee%"
+						OR status LIKE "Senate: Referred to Committee%")
+                        AND translation IS NULL
+                        AND session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="in committee"
-						WHERE status = "Committee" AND translation IS NULL
-						AND session_id = :session_id');
+                        SET translation="in committee"
+                        WHERE (status = "House: Committee" OR status = "Senate: Committee")
+                        AND translation IS NULL
+                        AND session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="in committee"
-						WHERE status = "Rereferred to%" AND translation IS NULL
-						AND session_id = :session_id');
+                        SET translation="in committee"
+                        WHERE (status LIKE "House: Rereferred to%" OR status LIKE "Senate: Rereferred to%")
+                        AND translation IS NULL
+                        AND session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed committee"
-						WHERE status LIKE "Left in %" AND
-							translation IS NULL AND
-							session_id = :session_id');
+                        SET translation="failed committee"
+                        WHERE (status LIKE "House: Left in %" OR status LIKE "Senate: Left in %")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed committee"
-						WHERE
-							status LIKE "Tabled in %" AND
-							translation IS NULL AND
-							session_id = :session_id');
-$sql->bindParam(':session_id', $session_id);
-$result = $sql->execute();
-
-$sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed committee"
-						WHERE
-							(status LIKE "Passed by in %"
-							OR status LIKE "Passed by indefinitely%") AND
-						translation IS NULL AND
-						session_id = :session_id');
-$sql->bindParam(':session_id', $session_id);
-$result = $sql->execute();
-
-$sql = $dbh->prepare('UPDATE bills_status
-					SET translation="failed committee"
-					WHERE
-						status LIKE "Failed to report%" AND
-						translation IS NULL AND
-						session_id = :session_id');
+                        SET translation="failed committee"
+                        WHERE (status LIKE "House: Tabled in %" OR status LIKE "Senate: Tabled in %")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="failed committee"
                         WHERE
-							status LIKE "Continued to %" AND
-                        	translation IS NULL AND
-							session_id = :session_id');
+                            (status LIKE "House: Passed by in %" OR status LIKE "Senate: Passed by in %" OR
+                            status LIKE "House: Passed by indefinitely%" OR status LIKE "Senate: Passed by indefinitely%")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed committee"
-						WHERE
-							status LIKE "Stricken from docket%" AND
-							translation IS NULL AND
-						session_id = :session_id');
+                    SET translation="failed committee"
+                    WHERE
+                        (status LIKE "House: Failed to report%" OR status LIKE "Senate: Failed to report%")
+                        AND translation IS NULL AND
+                        session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed subcommittee"
-						WHERE
-							(status LIKE "Subcommittee recommends passing by indefinitely%" OR
-							status LIKE "Subcommittee recommends laying on the table" OR 
-							status LIKE "Subcommittee failed to recommend reporting%" OR
-							status LIKE "Subcommittee recommends striking from the docket%") AND
-						translation IS NULL AND
-						session_id = :session_id');
+                        SET translation="failed committee"
+                        WHERE
+                            (status LIKE "House: Continued to %" OR status LIKE "Senate: Continued to %")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="passed subcommittee"
-						WHERE
-							status LIKE "Subcommittee recommends reporting%" AND
-							translation IS NULL AND
-						session_id = :session_id');
+                        SET translation="failed committee"
+                        WHERE
+                            (status LIKE "House: Stricken from docket%" OR status LIKE "Senate: Stricken from docket%")
+                            AND translation IS NULL AND
+                        session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="incorporated"
-						WHERE
-							status LIKE "Incorporated%" AND 
-							translation IS NULL AND
-						session_id = :session_id');
+                        SET translation="failed subcommittee"
+                        WHERE
+                            (status LIKE "House: Subcommittee recommends passing by indefinitely%" OR
+                            status LIKE "Senate: Subcommittee recommends passing by indefinitely%" OR
+                            status LIKE "House: Subcommittee recommends laying on the table" OR 
+                            status LIKE "Senate: Subcommittee recommends laying on the table" OR 
+                            status LIKE "House: Subcommittee failed to recommend reporting%" OR
+                            status LIKE "Senate: Subcommittee failed to recommend reporting%" OR
+                            status LIKE "House: Subcommittee recommends striking from the docket%" OR
+                            status LIKE "Senate: Subcommittee recommends striking from the docket%")
+                            AND translation IS NULL AND
+                        session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="stricken"
-						WHERE
-							status LIKE "Stricken at request of patron%" AND
-							translation IS NULL AND
-						session_id = :session_id');
+                        SET translation="passed subcommittee"
+                        WHERE
+                            (status LIKE "House: Subcommittee recommends reporting%"
+							OR status LIKE "Senate: Subcommittee recommends reporting%")
+                            AND translation IS NULL AND
+                        session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="passed committee"
-						WHERE
-								(status LIKE "Reported from %" OR
-								status LIKE "Discharged from %" OR
-								status LIKE "Rereferred from %") AND
-							translation IS NULL AND
-							session_id = :session_id');
+                        SET translation="incorporated"
+                        WHERE
+                            (status LIKE "House: Incorporated%" OR status LIKE "Senate: Incorporated%")
+                            AND translation IS NULL AND
+                        session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="passed house"
-						WHERE
-								(status LIKE "%and passed House%" OR
-								status LIKE "Agreed to by House%" OR
-								status LIKE "Passed House%") AND
-							translation IS NULL AND
-							session_id = :session_id');
+                        SET translation="stricken"
+                        WHERE
+                            (status LIKE "House: Stricken at request of patron%"
+							OR status LIKE "Senate: Stricken at request of patron%")
+                            AND translation IS NULL AND
+                        session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed house"
-						WHERE
-							status LIKE "%engrossment refused by House%" AND 
-							translation IS NULL AND
-							session_id = :session_id');
+                        SET translation="passed committee"
+                        WHERE
+                                (status LIKE "House: Reported from %" OR status LIKE "Senate: Reported from %" OR
+                                status LIKE "House: Discharged from %" OR status LIKE "Senate: Discharged from %" OR
+                                status LIKE "House: Rereferred from %" OR status LIKE "Senate: Rereferred from %")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed house"
-						WHERE
-							(status LIKE "Failed to pass in House" OR
-							status LIKE "Defeated by House%") AND
-							translation IS NULL AND
-							session_id = :session_id');
+                        SET translation="passed house"
+                        WHERE
+                                (status LIKE "%and passed House%" OR status LIKE "Agreed to by House%" OR
+                                status LIKE "Passed House%")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="passed senate"
-						WHERE (status LIKE "%and passed Senate%" OR status LIKE "Agreed to by Senate%"
-							OR status LIKE "Passed Senate%") AND
-							translation IS NULL AND
-							session_id = :session_id');
+                        SET translation="failed house"
+                        WHERE
+                            status LIKE "%engrossment refused by House%" AND 
+                            translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="failed senate"
-						WHERE
-							(status LIKE "Failed to pass in Senate" OR status LIKE "%defeated by Senate%") AND
-							translation IS NULL AND
-							session_id = :session_id');
+                        SET translation="failed house"
+                        WHERE
+                            (status LIKE "Failed to pass in House" OR status LIKE "Defeated by House%")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
-						SET translation="enacted"
-						WHERE
-							status LIKE "Enacted%" AND
-							translation IS NULL AND
-							session_id = :session_id');
+                        SET translation="passed senate"
+                        WHERE (status LIKE "%and passed Senate%" OR status LIKE "Agreed to by Senate%" OR
+                            status LIKE "Passed Senate%")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
+$result = $sql->execute();
+
+$sql = $dbh->prepare('UPDATE bills_status
+                        SET translation="failed senate"
+                        WHERE
+                            (status LIKE "Failed to pass in Senate" OR status LIKE "%defeated by Senate%")
+                            AND translation IS NULL AND
+                            session_id = :session_id');
+$sql->bindParam(':session_id', $session_id);
+$result = $sql->execute();
+
+$sql = $dbh->prepare('UPDATE bills_status
+                        SET translation="enacted"
+                        WHERE
+                            status LIKE "Enacted%" AND
+                            translation IS NULL AND
+                            session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
