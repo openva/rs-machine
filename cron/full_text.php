@@ -82,12 +82,13 @@ while ($text = mysqli_fetch_array($result)) {
 
     curl_close($ch);
 
-    if ($full_text == 'There is no draft text for the provided document code and session code'
-        || $full_text == 'There is no html file for the provided document code and session code') {
+    if (
+        $full_text == 'There is no draft text for the provided document code and session code'
+        || $full_text == 'There is no html file for the provided document code and session code'
+    ) {
         unset($full_text);
         $log->put('Full text of ' . $text['number'] . ' was reported as lacking draft text: ' . urlencode($url), 3);
-    }
-    else {
+    } else {
         # Convert into an array.
         $full_text = explode("\n", $full_text);
 
@@ -115,7 +116,8 @@ while ($text = mysqli_fetch_array($result)) {
             # Finally, we're at the text of the bill.
             if (isset($start)) {
                 # Determine where the header text ends and the actual law begins.
-                if (stristr($full_text[$i], 'Be it enacted by')
+                if (
+                    stristr($full_text[$i], 'Be it enacted by')
                     ||
                     stristr($full_text[$i], 'WHEREAS ')
                     ||
