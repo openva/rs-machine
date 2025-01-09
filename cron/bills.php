@@ -36,8 +36,8 @@ $mc = new Memcached();
 $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 
 /*
- * If we encounter legislators whose bills can't be added, build up a list of them so that we
- * can avoid attempting to add further bills by them, and also to provide a list of missing
+ * If we encounter bills that can't be added, that's often (but not always) because there is no record
+ * of those legislators in the system. Build up a list of them to provide a list of missing
  * legislators.
  */
 $missing_legislators = array();
@@ -72,16 +72,6 @@ foreach ($bills as $bill) {
      * Clean up the bill CSV
      */
     $bill = Import::prepare_bill($bill);
-
-    /*
-     * If we've already tried to insert a bill by this legislator, and failed, then don't try
-     * again.
-     */
-    if (in_array($bill['chief_patron_id'], $missing_legislators)) {
-        $log->put('Skipping ' . strtoupper($number) . ', because the database has no record of '
-            . 'that legislator.', 2);
-        continue;
-    }
 
     # Prepare the data for the database.
     array_walk_recursive($bill, function ($field) {
@@ -194,6 +184,7 @@ file_put_contents($hash_path, serialize($hashes));
  * If any of these bills are patroned by legislators that we have no record of, log that.
  */
 if (count($missing_legislators) > 0) {
-    $log->put('There are ' . count($missing_legislators) . ' legislators that we have no '
-        . 'record of.', 6);
+    $log->put('There are bills by ' . count($missing_legislators) . ' legislators that could not '
+    . 'be added. That may because of encoding errors in the bill data, but it may be because these ' 
+    . 'legislators are missing from the system.', 6);
 }
