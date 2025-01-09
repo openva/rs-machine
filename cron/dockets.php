@@ -68,7 +68,7 @@ foreach ($committees as $committee) {
         if ($committee['chamber'] == 'S') {
             # Get the docket for a subcommittee.
             if (!empty($committee['parent_lis_id'])) {
-                $url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+sub+'
+                $url = 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+sub+'
                     . $committee['chamber'] . $committee['parent_lis_id'] . $committee['lis_id'] . $date['url'];
                 $raw_html = get_content($url);
             } else {
@@ -77,7 +77,7 @@ foreach ($committees as $committee) {
                 // date. But sometimes it's a 2. When the 2 is shown, it's also listed on the LIS site
                 // parenthetically after the date (i.e. "January 21, 2010 (2)"). We're only finding dockets
                 // with 1s, which means we're missing some unknown minority of dockets.
-                $url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+doc+'
+                $url = 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+doc+'
                     . $committee['chamber'] . $committee['lis_id'] . '1' . $date['url'];
                 $raw_html = get_content($url);
             }

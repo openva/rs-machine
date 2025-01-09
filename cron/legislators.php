@@ -238,6 +238,7 @@ $required_fields = array(
     'date_started',
     'party',
     'lis_id',
+    'lis_shortname',
     'email'
 );
 
@@ -259,7 +260,7 @@ foreach ($senators as $lis_id => $name) {
      */
     if ($match == false && $name != 'Vacant') {
         $log->put('Found a new senator: ' . $name . ' ('
-            . 'https://lis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+mbr+'
+            . 'https://apps.senate.virginia.gov/Senator/memberpage.php?id='
             . $lis_id . ')', 6);
 
         $data = $import->fetch_legislator_data('senate', $lis_id);
@@ -342,6 +343,7 @@ foreach ($delegates as $lis_id => $name) {
             'date_started',
             'party',
             'lis_id',
+            'lis_shortname',
             'email'
         );
 

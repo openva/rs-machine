@@ -82,57 +82,69 @@ while ($text = mysqli_fetch_array($result)) {
 
     curl_close($ch);
 
-    # Convert into an array.
-    $full_text = explode("\n", $full_text);
-
-    # Clean up the bill's full_text.
-    $full_text_clean = '';
-    for ($i = 0; $i < count($full_text); $i++) {
-        if (!isset($start)) {
-            if (stristr($full_text[$i], 'HOUSE BILL NO. ')) {
-                $start = true;
-            } elseif (stristr($full_text[$i], 'SENATE BILL NO. ')) {
-                $start = true;
-            } elseif (stristr($full_text[$i], 'SENATE JOINT RESOLUTION NO. ')) {
-                $start = true;
-            } elseif (stristr($full_text[$i], 'HOUSE JOINT RESOLUTION NO. ')) {
-                $start = true;
-            } elseif (stristr($full_text[$i], 'SENATE RESOLUTION NO. ')) {
-                $start = true;
-            } elseif (stristr($full_text[$i], 'HOUSE RESOLUTION NO. ')) {
-                $start = true;
-            } elseif (stristr($full_text[$i], 'VIRGINIA ACTS OF ASSEMBLY')) {
-                $start = true;
-            }
-        }
-
-        # Finally, we're at the text of the bill.
-        if (isset($start)) {
-            # Determine where the header text ends and the actual law begins.
-            if (stristr($full_text[$i], 'Be it enacted by')) {
-                $law_start = true;
-            }
-
-            # Replace the legislature's style tags with semantically meaningful tags
-            if (isset($law_start)) {
-                $full_text[$i] = str_replace('<em class=new>', '<ins>', $full_text[$i]);
-                $full_text[$i] = str_replace('</em>', '</ins>', $full_text[$i]);
-
-                # Append this line to our cleaned-up, stripped-down text.
-                $full_text_clean .= $full_text[$i] . ' ';
-            }
-        }
+    if ($full_text == 'There is no draft text for the provided document code and session code'
+        || $full_text == 'There is no html file for the provided document code and session code') {
+        unset($full_text);
+        $log->put('Full text of ' . $text['number'] . ' was reported as lacking draft text: ' . urlencode($url), 3);
     }
-    unset($full_text);
-    unset($start);
-    unset($law_start);
+    else {
+        # Convert into an array.
+        $full_text = explode("\n", $full_text);
 
-    # Strip out unacceptable tags and prefix the description with its two prefix
-    # tags.  Then provide a domain name for all links.
-    $full_text = trim(strip_tags($full_text_clean, '<p><b><i><em><strong><u><a><br><center><s><strike><ins>'));
+        # Clean up the bill's full_text.
+        $full_text_clean = '';
+        for ($i = 0; $i < count($full_text); $i++) {
+            if (!isset($start)) {
+                if (stristr($full_text[$i], 'HOUSE BILL NO. ')) {
+                    $start = true;
+                } elseif (stristr($full_text[$i], 'SENATE BILL NO. ')) {
+                    $start = true;
+                } elseif (stristr($full_text[$i], 'SENATE JOINT RESOLUTION NO. ')) {
+                    $start = true;
+                } elseif (stristr($full_text[$i], 'HOUSE JOINT RESOLUTION NO. ')) {
+                    $start = true;
+                } elseif (stristr($full_text[$i], 'SENATE RESOLUTION NO. ')) {
+                    $start = true;
+                } elseif (stristr($full_text[$i], 'HOUSE RESOLUTION NO. ')) {
+                    $start = true;
+                } elseif (stristr($full_text[$i], 'VIRGINIA ACTS OF ASSEMBLY')) {
+                    $start = true;
+                }
+            }
 
-    # Remove the style attributes from the P tags (which are full of formatting instructions).
-    $full_text = preg_replace('/(<p\b[^>]*?)\s*style="[^"]*"/i', '$1', $full_text);
+            # Finally, we're at the text of the bill.
+            if (isset($start)) {
+                # Determine where the header text ends and the actual law begins.
+                if (stristr($full_text[$i], 'Be it enacted by')
+                    ||
+                    stristr($full_text[$i], 'WHEREAS ')
+                    ||
+                    stristr($full_text[$i], 'RESOLVED by the ')
+                ) {
+                    $law_start = true;
+                }
+
+                # Replace the legislature's style tags with semantically meaningful tags
+                if (isset($law_start)) {
+                    $full_text[$i] = str_replace('<em class=new>', '<ins>', $full_text[$i]);
+                    $full_text[$i] = str_replace('</em>', '</ins>', $full_text[$i]);
+
+                    # Append this line to our cleaned-up, stripped-down text.
+                    $full_text_clean .= $full_text[$i] . ' ';
+                }
+            }
+        }
+        unset($full_text);
+        unset($start);
+        unset($law_start);
+
+        # Strip out unacceptable tags and prefix the description with its two prefix
+        # tags.  Then provide a domain name for all links.
+        $full_text = trim(strip_tags($full_text_clean, '<p><b><i><em><strong><u><a><br><center><s><strike><ins>'));
+
+        # Remove the style attributes from the P tags (which are full of formatting instructions).
+        $full_text = preg_replace('/(<p\b[^>]*?)\s*style="[^"]*"/i', '$1', $full_text);
+    }
 
     if (!empty($full_text)) {
         # Replace relative links with absolute ones.
