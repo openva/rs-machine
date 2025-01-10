@@ -184,6 +184,6 @@ file_put_contents($hash_path, serialize($hashes));
  */
 if (count($missing_legislators) > 0) {
     $log->put('There are bills by ' . count($missing_legislators) . ' legislators that could not '
-    . 'be added. That may because of encoding errors in the bill data, but it may be because these ' 
+    . 'be added. That may because of encoding errors in the bill data, but it may be because these '
     . 'legislators are missing from the system.', 6);
 }
