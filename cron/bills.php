@@ -138,16 +138,15 @@ foreach ($bills as $bill) {
         unset($hashes[$number]);
         $missing_legislators[] = $bill['chief_patron_id'];
     } else {
-        /*
-         * Log the addition or update
-         */
+        //Log the addition or update
         if ($operation_type == 'add') {
-            $log->put('Created ' . strtoupper($bill['number']) . ': ' . $bill['catch_line']
-                . ' (https://richmondsunlight.com/bill/' . SESSION_YEAR . '/' . $bill['number']
-                . '/)', 3);
+            $log->put('Created ' . strtoupper($bill['number']) . ': '
+                . stripslashes($bill['catch_line']) . ' (https://richmondsunlight.com/bill/'
+                . SESSION_YEAR . '/' . $bill['number'] . '/)', 3);
         } elseif ($operation_type == 'update') {
-            $log->put('Updated ' . strtoupper($bill['number']) . ': ' . $bill['catch_line']
-                . ' (https://richmondsunlight.com/bill/' . SESSION_YEAR . '/' . $bill['number']
+            $log->put('Updated ' . strtoupper($bill['number']) . ': '
+                . stripslashes($bill['catch_line']) . ' (https://richmondsunlight.com/bill/'
+                . SESSION_YEAR . '/' . $bill['number']
                 . '/)', 2);
         }
 
