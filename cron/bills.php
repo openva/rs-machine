@@ -73,11 +73,6 @@ foreach ($bills as $bill) {
      */
     $bill = Import::prepare_bill($bill);
 
-    # Prepare the data for the database.
-    array_walk_recursive($bill, function ($field) {
-        $field = mysqli_real_escape_string($GLOBALS['db'], $field);
-    });
-
     # Check to see if the bill is already in the database.
     $sql = 'SELECT id
 			FROM bills
@@ -98,6 +93,11 @@ foreach ($bills as $bill) {
         $sql = 'INSERT INTO bills SET date_created=now(), ';
         $operation_type = 'add';
     }
+
+    # Prepare the data for the database.
+    array_walk_recursive($bill, function (&$field) {
+        $field = mysqli_real_escape_string($GLOBALS['db'], $field);
+    });
 
     # Now create the code to insert the bill or update the bill, depending
     # on what the last query established for the preamble.
