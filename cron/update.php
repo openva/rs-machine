@@ -161,7 +161,7 @@ if (($type == 'all') || ($type == 'download_pdfs')) {
 # Update dockets
 if (($type == 'all') || ($type == 'dockets')) {
     # Disabled until the script is fixed to reflect the new server
-    #require 'dockets.php';
+    require 'dockets.php';
 }
 
 # Update the meeting schedule
