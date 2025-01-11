@@ -378,7 +378,7 @@ mysqli_query($GLOBALS['db'], $sql);
 ###
 # PERIODICALLY SYNCHRONIZE BILLS' FULL TEXT
 # Synchronize the bills table's bill text with the text stored in the bills_full_text table.
-# The latter stores the latest text but, for convenience of querying, we synch it here. This is
+# The latter stores the latest text but, for convenience of querying, we sync it here. This is
 # simply because the full text changes periodically, and we want to make sure that we're working
 # with the most recent version.
 ###
@@ -392,6 +392,21 @@ $sql = 'UPDATE bills
 		WHERE session_id=' . $session_id . '
 		ORDER BY RAND()
 		LIMIT 50';
+mysqli_query($GLOBALS['db'], $sql);
+
+###
+# DEAL WITH MISSING FULL TEXT RECORDS
+# The only way we know to retrieve bills' full text is if there's an entry in bills_full_text that
+# is missing the full text. In the rare circumstance that this happens, recreate the entry in the
+# bills_full_text table.
+$sql = 'INSERT INTO bills_full_text (bill_id, number, date_introduced, date_created)
+        SELECT bills.id, bills.number, bills.date_introduced, NOW()
+        FROM bills
+        LEFT JOIN bills_full_text
+            ON bills.id = bills_full_text.bill_id
+        WHERE
+            bills_full_text.bill_id IS NULL AND
+            date_introduced IS NOT NULL';
 mysqli_query($GLOBALS['db'], $sql);
 
 ###
