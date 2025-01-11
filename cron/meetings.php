@@ -36,15 +36,20 @@ $committees = array();
 while ($committee = mysqli_fetch_array($result)) {
     $committee = array_map('stripslashes', $committee);
 
-    # If this is a subcommittee, shuffle around the array keys.
+    // If this is a subcommittee, shuffle around the array keys.
     if (!empty($committee['parent'])) {
         $committee['sub'] = $committee['name'];
         $committee['name'] = $committee['parent'];
         unset($committee['parent']);
     }
 
-    # Begin to establish the plain text description that we'll use to try to match the
-    # meeting description.
+    // If it's not a subcommittee, modify the LIS ID to adhere to the LIS format
+    else {
+        $prefix = ($committee['chamber'] == 'house') ? 'H' : 'S';
+        $committee['lis_id'] = $prefix . str_pad($committee['lis_id'], 2, '0', STR_PAD_LEFT);
+    }
+
+    // Start the plain text description that we'll use to try to match the meeting description.
     $tmp = ucfirst($committee['chamber']) . ' ' . $committee['name'];
 
     # If this is a subcommittee, then we have to deal with a series of naming possibilities,
@@ -95,149 +100,153 @@ if (mysqli_num_rows($result) > 0) {
     }
 }
 
-# Retrieve the HTML for the schedule.
-$html = get_content('http://leg1.state.va.us/cgi-bin/legp504.exe?' . SESSION_LIS_ID . '+oth+MTG');
+# Retrieve the meeting schedule from the API
+$apiUrl = 'https://lis.virginia.gov/Schedule/api/GetScheduleListAsync';
 
-# Extract the redirection URL.
-preg_match('#<a href="/cgi-bin/legp507.exe\?([0-9]{3})\+([a-z0-9]{3})">csv file</a>#Di', $html, $regs);
-if (!isset($regs) || !is_array($regs)) {
+$headers = [
+    "Content-Type: application/json",
+    'WebAPIKey: ' . LIS_KEY
+];
+
+$ch = curl_init();
+
+// Set the URL and other options
+curl_setopt($ch, CURLOPT_URL, $apiUrl);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+// Execute the request
+$response = curl_exec($ch);
+
+// Get the HTTP status code
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+if ($httpCode != '200') {
+    $log->put('Error: LIS’s GetScheduleListAsync returned an HTTP ' . $httpCode
+        . '—meeting schedule could not be updated.', 6);
     return false;
 }
 
-# Fetch the redirection page. The legislature doesn't just link to the URL, because that might
-# make things easier. Instead they provide a redirection page, with a URL for the CSV provided
-# dynamically--it changes every time.
-$redirect = get_content('http://leg1.state.va.us/cgi-bin/legp507.exe?' . $regs[1] . '+' . $regs[2]);
-unset($regs);
-
-# Extract the CSV URL.
-preg_match('#<a href="(.*)">here</a>#Di', $redirect, $regs);
-if (!isset($regs) || !is_array($regs)) {
+// Check for errors
+if ($response === false) {
+    $error = curl_error($ch);
+    curl_close($ch);
+    $log->put('Error: The cURL query to LIS’s GetScheduleListAsync failed with “' . $error
+        . '”—meeting schedule could not be updated.', 6);
     return false;
 }
 
-# Fetch the CSV.
-$csv = get_content($regs[1]);
+// Close the cURL session
+curl_close($ch);
 
-# Eliminate any blank lines at the end.
-$csv = trim($csv);
+if ($response === FALSE) {
+    $log->put('Error: LIS’s GetScheduleListAsync returned an invalid response.', 6);
+    return false;
+}
 
-# Break it up into an array.
-$csv = explode("\r", $csv);
+$meetings = json_decode($response, true);
 
-# Eliminate the column heads.
-unset($csv[0]);
+if (empty($meetings['Schedules'])) {
+    $log->put('No meetings found in the API response.', 7);
+    return false;
+}
 
-# Iterate through the lines.
-foreach ($csv as &$meeting) {
-    # Strip out any carriage returns lying around.
-    $meeting = str_replace("\r", '', $meeting);
+// Iterate through the meetings from the API response
+foreach ($meetings['Schedules'] as $meeting) {
+    $meeting['date'] = $meeting['ScheduleDate'];
+    if (!empty($meeting['ScheduleTime'])) {
+        $meeting['time'] = $meeting['ScheduleTime'];
+    } elseif (!empty($meeting['Description'])) {
+        $meeting['description_raw'] = $meeting['Description'];
+    }
+    if (!empty($meeting['CommitteeNumber'])) {
+        $meeting['committee_lis_id'] = $meeting['CommitteeNumber'];
+    }
+    $meeting['description'] = $meeting['OwnerName'] . ' ' . $meeting['ScheduleType'];
+    $meeting['location'] = $meeting['RoomDescription'];
 
-    # Turn the CSV into an array.
-    $meeting = explode('","', $meeting);
-
-    # Trim every column of its whitespace.
-    foreach ($meeting as &$column) {
-        $column = trim($column);
+    // Skip any meeting for which any stored fields are empty
+    foreach ($meeting as $element) {
+        if (empty($element)) {
+            continue;
+        }
     }
 
-    # Name each element in the array.
-    $meeting['date'] = $meeting[0];
-    $meeting['time'] = $meeting[1];
-    $meeting['description'] = $meeting[3];
-
-    # Unset every numbered element.
-    unset($meeting[0]);
-    unset($meeting[1]);
-    unset($meeting[2]);
-    unset($meeting[3]);
-
-    # Eliminate the quotation marks left over from the CSV.
-    $meeting['date'] = str_replace('"', '', $meeting['date']);
-    $meeting['description'] = str_replace('"', '', $meeting['description']);
-
-    # Determine which chamber that this meeting pertains to.
-    if (preg_match('/house/Di', $meeting['description']) !== true) {
+    // Determine which chamber that this meeting is for
+    if (preg_match('/house/Di', $meeting['description_raw']) !== true) {
         $meeting['chamber'] = 'house';
-    } elseif (preg_match('/senate/Di', $meeting['description']) !== true) {
+    } elseif (preg_match('/senate/Di', $meeting['description_raw']) !== true) {
         $meeting['chamber'] = 'senate';
     } else {
         continue;
     }
 
-    # This notice is to point out that a committee isn't meeting, that the senate has adjourned,
-    # or that the house has adjourned, then we can safely ignore it.
+    // If a committee isn't meeting, or it's a chamber adjourning, then ignore it
     if (
-            stristr($meeting['description'], 'not meeting')
-            || stristr($meeting['description'], 'Senate Adjourned')
-            || stristr($meeting['description'], 'House Adjourned')
+            stristr($meeting['description_raw'], 'not meeting')
+            || stristr($meeting['description_raw'], 'Senate Adjourned')
+            || stristr($meeting['description_raw'], 'House Adjourned')
     ) {
         continue;
     }
 
-    # If an approximate time is listed in the committee information (something like "1/2 hr aft"
-    # or "TBA"), then we've got to a) turn it into plain English and b) ignore the claimed time.
+    // If an approximate time is listed (something like "1/2 hr aft" or "TBA"), then we've got to
+    // a) turn it into plain English and b) ignore the claimed time.
     if (
-            stristr($meeting['description'], '1/2 hr aft')
+            stristr($meeting['description_raw'], '1/2 hr aft')
             ||
-            stristr($meeting['description'], '1/2 hour after')
+            stristr($meeting['description_raw'], '1/2 hour after')
     ) {
         $meeting['timedesc'] = 'Half an hour after the ' . ucfirst($meeting['chamber'])
             . ' adjourns';
         unset($meeting['time']);
     } elseif (
-            stristr($meeting['description'], '15 min aft')
+            stristr($meeting['description_raw'], '15 min aft')
             ||
-            stristr($meeting['description'], '15 minutes after')
+            stristr($meeting['description_raw'], '15 minutes after')
     ) {
         $meeting['timedesc'] = 'Fifteen minutes after the ' . ucfirst($meeting['chamber'])
             . ' adjourns';
         unset($meeting['time']);
-    } elseif (stristr($meeting['description'], '1 and 1/2 hours after')) {
+    } elseif (stristr($meeting['description_raw'], '1 hour after')) {
+        $meeting['timedesc'] = 'One hour after the ' . ucfirst($meeting['chamber'])
+            . ' adjourns';
+        unset($meeting['time']);
+    } elseif (stristr($meeting['description_raw'], '1 and 1/2 hours after')) {
         $meeting['timedesc'] = 'An hour and a half after the ' . ucfirst($meeting['chamber'])
             . ' adjourns';
         unset($meeting['time']);
-    } elseif (stristr($meeting['description'], '1/2 hour before Session')) {
+    } elseif (stristr($meeting['description_raw'], '1/2 hour before Session')) {
         $meeting['timedesc'] = 'Half an hour before the ' . ucfirst($meeting['chamber'])
             . ' convenes';
         unset($meeting['time']);
-    } elseif (stristr($meeting['description'], 'TBA')) {
+    } elseif (stristr($meeting['description_raw'], 'TBA')) {
         $meeting['timedesc'] = 'To be announced';
         unset($meeting['time']);
     }
 
-    # If the time is approximate, then we want to establish a meeting date. (But not a time.)
+    // If the time is approximate, then we want to establish a meeting date. (But not a time.)
     if (isset($meeting['timedesc'])) {
-        # Establish a meeting date.
+        // Establish a meeting date.
         $meeting['datetime'] = strtotime('00:00:00 ' . $meeting['date']);
         $meeting['date'] = date('Y-m-d', $meeting['datetime']);
         unset($meeting['time']);
         unset($meeting['datetime']);
     }
 
-    # But if we've got a trustworthy time, format the date and the time properly.
+    // But if we've got a trustworthy time, format the date and the time properly.
     else {
-        # Convert the date and time into a timestamp.
+        // Convert the date and time into a timestamp.
         $meeting['datetime'] = strtotime($meeting['time'] . ' ' . $meeting['date']);
         $meeting['date'] = date('Y-m-d', $meeting['datetime']);
         $meeting['time'] = date('H:i', $meeting['datetime']) . ':00';
         unset($meeting['datetime']);
     }
 
-    # Clean up the meeting description
-    $tmp = explode(';', $meeting['description']);
-    if (strstr($tmp[count($tmp) - 1], '-')) {
-        $tmp2 = explode('-', $tmp[count($tmp) - 1]);
-        $tmp[count($tmp) - 1] = $tmp2[0];
-    }
-    $meeting['description'] = trim($tmp[0]);
-    $meeting['location'] = trim($tmp[1]);
-
-    # Attempt to match the committee with a known committee. Start by stepping through every
-    # committee.
+    // Attempt to match the committee with a known committee. Start by stepping through every
+    // committee.
     for ($i = 0; $i < count($committees); $i++) {
-        # Since each committee can have multiple names, we now step through each name for this
-        # committee and try to match it.
+        // Since each committee can have multiple names, we now step through each name for this
+        // committee and try to match it.
         foreach ($committees[$i] as $id => $committee) {
             if (stristr($meeting['description'], $committee) != false) {
                 if (is_numeric($id)) {
@@ -250,7 +259,7 @@ foreach ($csv as &$meeting) {
 
     // check to see if we already know about this meeting by comparing it to data in the DB
 
-    # If this meeting has gone by, then we can safely ignore it.
+    // If this meeting has gone by, then ignore it
     if (isset($meeting['time'])) {
         $tmp = strtotime($meeting['date'] . ' ' . $meeting['time']);
     } else {
@@ -260,7 +269,7 @@ foreach ($csv as &$meeting) {
         continue;
     }
 
-    # If we've already got a record of this meeting then, again, we can safely ignore it.
+    // If we've already got a record of this meeting then ignore it
     if (!empty($upcoming)) {
         foreach ($upcoming as $known) {
             if (
@@ -290,12 +299,15 @@ foreach ($csv as &$meeting) {
         }
     }
 
-    # Prepare and insert the data into the DB.
+    // Prepare and insert the data into the DB.
     $meeting = array_map('addslashes', $meeting);
     $sql = 'INSERT INTO meetings
-			SET date="' . $meeting['date'] . '", description="' . $meeting['description'] . '",
-			session_id=' . SESSION_ID . ', location="' . $meeting['location'] . '",
-			date_created=now()';
+            SET
+                date="' . $meeting['date'] . '",
+                description="' . $meeting['description'] . '",
+                session_id=' . SESSION_ID . ',
+                location="' . $meeting['location'] . '",
+                date_created=now()';
     if (!empty($meeting['time'])) {
         $sql .= ', time="' . $meeting['time'] . '"';
     }
@@ -305,20 +317,25 @@ foreach ($csv as &$meeting) {
     if (!empty($meeting['committee_id'])) {
         $sql .= ', committee_id=' . $meeting['committee_id'];
     }
+
     $result = mysqli_query($GLOBALS['db'], $sql);
 
     if (!$result) {
         $log->put('Failed to add meeting ' . $meeting['description'] . ' on ' . $meeting['date']
             . '. ' . $sql . "\n\n" . mysqli_error($GLOBALS['db']), 5);
-    } elseif (mysqli_affected_rows($result) > 0) {
+    } else {
         $log->put('Added meeting ' . $meeting['description'] . ' on ' . $meeting['date'] . '.', 1);
     }
 }
 
-# Delete all of the duplicate meetings. We end up with the same meeting recorded over and over
-# again, and that's most easily dealt with by simply deleting them after they're inserted.
+// Delete all of the duplicate meetings. We end up with the same meeting recorded over and over
+// again, and that's most easily dealt with by simply deleting them after they're inserted.
 $sql = 'DELETE m1
 		FROM meetings m1, meetings m2
-		WHERE m1.date=m2.date AND m1.time=m2.time AND m1.location=m2.location
-		AND m1.description=m2.description AND m1.id < m2.id';
+		WHERE
+            m1.date=m2.date AND
+            m1.time=m2.time AND
+            m1.location=m2.location AND
+		    m1.description=m2.description AND
+            m1.id < m2.id';
 mysqli_query($GLOBALS['db'], $sql);
