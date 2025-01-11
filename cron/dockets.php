@@ -67,7 +67,8 @@ while (($row = fgetcsv($docket_csv)) !== false) {
                 FROM committees
                 WHERE
                     chamber="' . $chamber . '" AND
-                    lis_id="' . $lis_id . '"),
+                    lis_id="' . $lis_id . '" AND
+                    parent_id IS NULL),
             bill_id=
                 (SELECT id
                 FROM bills
