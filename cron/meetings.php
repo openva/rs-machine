@@ -138,7 +138,7 @@ if ($response === false) {
 // Close the cURL session
 curl_close($ch);
 
-if ($response === FALSE) {
+if ($response === false) {
     $log->put('Error: LIS’s GetScheduleListAsync returned an invalid response.', 6);
     return false;
 }
