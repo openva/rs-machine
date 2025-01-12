@@ -7,16 +7,18 @@
 $sql = 'SELECT
             bills.id,
             bills.number,
-            bills.impact_statement_id,
+            fiscal_impact_statements.pdf_url,
                 (SELECT COUNT(*)
                 FROM bills_views
                 WHERE bill_id=bills.id AND
                 date >= CURDATE() - INTERVAL 7 DAY) AS views
         FROM bills
+        LEFT JOIN fiscal_impact_statements
+            ON bills.id = fiscal_impact_statements.bill_id
         WHERE
             bills.session_id = ' . SESSION_ID . ' AND
-            bills.impact_statement_id IS NOT NULL AND
-            notes IS NULL
+            fiscal_impact_statements.pdf_url IS NOT NULL AND
+            bills.notes IS NULL
         HAVING views >= 10
         ORDER BY views DESC
         LIMIT 10';
@@ -31,16 +33,12 @@ foreach ($bills as $bill) {
         continue;
     }
 
-    // Assemble the URL
-    $url = 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?' . SESSION_LIS_ID . '+oth+'
-        . mb_strtoupper($bill['number']) . $bill['impact_statement_id'] . '+PDF';
-
     /*
      * Step 1: Download the PDF
      */
-    $pdfContent = file_get_contents($url);
+    $pdfContent = file_get_contents($pdf_url);
     if (!$pdfContent) {
-        die("Failed to download PDF");
+        die('Failed to download PDF');
     }
 
     /*
