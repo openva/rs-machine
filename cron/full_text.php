@@ -46,7 +46,7 @@ while ($text = mysqli_fetch_array($result)) {
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     $response = curl_exec($ch);
-    
+
     /*
      * Check that the cURL request was successful (HTTP status code 2XX).
      */
@@ -58,7 +58,7 @@ while ($text = mysqli_fetch_array($result)) {
         $server_errors++;
         continue;
     }
-    
+
     /*
      * If too many consecutive server errors have been returned, give up, and stop hammering on
      * LIS's server.
@@ -68,7 +68,7 @@ while ($text = mysqli_fetch_array($result)) {
             . ' consecutive error messages from the LIS server.');
         return;
     }
-    
+
     curl_close($ch);
 
     // Extract the full text from the API's JSON response
@@ -82,11 +82,10 @@ while ($text = mysqli_fetch_array($result)) {
         unset($full_text);
         $log->put('Full text of ' . $text['number'] . ' was reported as lacking draft text: ' . urlencode($url), 3);
     } else {
-        
         // Convert into an array.
-        $full_text = str_replace('</p> <p', "</p>\n<p", $full_text);  
+        $full_text = str_replace('</p> <p', "</p>\n<p", $full_text);
         $full_text = explode("\n", $full_text);
-        
+
         # Clean up the bill's full_text.
         $full_text_clean = '';
         for ($i = 0; $i < count($full_text); $i++) {
@@ -113,11 +112,11 @@ while ($text = mysqli_fetch_array($result)) {
         unset($full_text);
         unset($start);
         unset($law_start);
-        
+
         // Strip out unacceptable tags
         $full_text = trim(strip_tags($full_text_clean, '<p><b><i><em><strong><u><a><br><center><s><strike><ins>'));
     }
-    
+
     if (!empty($full_text)) {
         # Clean up the text for inserting into the database
         $full_text = trim($full_text);
@@ -146,7 +145,6 @@ while ($text = mysqli_fetch_array($result)) {
         unset($start);
         unset($full_text);
         unset($full_text_clean);
-
     } else {
         # Increment the failed retrievals counter.
         $sql = 'UPDATE bills_full_text
@@ -160,7 +158,7 @@ while ($text = mysqli_fetch_array($result)) {
             $log->put('Full text of ' . $text['number'] . ' came up blank: ' . urlencode($url), 5);
         }
     }
-    
+
     // Pause between requests to avoid hammering the server
     sleep(1);
 }
