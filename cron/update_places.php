@@ -17,7 +17,8 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific
 # page.
-connect_to_db();
+$dbh = new Database();
+$db = $dbh->connect_mysqli();
 
 $log = new Log();
 
@@ -61,7 +62,7 @@ $sql = 'SELECT
 				WHERE bill_id=bills.id) = 0
 		ORDER BY RAND()
 		LIMIT 10';
-$result = mysqli_query($GLOBALS['db'], $sql);
+$result = mysqli_query($db, $sql);
 if (mysqli_num_rows($result) == 0) {
     return;
 }
@@ -200,7 +201,7 @@ while ($bill = mysqli_fetch_array($result)) {
 						municipality IS NOT NULL';
         }
 
-        $coordinates_result = mysqli_query($GLOBALS['db'], $sql);
+        $coordinates_result = mysqli_query($db, $sql);
 
         /*
          * If there's no result, or if there's more than one result (which we have no way to
@@ -224,10 +225,10 @@ while ($bill = mysqli_fetch_array($result)) {
 					longitude=' . $coordinates['longitude'] . ',
                     coordinates = Point(' . $coordinates['longitude'] . ', '
                     . $coordinates['longitude'] . ')';
-        $place_result = mysqli_query($GLOBALS['db'], $sql);
+        $place_result = mysqli_query($db, $sql);
         if ($place_result == false) {
             $log->put('Error: Could not add place names for ' . strtoupper($bill['number'])
-                . ': ' . mysqli_error($GLOBALS['db'], $place_result) . ', ' . $sql, 4);
+                . ': ' . mysqli_error($db) . ', ' . $sql, 4);
         }
     }
 
