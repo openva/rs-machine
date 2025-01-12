@@ -72,7 +72,7 @@ foreach ($bills as $bill) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-        'model' => 'gpt-4o-mini',
+        'model' => 'gpt-4o',
         'messages' => [
             [
                 "role" => "system",
