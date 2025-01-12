@@ -30,10 +30,6 @@ if (mysqli_num_rows($result) == 0) {
     return false;
 }
 
-# Fire up HTML Purifier.
-//$config = HTMLPurifier_Config::createDefault();
-//$purifier = new HTMLPurifier($config);
-
 /*
  * We don't want to keep hammering on the server if it is returning errors.
  */
@@ -41,14 +37,16 @@ $server_errors = 0;
 
 while ($text = mysqli_fetch_array($result)) {
     # Retrieve the full text.
-    $url = 'https://lis.virginia.gov/LegislationText/api/getlegislationhtmlcontentasync?sessionCode=20'
+    $url = 'https://lis.virginia.gov/LegislationText/api/GetLegislationTextByIDAsync?sessionCode=20'
         . $text['session_id'] . '&documentNumber=' . $text['number'];
     $ch = curl_init($url);
+    $headers = [ 'WebAPIKey: ' . LIS_KEY ];
     curl_setopt($ch, CURLOPT_HEADER, 0);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     $response = curl_exec($ch);
-
+    
     /*
      * Check that the cURL request was successful (HTTP status code 2XX).
      */
@@ -56,31 +54,26 @@ while ($text = mysqli_fetch_array($result)) {
     if ($http_code >= 200 && $http_code < 300) {
         $full_text = $response;
     } else {
+        echo $http_code . ': ' . $url . "\n";
         $server_errors++;
         continue;
     }
-
-    /*
-     * Check for the legislature’s error that indicates excessive traffic. They send an HTTP 200,
-     * unfortunately, so we have to determine the error state based on the content.
-     */
-    if (stristr($full_text, 'your query could not be processed') !== false) {
-        $server_errors++;
-        sleep(10);
-        continue;
-    }
-
+    
     /*
      * If too many consecutive server errors have been returned, give up, and stop hammering on
      * LIS's server.
      */
     if ($server_errors >= 20) {
         $log->put('Abandoning collecting bill text, after receiving ' . $server_errors
-            . ' consecutive rate-limiting error messages from the LIS server.');
+            . ' consecutive error messages from the LIS server.');
         return;
     }
-
+    
     curl_close($ch);
+
+    // Extract the full text from the API's JSON response
+    $response = json_decode($response);
+    $full_text = $response->TextsList[0]->DraftText;
 
     if (
         $full_text == 'There is no draft text for the provided document code and session code'
@@ -89,74 +82,44 @@ while ($text = mysqli_fetch_array($result)) {
         unset($full_text);
         $log->put('Full text of ' . $text['number'] . ' was reported as lacking draft text: ' . urlencode($url), 3);
     } else {
-        # Convert into an array.
+        
+        // Convert into an array.
+        $full_text = str_replace('</p> <p', "</p>\n<p", $full_text);  
         $full_text = explode("\n", $full_text);
-
+        
         # Clean up the bill's full_text.
         $full_text_clean = '';
         for ($i = 0; $i < count($full_text); $i++) {
-            if (!isset($start)) {
-                if (stristr($full_text[$i], 'HOUSE BILL NO. ')) {
-                    $start = true;
-                } elseif (stristr($full_text[$i], 'SENATE BILL NO. ')) {
-                    $start = true;
-                } elseif (stristr($full_text[$i], 'SENATE JOINT RESOLUTION NO. ')) {
-                    $start = true;
-                } elseif (stristr($full_text[$i], 'HOUSE JOINT RESOLUTION NO. ')) {
-                    $start = true;
-                } elseif (stristr($full_text[$i], 'SENATE RESOLUTION NO. ')) {
-                    $start = true;
-                } elseif (stristr($full_text[$i], 'HOUSE RESOLUTION NO. ')) {
-                    $start = true;
-                } elseif (stristr($full_text[$i], 'VIRGINIA ACTS OF ASSEMBLY')) {
-                    $start = true;
-                }
+            // Determine where the actual bill text begins.
+            if (
+                stristr($full_text[$i], 'Be it enacted by')
+                ||
+                stristr($full_text[$i], 'WHEREAS ')
+                ||
+                stristr($full_text[$i], 'RESOLVED by the ')
+            ) {
+                $law_start = true;
             }
 
-            # Finally, we're at the text of the bill.
-            if (isset($start)) {
-                # Determine where the header text ends and the actual law begins.
-                if (
-                    stristr($full_text[$i], 'Be it enacted by')
-                    ||
-                    stristr($full_text[$i], 'WHEREAS ')
-                    ||
-                    stristr($full_text[$i], 'RESOLVED by the ')
-                ) {
-                    $law_start = true;
-                }
+            // Replace the legislature's style tags with semantically meaningful tags
+            if (isset($law_start)) {
+                $full_text[$i] = str_replace('<em class=new>', '<ins>', $full_text[$i]);
+                $full_text[$i] = str_replace('</em>', '</ins>', $full_text[$i]);
 
-                # Replace the legislature's style tags with semantically meaningful tags
-                if (isset($law_start)) {
-                    $full_text[$i] = str_replace('<em class=new>', '<ins>', $full_text[$i]);
-                    $full_text[$i] = str_replace('</em>', '</ins>', $full_text[$i]);
-
-                    # Append this line to our cleaned-up, stripped-down text.
-                    $full_text_clean .= $full_text[$i] . ' ';
-                }
+                // Append this line to our cleaned-up, stripped-down text.
+                $full_text_clean .= $full_text[$i] . "\n";
             }
         }
         unset($full_text);
         unset($start);
         unset($law_start);
-
-        # Strip out unacceptable tags and prefix the description with its two prefix
-        # tags.  Then provide a domain name for all links.
+        
+        // Strip out unacceptable tags
         $full_text = trim(strip_tags($full_text_clean, '<p><b><i><em><strong><u><a><br><center><s><strike><ins>'));
-
-        # Remove the style attributes from the P tags (which are full of formatting instructions).
-        $full_text = preg_replace('/(<p\b[^>]*?)\s*style="[^"]*"/i', '$1', $full_text);
     }
-
+    
     if (!empty($full_text)) {
-        # Replace relative links with absolute ones.
-        $full_text = str_ireplace('href="/', 'href="http://lis.virginia.gov/', $full_text);
-
-        # Any time that we've just got a question mark hanging out, that should be a section
-        # symbol.
-        $full_text = str_replace(' ? ', ' §&nbsp;', $full_text);
-
-        # Put the data back into the database, but clean it up first.
+        # Clean up the text for inserting into the database
         $full_text = trim($full_text);
         $full_text = mysqli_real_escape_string($GLOBALS['db'], $full_text);
 
@@ -168,9 +131,9 @@ while ($text = mysqli_fetch_array($result)) {
 					WHERE id=' . $text['id'];
             $result2 = mysqli_query($GLOBALS['db'], $sql);
             if (!$result2) {
-                $log->put('Insertion of  ' . strtoupper($text['number']) . ' bill text failed.', 5);
+                $log->put('Error: Inserting ' . strtoupper($text['number']) . ' bill text failed.', 5);
             } else {
-                $log->put('Insertion of  ' . strtoupper($text['number']) . ' bill text succeeded.', 2);
+                $log->put('Inserting ' . strtoupper($text['number']) . ' bill text succeeded.', 2);
             }
         }
 
@@ -184,7 +147,6 @@ while ($text = mysqli_fetch_array($result)) {
         unset($full_text);
         unset($full_text_clean);
 
-        sleep(3);
     } else {
         # Increment the failed retrievals counter.
         $sql = 'UPDATE bills_full_text
@@ -198,4 +160,7 @@ while ($text = mysqli_fetch_array($result)) {
             $log->put('Full text of ' . $text['number'] . ' came up blank: ' . urlencode($url), 5);
         }
     }
+    
+    // Pause between requests to avoid hammering the server
+    sleep(1);
 }
