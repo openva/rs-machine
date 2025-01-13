@@ -89,7 +89,8 @@ foreach ($bills as $bill) {
 
         $operation_type = 'update';
     } else {
-        $sql = 'INSERT INTO bills SET date_created=now(), ';
+        $sql = 'INSERT INTO bills
+                SET date_created=now(), ';
         $operation_type = 'add';
     }
 
