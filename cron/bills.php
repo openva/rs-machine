@@ -50,10 +50,8 @@ unset($bills[0]);
 foreach ($bills as $bill) {
     $bill = str_getcsv($bill, ',', '"');
 
-    ###
-    # Before we proceed any farther, see if this record is either new or different than last
-    # time that we examined it.
-    ###
+    // Before we proceed any farther, see if this record is either new or different than last time
+    // time that we examined it.
     $hash = md5(serialize($bill));
     $number = strtolower(trim($bill[0]));
 
@@ -73,7 +71,7 @@ foreach ($bills as $bill) {
      */
     $bill = Import::prepare_bill($bill);
 
-    # Check to see if the bill is already in the database.
+    // Check to see if the bill is already in the database.
     $sql = 'SELECT id
 			FROM bills
 			WHERE number="' . $bill['number'] . '" AND session_id=' . $session_id;
@@ -84,8 +82,8 @@ foreach ($bills as $bill) {
         $existing_bill = mysqli_fetch_assoc($result);
         $sql_suffix = ' WHERE id=' . $existing_bill['id'];
 
-        # Now that we know we're updating a bill, rather than adding a new one, delete the bill from
-        # Memcached.
+        // Now that we know we're updating a bill, rather than adding a new one, delete the bill
+        // from Memcached.
         $mc->delete('bill-' . $existing_bill['id']);
 
         $operation_type = 'update';
@@ -94,14 +92,14 @@ foreach ($bills as $bill) {
         $operation_type = 'add';
     }
 
-    # Prepare the data for the database.
+    // Prepare the data for the database.
     array_walk_recursive($bill, function (&$field) {
         $field = mysqli_real_escape_string($GLOBALS['db'], $field);
     });
 
-    # Now create the code to insert the bill or update the bill, depending
-    # on what the last query established for the preamble.
     $sql .= 'number="' . $bill['number'] . '", session_id="' . $session_id . '",
+    // Now create the code to insert the bill or update the bill, depending on what the last query
+    // established for the preamble.
 			chamber="' . $bill['chamber'] . '", catch_line="' . $bill['catch_line'] . '",
 			chief_patron_id=
 				(SELECT id
@@ -138,7 +136,7 @@ foreach ($bills as $bill) {
         unset($hashes[$number]);
         $missing_legislators[] = $bill['chief_patron_id'];
     } else {
-        //Log the addition or update
+        // Log the addition or update
         if ($operation_type == 'add') {
             $log->put('Created ' . strtoupper($bill['number']) . ': '
                 . stripslashes($bill['catch_line']) . ' (https://richmondsunlight.com/bill/'
@@ -150,14 +148,14 @@ foreach ($bills as $bill) {
                 . '/)', 2);
         }
 
-        # Get the last bill insert ID.
+        // Get the last bill insert ID.
         if (!isset($existing_bill['id'])) {
             $bill['id'] = mysqli_insert_id($GLOBALS['db']);
         } else {
             $bill['id'] = $existing_bill['id'];
         }
 
-        # Create a bill full text record for every version of the bill text that's filed.
+        // Create a bill full text record for every version of the bill text that's filed.
         for ($i = 0; $i < count($bill['text']); $i++) {
             if (!empty($bill['text'][$i]['number']) && !empty($bill['text'][$i]['date'])) {
                 $sql = 'INSERT INTO bills_full_text
@@ -169,19 +167,17 @@ foreach ($bills as $bill) {
         }
     }
 
-    # Unset those variables to avoid reuse.
+    // Unset those variables to avoid reuse.
     unset($sql_suffix);
     unset($bill['id']);
     unset($existing_bill);
 } // end looping through lines in this CSV file
 
-# Store our per-bill hashes array to a file, so that we can open it up next time and see which
-# bills have changed.
+// Store our per-bill hashes array to a file, so that we can open it up next time and see which
+// bills have changed.
 file_put_contents($hash_path, serialize($hashes));
 
-/*
- * If any of these bills are patroned by legislators that we have no record of, log that.
- */
+// If any of these bills are patroned by legislators that we have no record of, log that.
 if (count($missing_legislators) > 0) {
     $log->put('There are bills by ' . count($missing_legislators) . ' legislators that could not '
     . 'be added. That may because of encoding errors in the bill data, but it may be because these '
