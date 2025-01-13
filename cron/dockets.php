@@ -85,7 +85,7 @@ while (($row = fgetcsv($docket_csv)) !== false) {
 }
 
 if ($errors === false && $updates === true) {
-    $log->put('Dockets entries added successfully.', 3);
+    $log->put('Docket entries added successfully.', 3);
 }
 
 // Close the CSV file
