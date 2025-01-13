@@ -8,6 +8,7 @@ $sql = 'SELECT
             bills.id,
             bills.number,
             fiscal_impact_statements.pdf_url,
+            fiscal_impact_statements.id AS fis_id,
                 (SELECT COUNT(*)
                 FROM bills_views
                 WHERE bill_id=bills.id AND
@@ -117,9 +118,10 @@ foreach ($bills as $bill) {
     /*
      * Step 4: Save the Summary
      */
-    $sql = 'UPDATE bills
-            SET notes = "' . mysqli_real_escape_string($GLOBALS['db'], $summary) . '"
-            WHERE id = ' . $bill['id'];
+    $sql = 'UPDATE fiscal_impact_statements
+            SET summary = "' . mysqli_real_escape_string($GLOBALS['db'], $summary) . '"
+            WHERE id = ' . $bill['fis_id'];
+
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false) {
         $log->put('Error: Adding a fiscal impact summary-summary for ' . $bill['number'] . ' failed: '
