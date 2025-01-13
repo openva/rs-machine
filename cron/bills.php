@@ -74,7 +74,8 @@ foreach ($bills as $bill) {
     // Check to see if the bill is already in the database.
     $sql = 'SELECT id
 			FROM bills
-			WHERE number="' . $bill['number'] . '" AND session_id=' . $session_id;
+			WHERE number="' . $bill['number'] . '" AND
+            session_id=' . SESSION_ID;
     $result = mysqli_query($GLOBALS['db'], $sql);
 
     if (mysqli_num_rows($result) > 0) {
@@ -97,9 +98,9 @@ foreach ($bills as $bill) {
         $field = mysqli_real_escape_string($GLOBALS['db'], $field);
     });
 
-    $sql .= 'number="' . $bill['number'] . '", session_id="' . $session_id . '",
     // Now create the code to insert the bill or update the bill, depending on what the last query
     // established for the preamble.
+    $sql .= 'number="' . $bill['number'] . '", session_id="' . SESSION_ID . '",
 			chamber="' . $bill['chamber'] . '", catch_line="' . $bill['catch_line'] . '",
 			chief_patron_id=
 				(SELECT id
