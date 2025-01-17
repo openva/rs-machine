@@ -104,20 +104,20 @@ foreach ($chambers as $chamber) {
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    
+
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
+
     if ($httpCode !== 200) {
         $log->put('Failed to retrieve ' . $chamber . ' votes: HTTP ' . $httpCode, 4);
         continue;
     }
-    
+
     $voteList = json_decode($response, true);
     if (isset($voteList['ShallowVotes'])) {
         $votes = array_merge($votes, $voteList['ShallowVotes']);
     }
-    
+
     curl_close($ch);
     usleep(RATE_LIMIT_SLEEP);
 }
@@ -202,15 +202,15 @@ foreach ($votes as $vote) {
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    
+
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
+
     if ($httpCode !== 200) {
         $log->put('Failed to retrieve vote details for vote ID ' . $vote['VoteID'] . ': HTTP ' . $httpCode, 4);
         continue;
     }
-    
+
     $voteDetails = json_decode($response, true);
     print_r($voteDetails);
     curl_close($ch);
