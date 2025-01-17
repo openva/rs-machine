@@ -6,19 +6,11 @@
  * queries for the two update loops.
  */
 
-# Don't bother to run this if the General Assembly isn't in session.
+// Don't bother to run this if the General Assembly isn't in session.
 if (IN_SESSION == false) {
     return false;
 }
-
-# Give this script 60 seconds to complete.
-set_time_limit(240);
-
-# FUNDAMENTAL VARIABLES
-$session_id = SESSION_ID;
-$session_year = SESSION_YEAR;
-$dlas_session_id = SESSION_LIS_ID;
-
+die('do not actually run now');
 /*
  * Instantiate the logging class
  */
@@ -27,11 +19,10 @@ $log = new Log();
 $import = new Import($log);
 
 # DECLARATIVE FUNCTIONS
-# Run those functions that are necessary prior to loading this specific
-# page.
+# Run those functions that are necessary prior to loading this specific page.
 $db = new PDO(PDO_DSN, PDO_USERNAME, PDO_PASSWORD, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT));
 
-# LEGISLATOR ID TRANSLATION
+// LEGISLATOR ID TRANSLATION
 $sql = 'SELECT id, lis_id, chamber
 		FROM representatives
 		WHERE date_ended IS NULL AND lis_id IS NOT NULL
@@ -47,13 +38,13 @@ while ($legislator = $result->fetch(PDO::FETCH_ASSOC)) {
 }
 
 # COMMITTEE ID TRANSLATION
-$sql = 'SELECT id, lis_id, chamber
+$sql = 'SELECT id, lis_id, chamber, name
 		FROM committees
 		WHERE parent_id IS NULL
 		ORDER BY id ASC';
 $result = $db->query($sql);
 if (($result === false) || ($result->rowCount() == 0)) {
-    $log->put('No committees were found in the database, which seems bad.', 9);
+    $log->put('Error: No committees were found in the database, which seems bad.', 9);
     return false;
 }
 $committees = array();
@@ -77,10 +68,9 @@ $sql = 'SELECT DISTINCT bills_status.lis_vote_id
 			(SELECT COUNT(*)
 			FROM votes
 			WHERE lis_id = bills_status.lis_vote_id
-			AND session_id=' . $session_id . ') = 0
-		AND bills.session_id = ' . $session_id . ' AND bills_status.lis_vote_id IS NOT NULL
+			AND session_id=' . SESSION_ID . ') = 0
+		AND bills.session_id = ' . SESSION_ID . ' AND bills_status.lis_vote_id IS NOT NULL
 		AND CHAR_LENGTH(bills_status.lis_vote_id) <= 8';
-        //AND DATEDIFF(now(), bills_status.date) <= 2';
 $result = $db->query($sql);
 if ($result === false) {
     return false;
@@ -97,76 +87,69 @@ while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC)) {
 $mc = new Memcached();
 $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 
-/*
- * Don't bother if the file hasn't changed.
- */
-$vote_hash = md5(file_get_contents(__DIR__ . '/vote.csv'));
-if ($mc->get('vote-csv-hash') == $vote_hash) {
-    $log->put('Bill votes unchanged', 2);
-    return;
-}
+define('API_BASE_URL', 'https://lis.virginia.gov/Vote/api');
+define('RATE_LIMIT_SLEEP', 1000);
 
-/*
- * Save the new hash.
- */
-$mc->set('vote-csv-hash', $vote_hash);
+$headers = [
+    'WebAPIKey: ' . LIS_KEY,
+    'Content-Type: application/json'
+];
 
-# Open the vote CSV.
-$fp = fopen(__DIR__ . '/vote.csv', 'r');
+$votes = [];
+$chambers = ['H', 'S'];
 
-# Step through each row in the CSV file, one by one.
-while (($vote = fgetcsv($fp, 2500, ',')) !== false) {
-    # Only deal with votes that were tallied -- that is, that have row counts greater than 1.
-    if (count($vote) > 1) {
-        # If our list of votes for which we have no record doesn't contain this vote, then
-        # skip to the next line in the CSV file.
-        if (in_array($vote[0], $empty_votes)) {
-            # Buld up an array of votes.
-            $votes[] = $vote;
-        }
+foreach ($chambers as $chamber) {
+    $url = API_BASE_URL . '/getshallowvoteasync?sessionCode=20' . SESSION_LIS_ID . '&chamberCode=' . $chamber;
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
+    if ($httpCode !== 200) {
+        $log->put('Failed to retrieve ' . $chamber . ' votes: HTTP ' . $httpCode, 4);
+        continue;
     }
+    
+    $voteList = json_decode($response, true);
+    if (isset($voteList['ShallowVotes'])) {
+        $votes = array_merge($votes, $voteList['ShallowVotes']);
+    }
+    
+    curl_close($ch);
+    usleep(RATE_LIMIT_SLEEP);
 }
 
-# Close the CSV file.
-fclose($fp);
-
-# We no longer need our array of empty votes.
-unset($empty_votes);
-
-if (!isset($votes) || count($votes) == 0) {
-    $log->put('vote.csv contained no votes.', 3);
+if (empty($votes)) {
+    $log->put('No votes found for session ' . SESSION_ID, 3);
     return false;
 }
 
 foreach ($votes as $vote) {
     # Get the LIS vote ID.
-    $lis_vote_id = $vote[0];
+    $lis_vote_id = $vote['VoteNumber'];
 
     # Get the chamber.
-    if ($lis_vote_id{0} == 'H') {
+    if ($vote['ChamberCode'] == 'H') {
         $chamber = 'house';
-    } elseif ($lis_vote_id{0} == 'S') {
+    } elseif ($vote['ChamberCode'] == 'S') {
         $chamber = 'senate';
     }
 
-    # Set some default variables.
+    // Set default tally values
+    $tally = array();
     $tally['Y'] = 0;
     $tally['N'] = 0;
     $tally['X'] = 0;
 
-    # Iterate through the votes cast on this one bill.
-    for ($i = 1; $i < count($vote); $i++) {
-        if (($i % 2) == 1) {
-            $legislator[$i]['id'] = $import->lookup_legislator_id($legislators, $vote[$i]);
-        } elseif (($i % 2) == 0) {
-            $legislator[$i - 1]['vote'] = $vote[$i];
-            if ($vote[$i] == 'Y') {
-                $tally['Y']++;
-            } elseif ($vote[$i] == 'N') {
-                $tally['N']++;
-            } elseif ($vote[$i] == 'X') {
-                $tally['X']++;
-            }
+    // Parse the vote tally string (e.g., "36-Y 1-N 1-X")
+    if (preg_match_all('/(\d+)-([YNX])/', $vote['VoteTally'], $matches)) {
+        for ($i = 0; $i < count($matches[1]); $i++) {
+            $count = $matches[1][$i];
+            $type = $matches[2][$i];
+            $tally[$type] = (int)$count;
         }
     }
 
@@ -186,29 +169,62 @@ foreach ($votes as $vote) {
     }
     $tally = $final_tally;
 
-    $vote_prefix = substr($lis_vote_id, 0, 3);
+    $vote_prefix = substr($vote['VoteNumber'], 0, 3);
 
     # If there's a committee's LIS ID in the vote prefix then figure out
     # the internal committee ID.  But LIS often provides a committee ID
     # for floor votes, for no apparent reason.  For this reason, only assign
     # a committee ID if the total number of votes cast is less than a big
     # chunk of the chamber.
-    if (preg_match('/^([h-s]{1})([0-9]{2})/Di', $vote_prefix, $regs)) {
-        # Only bother to look up the ID if there are few enough votes that it could
-        # plausibly be an in-committee vote.
-        if (
-            (($chamber == 'senate') && ($total < 25))
-            || (($chamber == 'house') && ($total < 80))
-        ) {
-            $committee_id = $import->lookup_committee_id($committees, $vote_prefix);
-        }
+    # Only bother to look up the ID if there are few enough votes that it could
+    # plausibly be an in-committee vote.
+    if (
+        (($chamber == 'senate') && ($total < 25))
+        || (($chamber == 'house') && ($total < 80))
+    ) {
+        //CommitteeName
+        //CommitteeID
+        //chamber
+        //////////////////////////////
+        //////////////////////////////
+        // These IDs are totally unrelated IDs to what's used elsewhere on the website. You'll have to
+        // look up the committee info using other means, presumably a Levenshtein match on the committee
+        // name and chamber.
+        //////////////////////////////
+        //////////////////////////////
+        $committee_id = $import->lookup_committee_id($committees, $vote_prefix);
+    }
+
+    // Fetch the detailed vote information from the API
+    $url = API_BASE_URL . '/GetVoteByIDAsync?voteID=' . $vote['VoteID'] . '&sessionCode=20'
+        . SESSION_LIS_ID;
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
+    if ($httpCode !== 200) {
+        $log->put('Failed to retrieve vote details for vote ID ' . $vote['VoteID'] . ': HTTP ' . $httpCode, 4);
+        continue;
+    }
+    
+    $voteDetails = json_decode($response, true);
+    print_r($voteDetails);
+    curl_close($ch);
+
+    if (empty($voteDetails['Votes'][0]['VoteMember'])) {
+        $log->put('No vote members found for vote ID ' . $vote['VoteID'], 3);
+        continue;
     }
 
     # Create a record for this vote.
     $sql = 'INSERT INTO votes
-			SET lis_id="' . $lis_vote_id . '", tally="' . $tally . '", session_id="' . $session_id . '",
-			total=' . $total . ', outcome="' . $outcome . '", chamber="' . $chamber . '",
-			date_created=now()';
+            SET lis_id="' . $lis_vote_id . '", tally="' . $tally . '", session_id="' . SESSION_ID . '",
+            total=' . $total . ', outcome="' . $outcome . '", chamber="' . $chamber . '",
+            date_created=now()';
     if (!empty($committee_id)) {
         $sql .= ', committee_id=' . $committee_id;
     }
@@ -225,25 +241,23 @@ foreach ($votes as $vote) {
         # Get the ID for that vote.
         $vote_id = $db->lastInsertID();
 
-        # Iterate through the legislators' votes and insert them after reindexing the array.
-        $legislator = array_values($legislator);
-        for ($i = 0; $i < count($legislator); $i++) {
-            if (!empty($legislator[$i]['id']) && !empty($legislator[$i]['vote'])) {
-                # Convert blank votes into the abstensions that they represent.
-                if ($legislator[$i]['vote'] == ' ') {
-                    $legislator[$i]['vote'] = 'A';
-                }
-
-                $sql = 'INSERT DELAYED INTO representatives_votes
-						SET representative_id=' . $legislator[$i]['id'] . ',
-						vote="' . $legislator[$i]['vote'] . '", vote_id=' . $vote_id . ',
-						date_created=now()
-						ON DUPLICATE KEY UPDATE vote=vote';
-                $result = $db->exec($sql);
-                if ($result === false) {
-                    echo '<p>Insertion of vote record failed: <code>' . $sql . '</code></p>';
-                    $log->put('A legislator’s vote could not be inserted into the database.' . $sql, 7);
-                }
+        # Iterate through the legislators' votes and insert them.
+        foreach ($voteDetails['Votes'][0]['VoteMember'] as $legislator_vote) {
+            $sql = 'INSERT INTO representatives_votes
+                    SET
+                        representative_id=
+                            (SELECT id
+                            FROM representatives
+                            WHERE
+                                lis_id="' . $legislator_vote['MemberID'] . '" AND
+                                chamber="' . $chamber . '"),
+                        vote="' . $legislator_vote['ResponseCode'] . '",
+                        vote_id=' . $vote_id . ',
+                        date_created=now()
+                    ON DUPLICATE KEY UPDATE vote=VALUES(vote)';
+            $result = $db->exec($sql);
+            if ($result === false) {
+                $log->put('Error: A legislator’s vote could not be inserted into the database.' . $sql, 7);
             }
         }
     }
@@ -264,12 +278,18 @@ foreach ($votes as $vote) {
 # floor.
 $sql = 'UPDATE votes
 		SET committee_id = NULL
-		WHERE chamber = "senate" AND committee_id IS NOT NULL AND total > 20';
+		WHERE
+            chamber = "senate" AND
+            committee_id IS NOT NULL AND
+            total > 20';
 $db->exec($sql);
 
 $sql = 'UPDATE votes
 		SET committee_id = NULL
-		WHERE chamber="house" AND committee_id IS NOT NULL AND total > 30';
+		WHERE
+            chamber="house" AND
+            committee_id IS NOT NULL AND
+            total > 30';
 $db->exec($sql);
 
 # Synchronize the votes table to set the date field to be the same as the date in the
@@ -281,8 +301,9 @@ $sql = 'UPDATE votes
 			FROM bills_status
 			LEFT JOIN bills
 				ON bills_status.bill_id=bills.id
-			WHERE bills_status.lis_vote_id = votes.lis_id
-			AND bills.session_id=votes.session_id
+			WHERE
+                bills_status.lis_vote_id = votes.lis_id AND
+                bills.session_id=votes.session_id
 			LIMIT 1)
 		WHERE date IS NULL';
 $db->exec($sql);
