@@ -238,7 +238,6 @@ $required_fields = array(
     'date_started',
     'party',
     'lis_id',
-    'lis_shortname',
     'email'
 );
 
@@ -343,7 +342,6 @@ foreach ($delegates as $lis_id => $name) {
             'date_started',
             'party',
             'lis_id',
-            'lis_shortname',
             'email'
         );
 
