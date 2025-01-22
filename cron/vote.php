@@ -193,7 +193,7 @@ foreach ($votes as $vote) {
     }
 
     if (!isset($vote['VoteMember']) || count($vote['VoteMember']) < 1) {
-        $log->put('No vote members found for vote ID ' . $vote['VoteID'], 3);
+        $log->put('No vote members found for vote ID ' . $vote['VoteID'], 2);
         continue;
     }
 
