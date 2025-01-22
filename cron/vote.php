@@ -192,53 +192,70 @@ foreach ($votes as $vote) {
     # Create a record for this vote.
     $sql = 'INSERT INTO votes
             SET
-                lis_id="' . $vote['VoteNumber'] . '",
-                tally="' . $tally . '",
-                session_id="' . SESSION_ID . '",
-                total=' . $total . ',
-                outcome="' . $outcome . '",
-                chamber="' . $chamber . '",
+                lis_id=:lis_id,
+                tally=:tally,
+                session_id=:session_id,
+                total=:total,
+                outcome=:outcome,
+                chamber=:chamber,
                 date_created=now()';
     if (!empty($committee_id)) {
-        $sql .= ', committee_id=' . $committee_id;
+        $sql .= ', committee_id=:committee_id';
     }
     if (!empty($committee_id)) {
-        $sql .= ' ON DUPLICATE KEY UPDATE committee_id=' . $committee_id;
+        $sql .= ' ON DUPLICATE KEY UPDATE committee_id=:committee_id';
     } else {
         $sql .= ' ON DUPLICATE KEY update total=total';
     }
-    $result = $db->exec($sql);
+    $stmt = $db->prepare($sql);
+    $session_id = SESSION_ID;  // Create variable to hold session ID
+    $stmt->bindParam(':lis_id', $vote['VoteNumber']);
+    $stmt->bindParam(':tally', $tally);
+    $stmt->bindParam(':session_id', $session_id); // Pass variable reference
+    $stmt->bindParam(':total', $total);
+    $stmt->bindParam(':outcome', $outcome);
+    $stmt->bindParam(':chamber', $chamber);
+    if (!empty($committee_id)) {
+        $stmt->bindParam(':committee_id', $committee_id);
+    }
+    $result = $stmt->execute();
 
     if ($result === false) {
         $log->put('New vote could not be inserted into the database.' . $sql, 9);
     } else {
         # Get the ID for that vote.
-        $vote_id = $db->lastInsertID();
+        $vote_id = $db->lastInsertId();
 
         # Iterate through the legislators' votes and insert them.
         if (isset($vote['VoteMember']) && count($vote['VoteMember']) > 0) {
+            $sql = 'INSERT INTO representatives_votes
+                    SET
+                        representative_id=
+                            (SELECT id
+                            FROM representatives
+                            WHERE
+                                lis_id=:lis_id AND
+                                chamber=:chamber),
+                        vote=:vote,
+                        vote_id=:vote_id,
+                        date_created=now()
+                    ON DUPLICATE KEY UPDATE vote=VALUES(vote)';
+            $stmt = $db->prepare($sql);
             foreach ($vote['VoteMember'] as $legislator_vote) {
-                $sql = 'INSERT INTO representatives_votes
-                        SET
-                            representative_id=
-                                (SELECT id
-                                FROM representatives
-                                WHERE
-                                    lis_id="' .
-                                        $member_id = (int)preg_replace('/[^0-9]/', '', $legislator_vote['MemberNumber'])
-                                    . '" AND
-                                    chamber="' . $chamber . '"),
-                            vote="' . $legislator_vote['ResponseCode'] . '",
-                            vote_id=' . $vote_id . ',
-                            date_created=now()
-                        ON DUPLICATE KEY UPDATE vote=VALUES(vote)';
-                $result = $db->exec($sql);
+                $member_id = (int)preg_replace('/[^0-9]/', '', $legislator_vote['MemberNumber']);
+                $stmt->bindParam(':lis_id', $member_id);
+                $stmt->bindParam(':chamber', $chamber);
+                $stmt->bindParam(':vote', $legislator_vote['ResponseCode']);
+                $stmt->bindParam(':vote_id', $vote_id);
+                $result = $stmt->execute();
                 if ($result === false) {
                     $log->put('Error: A legislator’s vote could not be inserted into the database.' . $sql, 7);
                 }
             }
         }
-   }
+    }
+
+    die();
 
     # Clear out the variables
     unset($final_tally);
