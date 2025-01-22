@@ -181,7 +181,7 @@ foreach ($votes as $vote) {
     # But LIS often provides a committee ID for floor votes, for no apparent reason.  For this
     # reason, only assign a committee ID if the total number of votes cast is less than a big chunk
     # of the chamber.
-    # 
+    #
     # Only bother to look up the ID if there are few enough votes that it could plausibly be an
     # in-committee vote.
     if (
