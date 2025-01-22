@@ -118,6 +118,19 @@ if (empty($votes)) {
     return false;
 }
 
+// Check if the vote data has changed
+$votes_hash = hash('sha256', json_encode($votes));
+if (file_exists('votes.json')) {
+    $cached_votes_hash = hash_file('sha256', 'votes.json');
+    if ($votes_hash === $cached_votes_hash) {
+        $log->put('Vote data has not changed.', 2);
+        return;
+    }
+}
+
+// Cache the vote file
+file_put_contents('votes.json', json_encode($votes));
+
 // Iterate through the API response, which is a list of every vote cast so far in this session
 foreach ($votes as $vote) {
     // Only bother with votes that we know we are missing (because their identifier is present
