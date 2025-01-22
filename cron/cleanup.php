@@ -621,6 +621,11 @@ if (mysqli_num_rows($result) > 0) {
     }
 }
 
+// We wind up with bills tagged "Virginia." This is not useful.
+$sql = 'DELETE
+        FROM tags
+        WHERE tag="virginia"';
+mysqli_query($GLOBALS['db'], $sql);
 
 ###
 # UPDATE BILLS' HOTNESS RANKING
