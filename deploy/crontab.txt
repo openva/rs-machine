@@ -7,9 +7,8 @@
 02 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh HISTORY.CSV rs-machine/cron/history.csv
 02 6-23 * * * /usr/bin/php rs-machine/cron/update.php history
 
-# The daily script that collects and tallies votes. This runs at 3:00, an hour after DLAS outputs their data.
-0 3 * * * /bin/bash rs-machine/cron/fetch_csv.sh VOTE.CSV rs-machine/cron/vote.csv
-0 3 * * * /usr/bin/php rs-machine/cron/update.php vote
+# The script that collects and tallies votes.
+0 10,13,16,21 * * * /usr/bin/php rs-machine/cron/update.php vote
 
 # Collects scheduled meetings and hearings.
 09 6-15 * * * /usr/bin/php rs-machine/cron/update.php dockets
