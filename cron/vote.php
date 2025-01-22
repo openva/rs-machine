@@ -81,12 +81,6 @@ while ($empty_vote = $result->fetch(PDO::FETCH_ASSOC)) {
     $empty_votes[] = $empty_vote['lis_vote_id'];
 }
 
-/*
- * Connect to Memcached, since we'll be interacting with it during this session.
- */
-$mc = new Memcached();
-$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
-
 define('API_BASE_URL', 'https://lis.virginia.gov/Vote/api');
 define('RATE_LIMIT_SLEEP', 1000);
 
