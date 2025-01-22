@@ -168,6 +168,9 @@ while ($bill = mysqli_fetch_array($result)) {
 
     $places = explode(', ', $generated_text);
 
+    // Make $places unique
+    $places = array_unique($places);
+
     /*
      * Iterate through each returned place
      */
