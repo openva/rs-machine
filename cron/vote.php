@@ -120,8 +120,9 @@ if (empty($votes)) {
 
 // Check if the vote data has changed
 $votes_hash = hash('sha256', json_encode($votes));
-if (file_exists('votes.json')) {
-    $cached_votes_hash = hash_file('sha256', 'votes.json');
+$votes_file_path = __DIR__ . '/votes.json';
+if (file_exists($votes_file_path)) {
+    $cached_votes_hash = hash_file('sha256', $votes_file_path);
     if ($votes_hash === $cached_votes_hash) {
         $log->put('Vote data has not changed.', 2);
         return;
@@ -129,7 +130,7 @@ if (file_exists('votes.json')) {
 }
 
 // Cache the vote file
-file_put_contents('votes.json', json_encode($votes));
+file_put_contents($votes_file_path, json_encode($votes));
 
 // Iterate through the API response, which is a list of every vote cast so far in this session
 foreach ($votes as $vote) {
