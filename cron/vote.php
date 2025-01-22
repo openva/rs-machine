@@ -1,11 +1,5 @@
 <?php
 
-/*
- * TO DO
- * It's swell that we've moved this to use PDO-based queries, but we still need to move to prepared
- * queries for the two update loops.
- */
-
 // Don't bother to run this if the General Assembly isn't in session.
 if (IN_SESSION == false) {
     return false;
