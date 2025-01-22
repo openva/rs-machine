@@ -262,8 +262,6 @@ foreach ($votes as $vote) {
         }
     }
 
-    die();
-
     # Clear out the variables
     unset($final_tally);
     unset($outcome);
