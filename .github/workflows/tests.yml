@@ -1,0 +1,32 @@
+name: PHP Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+
+    - name: Copy test data
+      run: |
+        mkdir -p deploy/tests/data
+        cp deploy/tests/data/test_bills.csv deploy/tests/data/bills.csv
+
+    - name: Install dependencies
+      run: |
+        composer install --prefer-dist --no-progress
+
+    - name: Run test suite
+      run: |
+        ./includes/vendor/bin/phpunit --configuration phpunit.xml
