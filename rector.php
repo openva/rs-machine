@@ -34,4 +34,3 @@ return static function (RectorConfig $rectorConfig): void {
     //     SetList::DEAD_CODE,  // But be careful that it doesn't introduce PHP 7+ array destructuring, etc.
     // ]);
 };
-
