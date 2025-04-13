@@ -30,7 +30,7 @@ $sql = 'SELECT id, lis_id, chamber
 		ORDER BY lis_id ASC';
 $result = mysqli_query($GLOBALS['db'], $sql);
 while ($legislator = mysqli_fetch_array($result)) {
-    $tmp = strtoupper($legislator['chamber']{0});
+    $tmp = strtoupper($legislator['chamber'][0]);
     $tmp .= $legislator['lis_id'];
     $legislators[$tmp] = $legislator['id'];
 }
@@ -81,7 +81,7 @@ while ($bill = mysqli_fetch_array($result)) {
                 # Build up an array of copatrons for this bill.
                 $tmp = $copatron[1];
                 # Convert the LIS ID to the Richmond Sunlight ID.
-                $tmp = $legislators{$tmp};
+                $tmp = $legislators[$tmp];
                 # Only proceed if this copatron isn't the chief patron.
                 if ($tmp != $bill['chief_patron_id']) {
                     $copatrons[] = $tmp;

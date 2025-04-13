@@ -62,7 +62,7 @@ $result = mysqli_query($GLOBALS['db'], $sql);
 if (mysqli_num_rows($result) > 0) {
     $bills = array();
     while ($bill = mysqli_fetch_array($result)) {
-        $bills[$bill{number}] = $bill['id'];
+        $bills[$bill['number']] = $bill['id'];
     }
 }
 
@@ -165,7 +165,7 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== false) {
         /*
          * Look up the bill ID for this bill number.
          */
-        $bill_id = $bills[strtolower($summary{number})];
+        $bill_id = $bills[strtolower($summary['number'])];
         if (empty($bill_id)) {
             $log->put('Summary found for ' . $summary['number']
                 . ', but we have no record of that bill.', 2);
