@@ -17,6 +17,3 @@ sudo apt-get -y upgrade
 sudo apt-get install -y php-mysql php-memcached php-xml composer zip ruby awscli npm expect \
     memcached poppler-utils
 sudo npm i -g csvtojson
-
-# Allow "node" to invoke Node.js (as csvtojson requires).
-sudo ln -s /usr/bin/nodejs /usr/bin/node
