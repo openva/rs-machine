@@ -14,8 +14,8 @@ sudo apt-get update
 sudo apt-get -y upgrade
 
 # Install necessary packages.
-sudo apt-get install -y php5.6-cli php5.6-mysql php5.6-curl php5.6-memcached php5.6-xml \
-    php5.6-mbstring composer zip ruby awscli npm expect memcached poppler-utils
+sudo apt-get install -y php-mysql php-memcached php-xml composer zip ruby awscli npm expect \
+    memcached poppler-utils
 sudo npm i -g csvtojson
 
 # Allow "node" to invoke Node.js (as csvtojson requires).
