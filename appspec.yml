@@ -12,7 +12,13 @@ permissions:
       type:
        - directory
 hooks:
-# BeforeInstall:
-#    - location: deploy/predeploy.sh
+  BeforeInstall:
+    - location: deploy/predeploy.sh
+      runas: ubuntu
+      timeout: 300
+      interpreter: ["/bin/bash", "deploy/predeploy.sh"]
   AfterInstall:
     - location: deploy/postdeploy.sh
+      runas: ubuntu
+      timeout: 300
+      interpreter: ["/bin/bash", "deploy/postdeploy.sh"]
