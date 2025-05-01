@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Change the timezone to Eastern
-sudo timedatectl set-timezone EST
+sudo timedatectl set-timezone America/New_York
 
 # Update the OS
 sudo apt-get update
