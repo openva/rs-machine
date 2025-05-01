@@ -8,7 +8,7 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
  * Connect to the database.
  */
 $db = new Database();
-$db->connect_old();
+$db->connect();
 
 /*
  * Instantiate the logging class.

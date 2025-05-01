@@ -80,7 +80,6 @@ else {
 # DECLARATIVE FUNCTIONS
 # Run those functions that are necessary prior to loading this specific page.
 $database = new Database();
-$database->connect_old();
 $database->connect_mysqli();
 $dbh = new PDO(PDO_DSN, PDO_USERNAME, PDO_PASSWORD);
 if ($dbh === false) {
