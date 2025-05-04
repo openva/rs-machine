@@ -39,7 +39,7 @@ while ($legislator = mysqli_fetch_array($result)) {
     $result2 = mysqli_query($GLOBALS['db'], $sql);
     $tmp = array();
     while ($copatron = mysqli_fetch_array($result2)) {
-        $tmp[$copatron{'party'}] = $copatron['number'];
+        $tmp[$copatron['party']] = $copatron['number'];
     }
     $total = array_sum($tmp);
     if ($total > 0) {
@@ -73,7 +73,7 @@ while ($legislator = mysqli_fetch_array($result)) {
     $result2 = mysqli_query($GLOBALS['db'], $sql);
     $tmp = array();
     while ($copatron = mysqli_fetch_array($result2)) {
-        $tmp[$copatron{'party'}] = $copatron['number'];
+        $tmp[$copatron['party']] = $copatron['number'];
     }
     $total = array_sum($tmp);
     if ($total > 0) {
@@ -109,7 +109,7 @@ while ($legislator = mysqli_fetch_array($result)) {
     $result2 = mysqli_query($GLOBALS['db'], $sql);
     $tmp = array();
     while ($copatron = mysqli_fetch_array($result2)) {
-        $tmp[$copatron{'party'}] = $copatron['number'];
+        $tmp[$copatron['party']] = $copatron['number'];
     }
     $total = array_sum($tmp);
     if ($total > 0) {
@@ -143,7 +143,7 @@ while ($legislator = mysqli_fetch_array($result)) {
         if (mysqli_num_rows($result2) > 0) {
             $tmp = array();
             while ($chamber = mysqli_fetch_array($result2)) {
-                $tmp[$chamber{'party'}] = $chamber['number'];
+                $tmp[$chamber['party']] = $chamber['number'];
             }
             $total = array_sum($tmp);
             arsort($tmp);

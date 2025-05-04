@@ -1,26 +1,26 @@
 <?php
 
-    ###
-    # Send Photosynthesis Bill Update E-Mails
-    #
-    # PURPOSE
-    # Generates a per-user listing of all bills that were advanced in the period in
-    # question (either the past hour or the past day).
-    #
-    # TODO
-    # * Set the period option to work. It does nothing right now -- all of the code defaults to
-    #   daily.
-    # * Add an unsubscribe footer.
-    #
-    ###
+###
+# Send Photosynthesis Bill Update E-Mails
+#
+# PURPOSE
+# Generates a per-user listing of all bills that were advanced in the period in
+# question (either the past hour or the past day).
+#
+# TODO
+# * Set the period option to work. It does nothing right now -- all of the code defaults to
+#   daily.
+# * Add an unsubscribe footer.
+#
+###
 
-    # INCLUDES
-    # Include any files or libraries that are necessary for this specific
-    # page to function.
-    require_once __DIR__ . '/../includes/settings.inc.php';
-    require_once __DIR__ . '/../includes/functions.inc.php';
-    require_once __DIR__ . '/../includes/photosynthesis.inc.php';
-    require_once __DIR__ . '/../includes/phpmailer/class.phpmailer.php';
+# INCLUDES
+# Include any files or libraries that are necessary for this specific
+# page to function.
+require_once __DIR__ . '/../includes/settings.inc.php';
+require_once __DIR__ . '/../includes/functions.inc.php';
+require_once __DIR__ . '/../includes/photosynthesis.inc.php';
+require_once __DIR__ . '/../includes/phpmailer/class.phpmailer.php';
 
     # Don't bother to run this if the General Assembly isn't in session.
 if (LEGISLATIVE_SEASON == false) {
@@ -42,18 +42,18 @@ if ($period == 'daily') {
 }
 
 
-    # THE MAIN PAGE
+# THE MAIN PAGE
 
-    # Generate a list of every bill that has been advanced within this period.
-    $sql = 'SELECT bills.id, bills.number, bills.catch_line, bills_status.status,
-			bills_status.translation
-			FROM bills_status LEFT JOIN bills ON bills_status.bill_id = bills.id
-			WHERE bills_status.session_id=4 AND bills_status.date =  "' . $today . '"
-			ORDER by bills.number ASC, bills_status.date_created ASC, bills_status.id ASC';
-    $result = mysqli_query($GLOBALS['db'], $sql);
+# Generate a list of every bill that has been advanced within this period.
+$sql = 'SELECT bills.id, bills.number, bills.catch_line, bills_status.status,
+        bills_status.translation
+        FROM bills_status LEFT JOIN bills ON bills_status.bill_id = bills.id
+        WHERE bills_status.session_id=4 AND bills_status.date =  "' . $today . '"
+        ORDER by bills.number ASC, bills_status.date_created ASC, bills_status.id ASC';
+$result = mysqli_query($GLOBALS['db'], $sql);
 
-    # If nothing has happened within this period -- as will happen ~half of the time --
-    # simply stop processing.
+# If nothing has happened within this period -- as will happen ~half of the time --
+# simply stop processing.
 if (mysqli_num_rows($result) == 0) {
     exit('No actions were found in this period.');
 }
@@ -61,28 +61,28 @@ if (mysqli_num_rows($result) == 0) {
     # Store the actions in an array indexed by bill ID.
 while ($status = mysqli_fetch_array($result)) {
     $status = array_map('stripslashes', $status);
-    $action[$status{id}][] = $status;
+    $action[$status['id']][] = $status;
 }
 
 
-    # Step through every current paid PS member who is tracking any bills in portfolio w/ e-mail
-    # updates on this frequency, and currently has updates enabled. Also include a list of every
-    # bill ID that the member wants updates on.
-    $sql = 'SELECT DISTINCT dashboard_portfolios.user_id, users.name, users.email,
-				(SELECT GROUP_CONCAT(bill_id)
-				FROM dashboard_bills LEFT JOIN dashboard_portfolios
-				ON dashboard_bills.portfolio_id = dashboard_portfolios.id
-				WHERE dashboard_bills.user_id = users.id
-				AND dashboard_portfolios.notify = "daily") AS bills,
-			dashboard_user_data.unsub_hash
-			FROM users LEFT JOIN dashboard_portfolios
-			ON users.id = dashboard_portfolios.user_id
-			LEFT JOIN dashboard_user_data
-			ON dashboard_portfolios.user_id = dashboard_user_data.user_id
-			WHERE dashboard_user_data.email_active = "y" AND dashboard_user_data.type="paid"
-			AND (dashboard_user_data.expires > now() OR dashboard_user_data.expires IS NULL)
-			HAVING bills IS NOT NULL';
-    $result = mysqli_query($GLOBALS['db'], $sql);
+# Step through every current paid PS member who is tracking any bills in portfolio w/ e-mail
+# updates on this frequency, and currently has updates enabled. Also include a list of every
+# bill ID that the member wants updates on.
+$sql = 'SELECT DISTINCT dashboard_portfolios.user_id, users.name, users.email,
+            (SELECT GROUP_CONCAT(bill_id)
+            FROM dashboard_bills LEFT JOIN dashboard_portfolios
+            ON dashboard_bills.portfolio_id = dashboard_portfolios.id
+            WHERE dashboard_bills.user_id = users.id
+            AND dashboard_portfolios.notify = "daily") AS bills,
+        dashboard_user_data.unsub_hash
+        FROM users LEFT JOIN dashboard_portfolios
+        ON users.id = dashboard_portfolios.user_id
+        LEFT JOIN dashboard_user_data
+        ON dashboard_portfolios.user_id = dashboard_user_data.user_id
+        WHERE dashboard_user_data.email_active = "y" AND dashboard_user_data.type="paid"
+        AND (dashboard_user_data.expires > now() OR dashboard_user_data.expires IS NULL)
+        HAVING bills IS NOT NULL';
+$result = mysqli_query($GLOBALS['db'], $sql);
 
     # If no paid users are tracking any bills (it could happen), then simply stop processing.
 if (mysqli_num_rows($result) == 0) {

@@ -165,7 +165,7 @@ if (mysqli_num_rows($result) > 0) {
         if (empty($membership['position'])) {
             $membership['position'] = 'member';
         }
-        $committees[$membership{'committee'}][] = array($membership['name'], $membership['id'], $membership['position']);
+        $committees[$membership['committee']][] = array($membership['name'], $membership['id'], $membership['position']);
     }
     $committees = json_encode($committees);
     file_put_contents($downloads_dir . 'committees.json', $committees);
