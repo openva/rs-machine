@@ -1,6 +1,11 @@
 <?php
 
 /*
+ * Instantiate the logging class
+ */
+$log = new Log();
+
+/*
  * Open the bills CSV.
  */
 $bills = file_get_contents(__DIR__ . '/bills.csv');
@@ -69,7 +74,8 @@ foreach ($bills as $bill) {
     /*
      * Clean up the bill CSV
      */
-    $bill = Import::prepare_bill($bill);
+    $import = new Import($log);
+    $bill = $import->prepare_bill($bill);
 
     // Check to see if the bill is already in the database.
     $sql = 'SELECT id
