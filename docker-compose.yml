@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  machine:
+    build: .
+    container_name: rs_machine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: richmondsunlight
+      DB_USER: ricsun
+      DB_PASS: password
+    volumes:
+      - .:/home/ubuntu/rs-machine/
+    working_dir: /home/ubuntu/rs-machine/
+    command: tail -f /dev/null
+
+  db:
+    image: mariadb:10.5
+    container_name: rs_machine_db
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: richmondsunlight
+      MYSQL_USER: ricsun
+      MYSQL_PASSWORD: password  
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
