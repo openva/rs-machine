@@ -1,4 +1,4 @@
-name: PHP Tests
+name: Tests
 
 on:
   push:
@@ -10,22 +10,54 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mariadb:10.5
+        ports: ['3306:3306']
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: richmondsunlight
+          MYSQL_USER: ricsun
+          MYSQL_PASSWORD: password
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Chec kout repo
+      uses: actions/checkout@v4
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.3'
+        php-version: '8.4'
 
     - name: Copy test data
       run: |
         mkdir -p deploy/tests/data
         cp deploy/tests/data/test_bills.csv deploy/tests/data/bills.csv
 
-    - name: Install dependencies
+    - name: Install APT dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y php-cli php-mysql
+
+    - name: Install Composer dependencies
       run: |
         composer install --prefer-dist --no-progress
+
+    - name: Wait for database
+      run: |
+        for i in {1..10}; do
+          if mysqladmin ping -h 127.0.0.1 -u ricsun -ppassword --silent; then
+            echo "Database is up!"
+            break
+          fi
+          echo "Waiting for database..."
+          sleep 5
+        done
 
     - name: Run test suite
       run: |
