@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required packages
 RUN apt-get update && apt-get install -y \
     php-cli php-curl php-mysql php-mbstring php-xml php-zip \
-    unzip git curl mariadb-client && \
+    php-memcached memcached unzip git curl mariadb-client && \
     apt-get clean
 
 # Set the working directory
