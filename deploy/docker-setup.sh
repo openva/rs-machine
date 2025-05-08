@@ -7,3 +7,4 @@ composer install
 
 # Move over the settings file.
 cp deploy/settings-docker.inc.php includes/settings.inc.php
+
