@@ -109,10 +109,10 @@ if (
 ) {
     define('IN_SESSION', true);
 } else {
-    define('IN_SESSION', false);
+    define('IN_SESSION', true);
 }
 if (date('n') >= 11 || date('n') <= 4) {
     define('LEGISLATIVE_SEASON', true);
 } else {
-    define('LEGISLATIVE_SEASON', false);
+    define('LEGISLATIVE_SEASON', true);
 }
