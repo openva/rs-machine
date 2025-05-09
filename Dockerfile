@@ -13,11 +13,17 @@ RUN apt-get update && apt-get install -y \
 # Set the working directory
 WORKDIR /home/ubuntu/rs-machine/
 
-# Copy the application code into the container
-COPY . /home/ubuntu/rs-machine/
+# Copy only composer files first to leverage Docker layer caching
+COPY composer.json composer.lock ./
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install PHP dependencies
-RUN composer install --prefer-dist --no-progress
+# Install PHP dependencies (without running scripts/autoloader yet)
+RUN composer install --prefer-dist --no-progress --no-scripts --no-autoloader
+
+# Now copy the rest of the application code
+COPY . .
+
+# Generate optimized autoload files
+RUN composer dump-autoload --optimize
