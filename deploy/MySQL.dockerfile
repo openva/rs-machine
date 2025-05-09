@@ -7,10 +7,10 @@ FROM mariadb:10.5
 #       -- from https://hub.docker.com/_/mariadb/#initializing-a-fresh-instance
 ADD database.sql /docker-entrypoint-initdb.d
 
-ENV MYSQL_ROOT_PASSWORD password
 ENV MYSQL_DATABASE richmondsunlight
 ENV MYSQL_USER ricsun
 ENV MYSQL_PASSWORD password
+ENV MYSQL_ROOT_PASSWORD password
 
 RUN apt-get update && rm -rf /var/lib/apt/lists/
 
