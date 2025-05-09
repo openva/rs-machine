@@ -2,6 +2,12 @@
 
 cd /home/ubuntu/rs-machine/
 
+# Get all functions from the main repo
+git clone -b deploy https://github.com/openva/richmondsunlight.com.git
+cd richmondsunlight.com && composer install && cd ..
+cp richmondsunlight.com/htdocs/includes/*.php includes/
+rm -Rf richmondsunlight.com
+
 # Install Composer dependencies
 composer install
 
