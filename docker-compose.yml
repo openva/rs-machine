@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   machine:
     build: .
@@ -13,8 +11,8 @@ services:
       DB_USER: ricsun
       DB_PASS: password
     volumes:
-      - .:/home/ubuntu/rs-machine/
-    working_dir: /home/ubuntu/rs-machine/
+      - .:/app
+    working_dir: /app
     command: tail -f /dev/null
 
   db:

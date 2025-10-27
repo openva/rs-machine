@@ -24,4 +24,4 @@ docker compose build && docker compose up -d
 while ! nc -z localhost 3306; do sleep 1; done
 
 # Run the setup script
-docker exec rs_machine /home/ubuntu/rs-machine/deploy/docker-setup.sh
+docker exec rs_machine /app/deploy/docker-setup.sh

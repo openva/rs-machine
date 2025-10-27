@@ -1,23 +1,36 @@
-# Use an official Ubuntu base image
-FROM ubuntu:24.04
+# Base PHP 8.4 runtime (RC until GA is published)
+FROM php:8.4-rc-cli
 
-# Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install required packages
+# Install system packages and PHP extensions required by the application
 RUN apt-get update && apt-get install -y \
-    php-cli php-curl php-mysql php-mbstring php-xml php-zip \
-    php-memcached memcached unzip git curl mariadb-client && \
-    apt-get clean
-
-# Set the working directory
-WORKDIR /home/ubuntu/rs-machine/
-
-# Copy only composer files first to leverage Docker layer caching
-COPY composer.json composer.lock ./
+        git \
+        unzip \
+        mariadb-client \
+        libmemcached-dev \
+        libzip-dev \
+        zlib1g-dev \
+        libssl-dev \
+        libicu-dev \
+        pkg-config \
+        memcached \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install -j$(nproc) \
+        intl \
+        mysqli \
+        pdo_mysql \
+        zip \
+    && pecl install memcached \
+    && docker-php-ext-enable memcached \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Set the working directory
+WORKDIR /app
+
+# Copy only composer files first to leverage Docker layer caching
+COPY composer.json composer.lock ./
 
 # Install PHP dependencies (without running scripts/autoloader yet)
 RUN composer install --prefer-dist --no-progress --no-scripts --no-autoloader
