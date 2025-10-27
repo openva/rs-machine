@@ -3,7 +3,8 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
-use Rector\Set\ValueObject\DowngradeSetList;
+use Rector\Core\ValueObject\PhpVersion;
+use Rector\Set\ValueObject\LevelSetList;
 
 return static function (RectorConfig $rectorConfig): void {
     // 1) Define which directories Rector should process:
@@ -12,14 +13,10 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__ . '/deploy',
     ]);
 
-    // 2) Include the Downgrade sets to stay PHP 5-compatible.
-    //    These sets remove or rewrite features from newer PHP versions (7.x, 8.x)
-    //    so you don’t break on older environments:
+    // 2) Target modern PHP language features up through PHP 8.4.
+    $rectorConfig->phpVersion(PhpVersion::PHP_84);
     $rectorConfig->sets([
-        DowngradeSetList::PHP_80,
-        DowngradeSetList::PHP_74,
-        DowngradeSetList::PHP_73,
-        DowngradeSetList::PHP_72,
+        LevelSetList::UP_TO_PHP_84,
     ]);
 
     // 3) If you had specific rules previously (like AddVoidReturnTypeWhereNoReturnRector),
