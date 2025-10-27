@@ -49,7 +49,7 @@ $sql = 'SELECT TIMESTAMPDIFF(SECOND, TIMESTAMP(meetings.date, meetings.time), NO
 		LIMIT 1';
 $result = mysqli_query($GLOBALS['db'], $sql);
 if (mysqli_num_rows($result) > 0) {
-    $meeting = mysql_fetch_object($result);
+    $meeting = mysqli_fetch_object($result);
     exit((string) abs($meeting->time));
 } else {
     exit(1);
