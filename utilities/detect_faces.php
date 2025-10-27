@@ -140,7 +140,7 @@ elseif ($_GET['op'] == 'detect') {
     $result = $mdb2->query($sql);
     $senators = array();
     while ($tmp = $result->fetchRow()) {
-        $senators[$tmp{'id'}] = $tmp['shortname'];
+        $senators[$tmp['id']] = $tmp['shortname'];
     }
     $senators_list = implode('@richmondsunlight.com,', $senators);
 
@@ -151,7 +151,7 @@ elseif ($_GET['op'] == 'detect') {
     $result = $mdb2->query($sql);
     $delegates = array();
     while ($tmp = $result->fetchRow()) {
-        $delegates[$tmp{'id'}] = $tmp['shortname'];
+        $delegates[$tmp['id']] = $tmp['shortname'];
     }
     $delegates_list = implode('@richmondsunlight.com,', $delegates);
 

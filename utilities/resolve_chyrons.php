@@ -94,7 +94,7 @@
 
      # Build up an array of bills, using the ID as the key and the number as the content.
      while ($bill = mysqli_fetch_array($result)) {
-         $bills[$bill{'id'}] = $bill['number'];
+         $bills[$bill['id']] = $bill['number'];
      }
 
      # Get a list of all bills that are in the legislature, period.
@@ -111,7 +111,7 @@
      if (mysqli_num_rows($result) > 0) {
          # Build up an array of bills, using the ID as the key and the number as the content.
          while ($bill = mysqli_fetch_array($result)) {
-             $all_bills[$bill{id}] = $bill['number'];
+             $all_bills[$bill['id']] = $bill['number'];
          }
      }
 
@@ -324,7 +324,7 @@
          $tmp['raw_text'] = stripslashes($tmp['raw_text']);
          # We can't use a newline in an array key.
          $tmp['raw_text'] = str_replace("\n", ' ', $tmp['raw_text']);
-         $priors[$tmp{raw_text}] = $tmp['linked_id'];
+         $priors[$tmp['raw_text']] = $tmp['linked_id'];
      }
  }
 
@@ -340,7 +340,7 @@
          $tmp['raw_text'] = stripslashes($tmp['raw_text']);
          # We can't use a newline in an array key.
          $tmp['raw_text'] = str_replace("\n", ' ', $tmp['raw_text']);
-         $priors[$tmp{raw_text}] = $tmp['linked_id'];
+         $priors[$tmp['raw_text']] = $tmp['linked_id'];
      }
  }
 
