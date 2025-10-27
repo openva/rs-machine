@@ -37,8 +37,11 @@ if (file_exists($hash_path)) {
 /*
  * Connect to Memcached, as we may well be interacting with it during this session.
  */
-$mc = new Memcached();
-$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+$mc = null;
+if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
+    $mc = new Memcached();
+    $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+}
 
 /*
  * If we encounter bills that can't be added, that's often (but not always) because there is no record
@@ -91,7 +94,9 @@ foreach ($bills as $bill) {
 
         // Now that we know we're updating a bill, rather than adding a new one, delete the bill
         // from Memcached.
-        $mc->delete('bill-' . $existing_bill['id']);
+        if ($mc instanceof Memcached) {
+            $mc->delete('bill-' . $existing_bill['id']);
+        }
 
         $operation_type = 'update';
     } else {

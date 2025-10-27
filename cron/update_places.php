@@ -70,8 +70,11 @@ if (mysqli_num_rows($result) == 0) {
 /*
  * Connect to Memcached, as we may well be interacting with it during this session.
  */
-$mc = new Memcached();
-$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+$mc = null;
+if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
+    $mc = new Memcached();
+    $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+}
 
 /*
  * Set up for queries to OpenAI
@@ -238,7 +241,9 @@ while ($bill = mysqli_fetch_array($result)) {
     /*
      * Clear the bill from Memcached.
      */
-    $mc->delete('bill-' . $bill['id']);
+    if ($mc instanceof Memcached) {
+        $mc->delete('bill-' . $bill['id']);
+    }
 
     $log->put('Identified place names in ' . strtoupper($bill['number']), 2);
 }

@@ -15,9 +15,11 @@ $log = new Log();
 /*
  * Instantiate Memcached
  */
-if (MEMCACHED_SERVER != '') {
+if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
     $mc = new Memcached();
     $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+} else {
+    $mc = null;
 }
 
 /*
@@ -154,7 +156,7 @@ foreach ($legislators as &$legislator) {
     /*
      * Remove this legislator's cached record
      */
-    if (MEMCACHED_SERVER != '') {
+    if ($mc instanceof Memcached) {
         $mc->delete('legislator-' . $legislator->id);
     }
 }

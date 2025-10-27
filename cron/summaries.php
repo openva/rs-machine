@@ -7,14 +7,17 @@
 /*
  * Connect to Memcached, since we'll be interacting with it during this session.
  */
-$mc = new Memcached();
-$mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+$mc = null;
+if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
+    $mc = new Memcached();
+    $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+}
 
 /*
  * Don't bother if the file hasn't changed.
  */
 $summaries_hash = md5(file_get_contents(__DIR__ . '/summaries.csv'));
-if ($mc->get('summaries-csv-hash') == $summaries_hash) {
+if ($mc instanceof Memcached && $mc->get('summaries-csv-hash') == $summaries_hash) {
     $log->put('Bill summaries unchanged', 2);
     return;
 }
@@ -22,7 +25,9 @@ if ($mc->get('summaries-csv-hash') == $summaries_hash) {
 /*
  * Save the new hash.
  */
-$mc->set('summaries-csv-hash', $summaries_hash);
+if ($mc instanceof Memcached) {
+    $mc->set('summaries-csv-hash', $summaries_hash);
+}
 
 /*
  * Open the file.

@@ -5,14 +5,17 @@ if (isset($_GLOBAL['history'])) {
     /*
      * Connect to Memcached, since we'll be interacting with it during this session.
      */
-    $mc = new Memcached();
-    $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+    $mc = null;
+    if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
+        $mc = new Memcached();
+        $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+    }
 
     /*
      * Don't bother if the file hasn't changed.
      */
     $history_hash = md5(file_get_contents(__DIR__ . '/history.csv'));
-    if ($mc->get('history-csv-hash') == $history_hash) {
+    if ($mc instanceof Memcached && $mc->get('history-csv-hash') == $history_hash) {
         /*
          * But if it's been more than six hours, go ahead and parse it anyway, just in case
          * something has gone wrong with the hash storage.
@@ -26,7 +29,9 @@ if (isset($_GLOBAL['history'])) {
     /*
      * Save the new hash.
      */
-    $mc->set('history-csv-hash', $history_hash);
+    if ($mc instanceof Memcached) {
+        $mc->set('history-csv-hash', $history_hash);
+    }
 
     # Open history.csv.
     $fp = fopen(__DIR__ . '/history.csv', 'r');
