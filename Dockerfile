@@ -1,5 +1,5 @@
-# Base PHP 8.4 runtime (RC until GA is published)
-FROM php:8.4-rc-cli
+# Base PHP 8.3 runtime
+FROM php:8.3-cli
 
 # Install system packages and PHP extensions required by the application
 RUN apt-get update && apt-get install -y \

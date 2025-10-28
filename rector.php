@@ -13,10 +13,10 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__ . '/deploy',
     ]);
 
-    // 2) Target modern PHP language features up through PHP 8.4.
-    $rectorConfig->phpVersion(PhpVersion::PHP_84);
+    // 2) Target modern PHP language features up through PHP 8.3.
+    $rectorConfig->phpVersion(PhpVersion::PHP_83);
     $rectorConfig->sets([
-        LevelSetList::UP_TO_PHP_84,
+        LevelSetList::UP_TO_PHP_83,
     ]);
 
     // 3) If you had specific rules previously (like AddVoidReturnTypeWhereNoReturnRector),
