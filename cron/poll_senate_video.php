@@ -120,7 +120,9 @@ foreach ($new_guids as $guid) {
             /*
             * Figure out the date of this video.
             */
-            $timestamp = strtotime(end(explode(' - ', $item->title)));
+            $title_pieces = explode(' - ', (string) $item->title);
+            $timestamp_source = end($title_pieces);
+            $timestamp = strtotime($timestamp_source !== false ? $timestamp_source : '');
             if ($timestamp === false) {
                 continue;
             }
