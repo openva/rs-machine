@@ -146,7 +146,7 @@ foreach ($bills as $bill) {
             'Adding ' . $bill['number'] . ' failed. This probably means that the legislator '
             . '(' . $bill['chief_patron_id'] . ', ' . strtolower($bill['chief_patron'])
             . ') who filed this bill isn’t in the database. Error: '
-            . mysqli_error($GLOBALS['db']) ,
+            . mysqli_error($GLOBALS['db']),
             4
         );
         unset($hashes[$number]);
