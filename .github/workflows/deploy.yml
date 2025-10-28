@@ -28,12 +28,26 @@ jobs:
       - uses: actions/checkout@v3
       - run: sudo apt-get update -qq
       - run: git clone -b deploy https://github.com/openva/richmondsunlight.com.git
-      - run: cd richmondsunlight.com && composer install && cd ..
+      - name: Cache Composer (richmondsunlight.com)
+        uses: actions/cache@v3
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-rsincludes-${{ hashFiles('richmondsunlight.com/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-rsincludes-
+      - run: cd richmondsunlight.com && composer install --no-interaction --no-progress --prefer-dist && cd ..
       - run: mkdir includes/
       - run: cp richmondsunlight.com/htdocs/includes/*.php includes/
       - run: rm -Rf richmondsunlight.com
-      - run: composer install
-      - run: find cron/*.php -print0 |xargs -0 -n1 -P8 php5.6 -l
+      - name: Cache Composer (rs-machine)
+        uses: actions/cache@v3
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-machine-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-machine-
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: find cron/*.php -print0 |xargs -0 -n1 -P8 php -l
       - run: >-
           ./deploy/config_variables.sh
           && ./deploy/aws_credentials.sh
