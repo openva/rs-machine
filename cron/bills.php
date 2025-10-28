@@ -139,16 +139,22 @@ foreach ($bills as $bill) {
         $sql = $sql . $sql_suffix;
     }
 
-    $result = mysqli_query($GLOBALS['db'], $sql);
-
-    if ($result === false) {
-        $log->put('Adding ' . $bill['number'] . ' failed. This probably means that the legislator '
+    try {
+        $result = mysqli_query($GLOBALS['db'], $sql);
+    } catch (Exception $exception) {
+        $log->put(
+            'Adding ' . $bill['number'] . ' failed. This probably means that the legislator '
             . '(' . $bill['chief_patron_id'] . ', ' . strtolower($bill['chief_patron'])
             . ') who filed this bill isn’t in the database. Error: '
-            . mysqli_error($GLOBALS['db']), 4);
+            . mysqli_error($GLOBALS['db']) ,
+            4
+        );
         unset($hashes[$number]);
-        $missing_legislators[] = $bill['chief_patron_id'];
-    } else {
+        $missing_legislators[$bill['chief_patron_id']] = true;
+        $result = false;
+    }
+
+    if ($result !== false) {
         // Log the addition or update
         if ($operation_type == 'add') {
             $log->put('Created ' . strtoupper($bill['number']) . ': '
@@ -172,9 +178,9 @@ foreach ($bills as $bill) {
         for ($i = 0; $i < count($bill['text']); $i++) {
             if (!empty($bill['text'][$i]['number']) && !empty($bill['text'][$i]['date'])) {
                 $sql = 'INSERT INTO bills_full_text
-						SET bill_id = ' . $bill['id'] . ', number="' . $bill['text'][$i]['number'] . '",
-						date_introduced="' . $bill['text'][$i]['date'] . '", date_created=now()
-						ON DUPLICATE KEY UPDATE date_introduced=date_introduced';
+                        SET bill_id = ' . $bill['id'] . ', number="' . $bill['text'][$i]['number'] . '",
+                        date_introduced="' . $bill['text'][$i]['date'] . '", date_created=now()
+                        ON DUPLICATE KEY UPDATE date_introduced=date_introduced';
                 mysqli_query($GLOBALS['db'], $sql);
             }
         }
