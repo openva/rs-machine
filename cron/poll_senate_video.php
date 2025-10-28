@@ -1,5 +1,8 @@
 <?php
 
+use Aws\Credentials\Credentials;
+use Aws\Sqs\SqsClient;
+
 include_once(__DIR__ . '/../includes/settings.inc.php');
 include_once(__DIR__ . '/../includes/functions.inc.php');
 include_once(__DIR__ . '/../includes/vendor/autoload.php');
@@ -18,8 +21,7 @@ $log = new Log();
 /*
  * Instantiate methods for AWS.
  */
-use Aws\Sqs\SqsClient;
-$credentials = new Aws\Credentials\Credentials(AWS_ACCESS_KEY, AWS_SECRET_KEY);
+$credentials = new Credentials(AWS_ACCESS_KEY, AWS_SECRET_KEY);
 $sqs_client = new SqsClient([
     'profile'   => 'default',
     'region'    => 'us-east-1',

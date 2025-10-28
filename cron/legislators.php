@@ -1,5 +1,7 @@
 <?php
 
+use Sunra\PhpSimple\HtmlDomParser;
+
 /*
  * Connect to the database
  */
@@ -21,11 +23,6 @@ if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
 } else {
     $mc = null;
 }
-
-/*
- * Use a DOM parser for the screen-scraper.
- */
-use Sunra\PhpSimple\HtmlDomParser;
 
 /*
  * Retrieve a list of all active delegates' names and IDs. Though that's not *quite* right.
