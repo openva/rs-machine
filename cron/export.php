@@ -39,7 +39,7 @@ $result = mysqli_query($GLOBALS['db'], $sql);
 
 if (mysqli_num_rows($result) > 0) {
     $changes = array();
-    while ($change = mysqli_fetch_array($result, MYSQL_ASSOC)) {
+    while ($change = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
         $change['url'] = 'https://www.richmondsunlight.com/bill/' . SESSION_YEAR . '/'
             . strtolower($change['bill_number']) . '/';
         $changes[] = $change;
@@ -107,7 +107,7 @@ if (mysqli_num_rows($result) > 0) {
     $fp = fopen($downloads_dir . 'bills.csv', 'w');
     fputcsv($fp, $csv_header);
 
-    while ($bill = mysqli_fetch_array($result, MYSQL_ASSOC)) {
+    while ($bill = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
         $bill = array_map(static function ($value) {
             return is_string($value) ? stripslashes($value) : $value;
         }, $bill);
@@ -139,7 +139,7 @@ if (mysqli_num_rows($result) > 0) {
     $fp = fopen($downloads_dir . 'sections.csv', 'w');
     fputcsv($fp, $csv_header);
 
-    while ($bill = mysqli_fetch_array($result, MYSQL_ASSOC)) {
+    while ($bill = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
         $bill = array_map(static function ($value) {
             return is_string($value) ? stripslashes($value) : $value;
         }, $bill);
@@ -201,7 +201,7 @@ if (mysqli_num_rows($result) > 0) {
     # Rather than check each time if the year's directory exists, just keep track here.
     $exists = array();
 
-    while ($bill = mysqli_fetch_array($GLOBALS['db'], $result, MYSQL_ASSOC)) {
+    while ($bill = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
         $bill = array_map(static function ($value) {
             return is_string($value) ? stripslashes($value) : $value;
         }, $bill);
@@ -262,7 +262,7 @@ if (is_writeable($filename)) {
     $result = mysqli_query($GLOBALS['db'], $sql);
     if (mysqli_num_rows($result) > 0) {
         $clips = array();
-        while ($clip = mysqli_fetch_array($result, MYSQL_ASSOC)) {
+        while ($clip = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
             if (substr($clip['path'], 0, 1) == '/') {
                 $clip['path'] = 'https://www.richmondsunlight.com' . $clip['path'];
             }
