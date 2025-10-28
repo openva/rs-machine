@@ -406,7 +406,7 @@ $sql = 'INSERT INTO bills_full_text (bill_id, number, date_introduced, date_crea
             ON bills.id = bills_full_text.bill_id
         WHERE
             bills_full_text.bill_id IS NULL AND
-            date_introduced IS NOT NULL';
+            bills.date_introduced IS NOT NULL';
 mysqli_query($GLOBALS['db'], $sql);
 
 ###
