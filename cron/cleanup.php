@@ -608,7 +608,7 @@ if (mysqli_num_rows($result) > 0) {
             # Iterate through the bills.
             foreach ($bill as $bill_id => $tags) {
                 # Iterate through the tags, but only if there are any.
-                if (count($tags > 0)) {
+                if (count($tags) > 0) {
                     foreach ($tags as $tag) {
                         # Assemble the insertion SQL. The tags table assumes that we'll always have a user id,
                         # but that's not true here. So we employ a user ID of 0.
