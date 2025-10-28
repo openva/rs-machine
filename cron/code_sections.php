@@ -34,7 +34,9 @@ $sql = 'SELECT bills_full_text.id AS full_text_id, bills.id, bills_full_text.tex
 $result = mysqli_query($GLOBALS['db'], $sql);
 if (mysqli_num_rows($result) > 0) {
     while ($bill = mysqli_fetch_array($result)) {
-        $bill = array_map('stripslashes', $bill);
+        $bill = array_map(static function ($value) {
+            return is_string($value) ? stripslashes($value) : $value;
+        }, $bill);
         # We want to strip out HTML (save for paragraphs), carriage returns, and extra spaces.
         # We're basically just looking for straight text here.
         $bill['text'] = strip_tags($bill['text'], '<p>');

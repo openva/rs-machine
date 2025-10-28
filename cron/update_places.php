@@ -103,7 +103,9 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
  * Iterate through the bills.
  */
 while ($bill = mysqli_fetch_array($result)) {
-    $bill = array_map('stripslashes', $bill);
+    $bill = array_map(static function ($value) {
+        return is_string($value) ? stripslashes($value) : $value;
+    }, $bill);
 
     /*
      * Get bill information from the API, take all of the text that's changing, and put it into

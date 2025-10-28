@@ -76,8 +76,10 @@ if (mysqli_num_rows($result) > 0) {
     }
     fputcsv($fp, $csv_header);
 
-    while ($bill = mysqli_fetch_array($result, MYSQL_ASSOC)) {
-        $bill = array_map('stripslashes', $bill);
+    while ($bill = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+        $bill = array_map(static function ($value) {
+            return is_string($value) ? stripslashes($value) : $value;
+        }, $bill);
         fputcsv($fp, $bill);
     }
 
@@ -106,7 +108,9 @@ if (mysqli_num_rows($result) > 0) {
     fputcsv($fp, $csv_header);
 
     while ($bill = mysqli_fetch_array($result, MYSQL_ASSOC)) {
-        $bill = array_map('stripslashes', $bill);
+        $bill = array_map(static function ($value) {
+            return is_string($value) ? stripslashes($value) : $value;
+        }, $bill);
         fputcsv($fp, $bill);
     }
 
@@ -136,7 +140,9 @@ if (mysqli_num_rows($result) > 0) {
     fputcsv($fp, $csv_header);
 
     while ($bill = mysqli_fetch_array($result, MYSQL_ASSOC)) {
-        $bill = array_map('stripslashes', $bill);
+        $bill = array_map(static function ($value) {
+            return is_string($value) ? stripslashes($value) : $value;
+        }, $bill);
         fputcsv($fp, $bill);
     }
 
@@ -196,7 +202,9 @@ if (mysqli_num_rows($result) > 0) {
     $exists = array();
 
     while ($bill = mysqli_fetch_array($GLOBALS['db'], $result, MYSQL_ASSOC)) {
-        $bill = array_map('stripslashes', $bill);
+        $bill = array_map(static function ($value) {
+            return is_string($value) ? stripslashes($value) : $value;
+        }, $bill);
 
         # Neaten up the bill text.
         $bill['text'] = preg_replace("/\n\s+/", "\n", $bill['text']);

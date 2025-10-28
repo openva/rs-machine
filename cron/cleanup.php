@@ -452,7 +452,9 @@ $sql = 'SELECT id, session_id, (
 $result = mysqli_query($GLOBALS['db'], $sql);
 if (mysqli_num_rows($result) > 0) {
     while ($bill = mysqli_fetch_array($result)) {
-        $bill = array_map('stripslashes', $bill);
+        $bill = array_map(static function ($value) {
+            return is_string($value) ? stripslashes($value) : $value;
+        }, $bill);
 
         # Extract the target bill number from the incorporation text.
         preg_match('/(hb|sb|hr|sr|hjr|sjr)([0-9]+)/', $bill['incorporated'], $regs);

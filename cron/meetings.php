@@ -34,7 +34,9 @@ if (mysqli_num_rows($result) == 0) {
 $committees = array();
 
 while ($committee = mysqli_fetch_array($result)) {
-    $committee = array_map('stripslashes', $committee);
+    $committee = array_map(static function ($value) {
+        return is_string($value) ? stripslashes($value) : $value;
+    }, $committee);
 
     // If this is a subcommittee, shuffle around the array keys.
     if (!empty($committee['parent'])) {
@@ -95,7 +97,9 @@ $result = mysqli_query($GLOBALS['db'], $sql);
 if (mysqli_num_rows($result) > 0) {
     $upcoming = array();
     while ($tmp = mysqli_fetch_array($result)) {
-        $tmp = array_map('stripslashes', $tmp);
+        $tmp = array_map(static function ($value) {
+            return is_string($value) ? stripslashes($value) : $value;
+        }, $tmp);
         $upcoming[] = $tmp;
     }
 }

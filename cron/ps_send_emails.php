@@ -60,7 +60,9 @@ if (mysqli_num_rows($result) == 0) {
 
     # Store the actions in an array indexed by bill ID.
 while ($status = mysqli_fetch_array($result)) {
-    $status = array_map('stripslashes', $status);
+    $status = array_map(static function ($value) {
+        return is_string($value) ? stripslashes($value) : $value;
+    }, $status);
     $action[$status['id']][] = $status;
 }
 
@@ -91,7 +93,9 @@ if (mysqli_num_rows($result) == 0) {
 
     # Step through each user.
 while ($user = mysqli_fetch_array($result)) {
-    $user = array_map('stripslashes', $user);
+    $user = array_map(static function ($value) {
+        return is_string($value) ? stripslashes($value) : $value;
+    }, $user);
     $user['bills'] = explode(',', $user['bills']);
 
     # Drop every bill from this user's array that hasn't undergone any status changes.
