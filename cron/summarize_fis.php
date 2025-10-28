@@ -37,7 +37,7 @@ foreach ($bills as $bill) {
     /*
      * Step 1: Download the PDF
      */
-    $pdfContent = file_get_contents($pdf_url);
+    $pdfContent = file_get_contents($bill['pdf_url']);
     if (!$pdfContent) {
         die('Failed to download PDF');
     }
