@@ -726,8 +726,7 @@ $sql = 'DELETE FROM bills_full_text
 			(SELECT COUNT(*)
 			FROM bills
 			WHERE
-				id=bills_full_text.bill_id) = 0 AND
-				session_id = ' . $session_id;
+				id=bills_full_text.bill_id) = 0';
 mysqli_query($GLOBALS['db'], $sql);
 
 ###
