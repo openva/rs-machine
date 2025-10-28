@@ -84,6 +84,16 @@ $sql = 'SET innodb_lock_wait_timeout=100';
 mysqli_query($GLOBALS['db'], $sql);
 
 /*
+ * Define the new headers for this CSV file.
+ */
+$new_headers = array(
+        'number',
+        'doc_id',
+        'type',
+        'text'
+    );
+
+/*
  * Step through each row in the CSV file, one by one.
  */
 while (($summary = fgetcsv($fp, 1000, ',')) !== false) {
@@ -96,13 +106,11 @@ while (($summary = fgetcsv($fp, 1000, ',')) !== false) {
     /*
      * Rename each field to something reasonable.
      */
-    $new_headers = array(
-            'number',
-            'doc_id',
-            'type',
-            'text'
-        );
     foreach ($new_headers as $old => $new) {
+        // If the old header doesn't exist, skip this row entirely -- it's a CSV parsing error.
+        if (!isset($summary[$old])) {
+            continue(2);
+        }
         $summary[$new] = $summary[$old];
         unset($summary[$old]);
     }
