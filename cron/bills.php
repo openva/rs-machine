@@ -46,9 +46,10 @@ if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
 /*
  * If we encounter bills that can't be added, that's often (but not always) because there is no record
  * of those legislators in the system. Build up a list of them to provide a list of missing
- * legislators.
+ * legislators, and missing bills.
  */
 $missing_legislators = array();
+$missing_bills = array();
 
 /*
  * Step through each row in the CSV, one by one.
@@ -147,10 +148,11 @@ foreach ($bills as $bill) {
             . '(' . $bill['chief_patron_id'] . ', ' . strtolower($bill['chief_patron'])
             . ') who filed this bill isn’t in the database. Error: '
             . mysqli_error($GLOBALS['db']),
-            4
+            2
         );
+        $missing_bills[] = $bill['number'];
         unset($hashes[$number]);
-        $missing_legislators[$bill['chief_patron_id']] = true;
+        $missing_legislators[$bill['chief_patron_id']] = $bill['chief_patron'];
         $result = false;
     }
 
@@ -198,7 +200,9 @@ file_put_contents($hash_path, serialize($hashes));
 
 // If any of these bills are patroned by legislators that we have no record of, log that.
 if (count($missing_legislators) > 0) {
-    $log->put('There are bills by ' . count($missing_legislators) . ' legislators that could not '
-    . 'be added. That may because of encoding errors in the bill data, but it may be because these '
-    . 'legislators are missing from the system.', 6);
+    $log->put('There are ' . count($missing_bills) . ' bills by '
+    . count($missing_legislators) . ' legislators that could not be added. That may because of '
+    . 'encoding errors in the bill data, but it is probably because those legislators '
+    . '(' . implode(', ', $missing_legislators) . ') '
+    . 'are missing from our database.', 6);
 }
