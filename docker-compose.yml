@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   machine:
     build: .
@@ -11,8 +13,8 @@ services:
       DB_USER: ricsun
       DB_PASS: password
     volumes:
-      - .:/app
-    working_dir: /app
+      - .:/home/ubuntu/rs-machine/
+    working_dir: /home/ubuntu/rs-machine/
     command: tail -f /dev/null
 
   db:
@@ -23,7 +25,7 @@ services:
     volumes:
       - db_data:/var/lib/mariadb/
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       start_period: 30s
       interval: 10s
       timeout: 5s

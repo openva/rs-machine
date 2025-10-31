@@ -10,55 +10,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mariadb:10.5
-        ports: ['3306:3306']
-        env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: richmondsunlight
-          MYSQL_USER: ricsun
-          MYSQL_PASSWORD: password
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
     steps:
-    - name: Chec kout repo
+    - name: Check out repo
       uses: actions/checkout@v4
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.3'
-
-    - name: Copy test data
+    - name: Start Docker services
       run: |
-        mkdir -p deploy/tests/data
-        cp deploy/tests/data/test_bills.csv deploy/tests/data/bills.csv
-
-    - name: Install APT dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y php-cli php-mysql
-
-    - name: Install Composer dependencies
-      run: |
-        composer install --prefer-dist --no-progress
-
-    - name: Wait for database
-      run: |
-        for i in {1..10}; do
-          if mysqladmin ping -h 127.0.0.1 -u ricsun -ppassword --silent; then
-            echo "Database is up!"
-            break
-          fi
-          echo "Waiting for database..."
-          sleep 5
-        done
+        docker compose up -d --build
 
     - name: Run test suite
       run: |
-        ./includes/vendor/bin/phpunit --configuration phpunit.xml
+        chmod +x docker-tests.sh
+        ./docker-tests.sh
+
+    - name: Shutdown Docker services
+      if: always()
+      run: |
+        docker compose down -v
