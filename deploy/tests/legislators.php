@@ -16,7 +16,7 @@ if ($lis_key === '') {
 /*
  * Instantiate the logging class
  */
-$log = new Log;
+$log = new Log();
 
 $import = new Import($log);
 
@@ -34,7 +34,7 @@ $test_records = array(
             'party' => 'D',
             'lis_id' => '85',
             'photo_url' => 'https://apps.senate.virginia.gov/Senator/images/member_photos/Ebbin30',
-            'email' => 'district30@senate.virginia.gov'
+            'email' => 'senatorebbin@senate.virginia.gov'
         )
     ),
 
