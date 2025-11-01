@@ -61,9 +61,7 @@ $test_records = array(
  * Iterate through our test records and ensure that the data extracted from LIS is accurate
  */
 $error = false;
-foreach ($test_records as $test_record)
-{
-
+foreach ($test_records as $test_record) {
     $legislator = $import->fetch_legislator_data_api($test_record['chamber'], $test_record['lis_id']);
     if ($legislator === false) {
         echo 'Failure: API lookup returned no data for ' . $test_record['lis_id'] . "\n";
@@ -71,10 +69,8 @@ foreach ($test_records as $test_record)
         continue;
     }
 
-    foreach ($test_record['expected_values'] as $key => $value)
-    {
-        if (!isset($legislator[$key]) || $legislator[$key] != $value)
-        {
+    foreach ($test_record['expected_values'] as $key => $value) {
+        if (!isset($legislator[$key]) || $legislator[$key] != $value) {
             $who = isset($legislator['name_formatted']) ? $legislator['name_formatted'] : $test_record['lis_id'];
             $actual = isset($legislator[$key]) ? $legislator[$key] : '(missing)';
             echo 'Failure: For ' . $who . ' expected ' . $key . ' to equal “'
@@ -90,7 +86,6 @@ foreach ($test_records as $test_record)
     } elseif (is_string($photo_path) && file_exists($photo_path)) {
         unlink($photo_path);
     }
-
 }
 
 if (isset($error) && $error == TRUE)
