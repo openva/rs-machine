@@ -88,9 +88,8 @@ foreach ($test_records as $test_record) {
     }
 }
 
-if (isset($error) && $error == TRUE)
-{
-    return FALSE;
+if ($error === true) {
+    return false;
 }
 
 echo 'All legislators tests passed' . "\n";
