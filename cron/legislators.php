@@ -1,13 +1,12 @@
 <?php
 
-use Sunra\PhpSimple\HtmlDomParser;
-
 /*
  * Connect to the database
  */
 $database = new Database();
 $db = $database->connect();
 global $db;
+$GLOBALS['dbh'] = $db;
 
 /*
  * Instantiate the logging class
@@ -22,6 +21,37 @@ if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
     $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 } else {
     $mc = null;
+}
+
+$import = new Import($log);
+
+if (!function_exists('merge_legislator_data_sets')) {
+    function merge_legislator_data_sets(array $primary, array $additional)
+    {
+        foreach ($additional as $key => $value) {
+            if (!array_key_exists($key, $primary) || $primary[$key] === null || $primary[$key] === '') {
+                $primary[$key] = $value;
+            }
+        }
+
+        return $primary;
+    }
+}
+
+if (!function_exists('build_legacy_lis_id')) {
+    function build_legacy_lis_id($chamber, $lis_id)
+    {
+        $digits = preg_replace('/[^0-9]/', '', (string)$lis_id);
+        if ($digits === '') {
+            return $lis_id;
+        }
+
+        if (strtolower($chamber) === 'senate') {
+            return 'S' . str_pad($digits, 4, '0', STR_PAD_LEFT);
+        }
+
+        return 'H' . str_pad($digits, 4, '0', STR_PAD_LEFT);
+    }
 }
 
 /*
@@ -69,24 +99,19 @@ if (IN_SESSION == true && count($known_legislators) > 140) {
 }
 
 /*
- * Get senators. Their Senate ID (e.g., "S100") is the key, their name is the value.
+ * Get senators. Their Senate ID (e.g., "S0100") is the key, their name is the value.
  */
-$html = get_content('https://apps.senate.virginia.gov/Senator/index.php');
-if ($html == false) {
-    $log->put('Could not load Senate listing. Abandoning efforts.', 5);
-    return;
+$senate_members = $import->fetch_active_members('senate');
+$senators = array();
+foreach ($senate_members as $member) {
+    if (empty($member['lis_id'])) {
+        continue;
+    }
+    $lis_id = 'S' . str_pad($member['lis_id'], 4, '0', STR_PAD_LEFT);
+    $senators[$lis_id] = $member['name_formal'] ?? $member['name'] ?? $member['name_formatted'] ?? $lis_id;
 }
-preg_match_all('/Senator\/memberpage\.php\?id=S([0-9]{2,3})\s*"><u>(.+)<\/u><\/a>/', $html, $senators);
-$tmp = array();
-$i = 0;
-foreach ($senators[1] as $senator) {
-    $tmp['S' . $senator] = trim($senators[2][$i]);
-    $i++;
-}
-$senators = $tmp;
-unset($tmp);
 
-$log->put('Retrieved ' . count($senators) . ' senators from apps.senate.virginia.gov.', 1);
+$log->put('Retrieved ' . count($senators) . ' senators from LIS API.', 1);
 
 if (count($senators) < 35) {
     $log->put('Too few senators were found to be plausible. Abandoning efforts.', 5);
@@ -96,32 +121,22 @@ if (count($senators) < 35) {
 /*
  * Get delegates. Their House ID (e.g., "H0200") is the key, their name is the value.
  */
-$html = get_content('https://virginiageneralassembly.gov/house/members/members.php?ses=' . SESSION_YEAR);
-if ($html == false) {
-    $log->put('Could not load House listing. Abandoning efforts.', 5);
-    return;
+$house_members = $import->fetch_active_members('house');
+$delegates = array();
+foreach ($house_members as $member) {
+    if (empty($member['lis_id'])) {
+        continue;
+    }
+    $lis_id = 'H' . str_pad($member['lis_id'], 4, '0', STR_PAD_LEFT);
+    $delegates[$lis_id] = $member['name_formal'] ?? $member['name'] ?? $member['name_formatted'] ?? $lis_id;
 }
-preg_match_all('/id=\'member\[H([0-9]+)\]\'><td width="190px"><a class="bioOpener" href="#">(.*?)<\/a>/m', $html, $delegates);
-$tmp = array();
-$i = 0;
-foreach ($delegates[1] as $delegate) {
-    $tmp['H' . $delegate] = trim($delegates[2][$i]);
-    $i++;
-}
-$delegates = $tmp;
-unset($tmp);
 
-$log->put('Retrieved ' . count($delegates) . ' delegates from virginiageneralassembly.gov.', 1);
+$log->put('Retrieved ' . count($delegates) . ' delegates from LIS API.', 1);
 
 if (count($delegates) < 90) {
     $log->put('Since too few delegates were found to be plausible, abandoning efforts.', 5);
     return;
 }
-
-/*
- * Invoke the Import class.
- */
-$import = new Import($log);
 
 /*
  * Update legislators' records periodically
@@ -146,9 +161,20 @@ $stmt->execute();
 $legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
 
 foreach ($legislators as &$legislator) {
-    $data = $import->fetch_legislator_data($legislator->chamber, $legislator->lis_id);
-    $data['id'] = $legislator->id;
-    $import->update_legislator($data);
+    $api_data = $import->fetch_legislator_data_api($legislator->chamber, $legislator->lis_id);
+    if ($api_data === false) {
+        $log->put('Error: Could not refresh API data for ' . $legislator->name . '.', 5);
+        continue;
+    }
+
+    $legacy_lis_id = build_legacy_lis_id($legislator->chamber, $legislator->lis_id);
+    $legacy_data = $import->fetch_legislator_data($legislator->chamber, $legacy_lis_id);
+    if (is_array($legacy_data)) {
+        $api_data = merge_legislator_data_sets($api_data, $legacy_data);
+    }
+
+    $api_data['id'] = $legislator->id;
+    $import->update_legislator($api_data);
 
     /*
      * Remove this legislator's cached record
@@ -169,19 +195,18 @@ foreach ($known_legislators as &$known_legislator) {
      */
     if ($known_legislator->chamber == 'senate') {
         if (!isset($senators[$id]) && empty($known_legislator->date_ended)) {
-            $csv_dir = dirname($_SERVER['SCRIPT_FILENAME']);
             try {
-                $legislator_in_csv = $import->legislator_in_csv('S' . $senators[$id]);
+                $legislator_still_listed = $import->legislator_in_csv($id);
             } catch (Exception $e) {
                 $log->put('Error: Could not verify that Sen. ' . pivot($known_legislator->name)
                     . ' is no longer in office. Error thrown: ' . $e->getMessage(), 5);
                 continue;
             }
 
-            if ($legislator_in_csv == true) {
+            if ($legislator_still_listed === true) {
                 $log->put('Error: Sen. ' . pivot($known_legislator->name) . ' is missing from '
-                    . 'the website, but is still present in LIS’s CSV. They will be kept active '
-                    . 'until they are removed from the CSV.', 5);
+                    . 'the website, but is still present in LIS’s API roster. They will be kept active '
+                    . 'until they are removed from the API.', 5);
                 continue;
             }
 
@@ -198,26 +223,25 @@ foreach ($known_legislators as &$known_legislator) {
      */
     elseif ($known_legislator->chamber == 'house') {
         if (!isset($delegates[$id]) && empty($known_legislator->date_ended)) {
-            $csv_dir = dirname($_SERVER['SCRIPT_FILENAME']);
             try {
-                $legislator_in_csv = $import->legislator_in_csv('H' . $delegates[$id]);
+                $legislator_still_listed = $import->legislator_in_csv($id);
             } catch (Exception $e) {
                 $log->put('Error: Could not verify that Del. ' . pivot($known_legislator->name)
                     . ' is no longer in office. Error thrown: ' . $e->getMessage(), 5);
                 continue;
             }
 
-            if ($legislator_in_csv == true) {
+            if ($legislator_still_listed === true) {
                 $log->put('Error: Del. ' . pivot($known_legislator->name) . ' is missing from '
-                    . 'the website, but is still present in LIS’s CSV. They will be kept active '
-                    . 'until they are removed from the CSV.', 5);
+                    . 'the website, but is still present in LIS’s API roster. They will be kept active '
+                    . 'until they are removed from the API.', 5);
                 continue;
             }
 
             $log->put('Error: Del. ' . pivot($known_legislator->name)
                 . ' is no longer in office, but is still listed in the database.', 5);
             if ($import->deactivate_legislator($id) == false) {
-                $log->put('Error: ...but they couldn’t be marked as out of office.');
+                $log->put('Error: ...but they couldn’t be marked as out of office.', 5);
             }
         }
     }
@@ -261,9 +285,21 @@ foreach ($senators as $lis_id => $name) {
             . 'https://apps.senate.virginia.gov/Senator/memberpage.php?id='
             . $lis_id . ')', 6);
 
-        $data = $import->fetch_legislator_data('senate', $lis_id);
+        $api_data = $import->fetch_legislator_data_api('senate', $lis_id);
+        if ($api_data === false) {
+            $log->put('Error: Could not fetch API data for ' . $name . '.', 6);
+            continue;
+        }
+
+        $legacy_data = $import->fetch_legislator_data('senate', $lis_id);
+        if (is_array($legacy_data)) {
+            $data = merge_legislator_data_sets($api_data, $legacy_data);
+        } else {
+            $data = $api_data;
+        }
+
         if ($data == false) {
-            $log->put('Error: Could not fetch that senator’s data.', 6);
+            $log->put('Error: Could not assemble data for ' . $name . '.', 6);
             continue;
         }
 
@@ -284,7 +320,9 @@ foreach ($senators as $lis_id => $name) {
              */
             if (isset($data['photo_url'])) {
                 $photo_url = $data['photo_url'];
-                $unset($data['photo_url']);
+                unset($data['photo_url']);
+            } else {
+                $photo_url = null;
             }
 
             if ($import->add_legislator($data) == false) {
@@ -292,12 +330,14 @@ foreach ($senators as $lis_id => $name) {
                 continue;
             }
 
-            $photo_success = $import->fetch_photo($photo_url, $data['shortname']);
-            if ($photo_success == false) {
-                $log->put('Could not retrieve photo of ' . $data['name_formatted'], 4);
-            } else {
-                $log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_success
-                    . '. You need to manually commit it to the Git repo.', 5);
+            if (!empty($photo_url)) {
+                $photo_success = $import->fetch_photo($photo_url, $data['shortname']);
+                if ($photo_success == false) {
+                    $log->put('Could not retrieve photo of ' . $data['name_formatted'], 4);
+                } else {
+                    $log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_success
+                        . '. You need to manually commit it to the Git repo.', 5);
+                }
             }
         } else {
             $log->put('The new record for ' . $data['name_formatted'] . ' was not added to the '
@@ -329,7 +369,19 @@ foreach ($delegates as $lis_id => $name) {
     if ($match == false && $name != 'Vacant') {
         $log->put('Found a new delegate: ' . $name . ' (https://virginiageneralassembly.gov/house/members/members.php?ses=' .
             SESSION_YEAR . '&id=' . $lis_id . ')', 6);
-        $data = $import->fetch_legislator_data('house', $lis_id);
+
+        $api_data = $import->fetch_legislator_data_api('house', $lis_id);
+        if ($api_data === false) {
+            $log->put('Error: Could not fetch API data for ' . $name . '.', 6);
+            continue;
+        }
+
+        $legacy_data = $import->fetch_legislator_data('house', $lis_id);
+        if (is_array($legacy_data)) {
+            $data = merge_legislator_data_sets($api_data, $legacy_data);
+        } else {
+            $data = $api_data;
+        }
 
         $required_fields = array(
             'name_formal',
@@ -364,6 +416,8 @@ foreach ($delegates as $lis_id => $name) {
             if (isset($data['photo_url'])) {
                 $photo_url = $data['photo_url'];
                 unset($data['photo_url']);
+            } else {
+                $photo_url = null;
             }
 
             if ($import->add_legislator($data) == false) {
@@ -373,12 +427,14 @@ foreach ($delegates as $lis_id => $name) {
 
             $log->put('Added ' . $data['name_formatted'] . ' to the database', 4);
 
-            $photo_success = $import->fetch_photo($photo_url, $data['shortname']);
-            if ($photo_success == false) {
-                $log->put('Could not retrieve photo of ' . $data['name_formatted'], 4);
-            } else {
-                $log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_success
-                    . '. You need to manually commit it to the Git repo.', 5);
+            if (!empty($photo_url)) {
+                $photo_success = $import->fetch_photo($photo_url, $data['shortname']);
+                if ($photo_success == false) {
+                    $log->put('Could not retrieve photo of ' . $data['name_formatted'], 4);
+                } else {
+                    $log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_success
+                        . '. You need to manually commit it to the Git repo.', 5);
+                }
             }
         } else {
             $log->put('The new record for ' . $data['name_formatted'] . ' was not added to the '

@@ -1,9 +1,11 @@
 <?php
 
-require_once 'includes/settings.inc.php';
-require_once 'vendor/autoload.php';
+require_once __DIR__ . '/../../includes/settings.inc.php';
+require_once __DIR__ . '/../../includes/functions.inc.php';
+require_once __DIR__ . '/../../includes/vendor/autoload.php';
 
-$import = new Import();
+$log = new Log();
+$import = new Import($log);
 
 /*
  * Create our test data
@@ -51,19 +53,19 @@ $names[] = array(
         'correct' => 'ebbennett-parker');
 
     $failures = 0;
-    foreach ($names as $name) {
-        $shortname = $import -> create_shortname($name['casual'], $name['full']);
-        if ($shortname != $name['correct']) {
-            echo 'FAILED: Generated ' . $shortname . ' instead of ' . $name['correct'] . "\n";
-            $failures++;
-        }
+foreach ($names as $name) {
+    $shortname = $import->create_legislator_shortname($name['casual'], $name['full']);
+    if ($shortname != $name['correct']) {
+        echo 'FAILED: Generated ' . $shortname . ' instead of ' . $name['correct'] . "\n";
+        $failures++;
     }
+}
 
-    echo 'Tested generating ' . count($names) . ' shortnames: ' . count($names) - $failures
-    . ' passed, ' . $failures . ' failed.' . "\n";
+$passed = count($names) - $failures;
+echo 'Tested generating ' . count($names) . ' shortnames: ' . $passed . ' passed, ' . $failures . ' failed.' . "\n";
 
-    if ($failures > 0) {
-        exit(1);
-    }
+if ($failures > 0) {
+    exit(1);
+}
 
-    exit(0);
+exit(0);
