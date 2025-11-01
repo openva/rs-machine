@@ -32,11 +32,6 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
 
 $log = new Log();
 
-# Don't bother to run this if the General Assembly isn't in session.
-if (LEGISLATIVE_SEASON == false) {
-    exit();
-}
-
 # Set a time limit of 20 minutes for this script to run.
 set_time_limit(1200);
 

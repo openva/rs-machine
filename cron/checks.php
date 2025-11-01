@@ -8,7 +8,7 @@
  * @usage   Must be invoked from within update.php.
  */
 
-if (LEGISLATIVE_SEASON == true) {
+if (IN_SESSION == true) {
     /*
     * Make sure that the CSV files have been downloaded recently.
     */
@@ -48,19 +48,17 @@ if (LEGISLATIVE_SEASON == true) {
     /*
     * Make sure that the bill histories are being updated.
     */
-    if (IN_SESSION == true) {
-        // If it's M–F, 10 AM–5 PM
-        if (( date('N') > 0 && date('N') < 6) && (date('G') > 10) & (date('G') < 17)) {
-            $sql = 'SELECT *
-                    FROM `bills_status`
-                    WHERE date_created > NOW() - INTERVAL 24 HOUR
-                    ORDER BY date_created DESC';
-            $result = mysqli_query($GLOBALS['db'], $sql);
-            if (mysqli_num_rows($result) == 0) {
-                $log->put('Error: No bills have advanced in the past 24 hours. Bill histories are '
-                    . 'not being updated. Make sure that history.csv is being updated, and that '
-                    . 'data is being loaded correctly.', 6);
-            }
+    // If it's M–F, 10 AM–5 PM
+    if (( date('N') > 0 && date('N') < 6) && (date('G') > 10) & (date('G') < 17)) {
+        $sql = 'SELECT *
+                FROM `bills_status`
+                WHERE date_created > NOW() - INTERVAL 24 HOUR
+                ORDER BY date_created DESC';
+        $result = mysqli_query($GLOBALS['db'], $sql);
+        if (mysqli_num_rows($result) == 0) {
+            $log->put('Error: No bills have advanced in the past 24 hours. Bill histories are '
+                . 'not being updated. Make sure that history.csv is being updated, and that '
+                . 'data is being loaded correctly.', 6);
         }
     }
 }
