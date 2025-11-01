@@ -33,7 +33,7 @@ $test_records = array(
             'district_id' => 319,
             'party' => 'D',
             'lis_id' => '85',
-            'photo_url' => 'https://apps.senate.virginia.gov/Senator/images/member_photos/Ebbin30',
+            'photo_url' => 'https://apps.senate.virginia.gov/Senator/images/member_photos/Ebbin39',
             'email' => 'senatorebbin@senate.virginia.gov'
         )
     ),
