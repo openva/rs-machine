@@ -5,6 +5,15 @@ include_once(__DIR__ . '/../../includes/functions.inc.php');
 include_once(__DIR__ . '/../../includes/vendor/autoload.php');
 
 /*
+ * Ensure we have an API key configured
+ */
+$lis_key = defined('LIS_KEY') ? trim(LIS_KEY) : '';
+if ($lis_key === '') {
+    echo "Skipping legislators test (LIS_KEY not configured).\n";
+    return false;
+}
+
+/*
  * Instantiate the logging class
  */
 $log = new Log;
@@ -51,25 +60,35 @@ $test_records = array(
 /*
  * Iterate through our test records and ensure that the data extracted from LIS is accurate
  */
+$error = false;
 foreach ($test_records as $test_record)
 {
 
-    $legislator = $import->fetch_legislator_data($test_record['chamber'], $test_record['lis_id']);
+    $legislator = $import->fetch_legislator_data_api($test_record['chamber'], $test_record['lis_id']);
+    if ($legislator === false) {
+        echo 'Failure: API lookup returned no data for ' . $test_record['lis_id'] . "\n";
+        $error = true;
+        continue;
+    }
 
     foreach ($test_record['expected_values'] as $key => $value)
     {
         if (!isset($legislator[$key]) || $legislator[$key] != $value)
         {
-            echo 'Failure: For ' . pivot($legislator) .' expected a ' . $key . ' of value “'
-                . $value . ',” but instead the value was “' . legislator[$key] . '”' . "\n";
-            $error = TRUE;
+            $who = isset($legislator['name_formatted']) ? $legislator['name_formatted'] : $test_record['lis_id'];
+            $actual = isset($legislator[$key]) ? $legislator[$key] : '(missing)';
+            echo 'Failure: For ' . $who . ' expected ' . $key . ' to equal “'
+                . $value . ',” but found “' . $actual . '”.' . "\n";
+            $error = true;
         }
     }
 
-    if ( $import->fetch_photo($legislator['photo_url'], $legislator['shortname'] == false) )
-    {
-        echo 'Failure: Photo ' . $legislator['photo_url'] .' couldn’t be fetched' . "\n";
-        $error = TRUE;
+    $photo_path = $import->fetch_photo($legislator['photo_url'], $legislator['shortname']);
+    if ($photo_path === false) {
+        echo 'Failure: Photo ' . $legislator['photo_url'] . ' couldn’t be fetched' . "\n";
+        $error = true;
+    } elseif (is_string($photo_path) && file_exists($photo_path)) {
+        unlink($photo_path);
     }
 
 }
