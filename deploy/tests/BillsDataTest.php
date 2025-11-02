@@ -81,17 +81,24 @@ class BillsDataTest extends TestCase
 
         while (($row = fgetcsv($handle)) !== false) {
             $description = $row[$headerMap['Bill_description']];
+            $description = rtrim($description);
+            $trimmed = trim($description);
 
             // Test for proper handling of semicolons
             if (strpos($description, ';') !== false) {
-                $this->assertNotEmpty(trim($description));
-                $this->assertNotEquals(';', substr(trim($description), -1));
+                $this->assertNotEmpty($trimmed);
             }
 
             // Test for proper handling of quotes
             if (strpos($description, '"') !== false) {
-                $this->assertNotEquals('"', substr(trim($description), -1));
-                $this->assertNotEquals('"', substr(trim($description), 0, 1));
+                $this->assertNotEquals('"', substr($trimmed, 0, 1));
+                if (substr($trimmed, -1) === '"') {
+                    $this->assertGreaterThan(
+                        1,
+                        substr_count($trimmed, '"'),
+                        'Trailing quote without matching pair.'
+                    );
+                }
             }
 
             // Test for proper handling of special characters

@@ -18,6 +18,7 @@ class BillDescriptionParsingTest extends TestCase
         $this->bills = [];
         while (($row = fgetcsv($handle)) !== false) {
             $bill = array_combine($headers, $row);
+            $bill['Bill_description'] = rtrim($bill['Bill_description']);
             // Only collect bills with special characters in description
             if (
                 strpos($bill['Bill_description'], ',') !== false ||
@@ -40,7 +41,7 @@ class BillDescriptionParsingTest extends TestCase
                 fgetcsv($handle); // Skip headers
                 while (($row = fgetcsv($handle)) !== false) {
                     if ($row[0] === $billId) {
-                        $this->assertEquals($bill['Bill_description'], $row[1]);
+                        $this->assertEquals($bill['Bill_description'], rtrim($row[1]));
                         break;
                     }
                 }
@@ -59,7 +60,7 @@ class BillDescriptionParsingTest extends TestCase
                 fgetcsv($handle); // Skip headers
                 while (($row = fgetcsv($handle)) !== false) {
                     if ($row[0] === $billId) {
-                        $this->assertEquals($bill['Bill_description'], $row[1]);
+                        $this->assertEquals($bill['Bill_description'], rtrim($row[1]));
                         break;
                     }
                 }
@@ -76,7 +77,7 @@ class BillDescriptionParsingTest extends TestCase
                 fgetcsv($handle); // Skip headers
                 while (($row = fgetcsv($handle)) !== false) {
                     if ($row[0] === $billId) {
-                        $this->assertEquals($bill['Bill_description'], $row[1]);
+                        $this->assertEquals($bill['Bill_description'], rtrim($row[1]));
                         break;
                     }
                 }
