@@ -5,3 +5,4 @@ composer.phar
 .phpunit.result.cache
 logs/site.log
 cron/bills.csv
+.phpunit.cache/test-results

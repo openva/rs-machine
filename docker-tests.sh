@@ -24,11 +24,12 @@ docker exec "${CONTAINER_NAME}" /bin/sh -c "
 "
 
 # Run PHPUnit suite if available
-if docker exec "${CONTAINER_NAME}" test -x "/app/vendor/bin/phpunit"; then
+PHPUNIT_PATH="${CONTAINER_WORKDIR}/includes/vendor/bin/phpunit"
+if docker exec "${CONTAINER_NAME}" test -x "${PHPUNIT_PATH}"; then
   echo "Running PHPUnit suite..."
-  docker exec "${CONTAINER_NAME}" /app/vendor/bin/phpunit
+  docker exec "${CONTAINER_NAME}" "${PHPUNIT_PATH}"
 else
-  echo "Skipping PHPUnit suite (vendor/bin/phpunit not found)."
+  echo "Skipping PHPUnit suite (${PHPUNIT_PATH} not found or not executable)."
 fi
 
 # Run standalone PHP test scripts (those not based on PHPUnit)
