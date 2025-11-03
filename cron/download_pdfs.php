@@ -125,7 +125,24 @@ foreach ($bills as $bill) {
             'CacheControl' => 'public, max-age=86400',
         ]);
         $log->put('Retrieved PDF for ' . $document_number . ' and stored it at s3://'
-            . $s3_bucket . '/' . $key . '.', 3);
+            . $s3_bucket . '/' . $key . '.', 2);
+
+        // Record the URL in the database with error handling.
+        try {
+            $pdfUrl = 'https://' . $s3_bucket . '/' . $key;
+            $escapedUrl = mysqli_real_escape_string($GLOBALS['db'], $pdfUrl);
+            $escapedNumber = mysqli_real_escape_string($GLOBALS['db'], $bill);
+            $sql = 'UPDATE bills_full_text
+                    SET pdf_url = "' . $escapedUrl . '"
+                    WHERE number = "' . $escapedNumber . '"';
+            if (!mysqli_query($GLOBALS['db'], $sql)) {
+                throw new Exception('MySQL error: ' . mysqli_error($GLOBALS['db']));
+            }
+        } catch (Exception $dbException) {
+            $log->put('Warning: could not store PDF URL for ' . $document_number
+                . ': ' . $dbException->getMessage(), 4);
+        }
+
     } catch (AwsException $e) {
         $log->put('Could not upload PDF for ' . $document_number . ' to S3: '
             . $e->getAwsErrorMessage(), 5);
