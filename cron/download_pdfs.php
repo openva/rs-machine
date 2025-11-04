@@ -147,7 +147,9 @@ foreach ($bills as $bill) {
             $escapedNumber = mysqli_real_escape_string($GLOBALS['db'], $bill);
             $sql = 'UPDATE bills_full_text
                     SET pdf_url = "' . $escapedUrl . '"
-                    WHERE number = "' . $escapedNumber . '"';
+                    WHERE
+                        session_id = ' . SESSION_ID . ' AND
+                        number = "' . $escapedNumber . '"';
             if (!mysqli_query($GLOBALS['db'], $sql)) {
                 throw new Exception('MySQL error: ' . mysqli_error($GLOBALS['db']));
             }
