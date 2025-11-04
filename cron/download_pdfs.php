@@ -79,7 +79,8 @@ $sql = 'SELECT bills_full_text.number
 		FROM bills_full_text
 		LEFT JOIN bills
 		    ON bills_full_text.bill_id = bills.id
-		WHERE bills.session_id = ' . SESSION_ID;
+		WHERE bills.session_id = ' . SESSION_ID . '
+        ORDER BY RAND()';
 $result = mysqli_query($GLOBALS['db'], $sql);
 $bills = array();
 while ($tmp = mysqli_fetch_array($result)) {
@@ -96,10 +97,22 @@ $bills = array_diff($bills, $mirrored);
  */
 $import = new Import($log);
 
+
+/*
+ * Limit the number of bills processed in one run.
+ */
+$bill_tally = 0;
+$bill_limit = 10;
+
 foreach ($bills as $bill) {
     $bill = trim($bill);
     if ($bill === '') {
         continue;
+    }
+
+    $bill_tally += 1;
+    if ($bill_tally > $bill_limit) {
+        break;
     }
 
     $document_number = strtoupper($bill);
