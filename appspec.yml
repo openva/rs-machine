@@ -12,7 +12,6 @@ permissions:
       type:
        - directory
        - file
-       - symlink
 hooks:
   BeforeInstall:
     - location: deploy/predeploy.sh

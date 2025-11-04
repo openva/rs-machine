@@ -142,7 +142,6 @@ foreach ($bills as $bill) {
             $log->put('Warning: could not store PDF URL for ' . $document_number
                 . ': ' . $dbException->getMessage(), 4);
         }
-
     } catch (AwsException $e) {
         $log->put('Could not upload PDF for ' . $document_number . ' to S3: '
             . $e->getAwsErrorMessage(), 5);
