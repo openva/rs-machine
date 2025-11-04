@@ -196,7 +196,7 @@ foreach ($known_legislators as &$known_legislator) {
     if ($known_legislator->chamber == 'senate') {
         if (!isset($senators[$id]) && empty($known_legislator->date_ended)) {
             try {
-                $legislator_still_listed = $import->legislator_in_csv($id);
+                $legislator_still_listed = $import->legislator_in_lis($id);
             } catch (Exception $e) {
                 $log->put('Error: Could not verify that Sen. ' . pivot($known_legislator->name)
                     . ' is no longer in office. Error thrown: ' . $e->getMessage(), 5);
@@ -224,7 +224,7 @@ foreach ($known_legislators as &$known_legislator) {
     elseif ($known_legislator->chamber == 'house') {
         if (!isset($delegates[$id]) && empty($known_legislator->date_ended)) {
             try {
-                $legislator_still_listed = $import->legislator_in_csv($id);
+                $legislator_still_listed = $import->legislator_in_lis($id);
             } catch (Exception $e) {
                 $log->put('Error: Could not verify that Del. ' . pivot($known_legislator->name)
                     . ' is no longer in office. Error thrown: ' . $e->getMessage(), 5);
