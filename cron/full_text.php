@@ -54,7 +54,7 @@ while ($text = mysqli_fetch_array($result)) {
 
             if ($server_errors >= 20) {
                 $log->put('Abandoning collecting bill text, after receiving ' . $server_errors
-                    . ' consecutive error messages from the LIS server.');
+                    . ' consecutive error messages from the LIS server.', 4);
                 return;
             }
 
