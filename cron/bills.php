@@ -180,8 +180,12 @@ foreach ($bills as $bill) {
         for ($i = 0; $i < count($bill['text']); $i++) {
             if (!empty($bill['text'][$i]['number']) && !empty($bill['text'][$i]['date'])) {
                 $sql = 'INSERT INTO bills_full_text
-                        SET bill_id = ' . $bill['id'] . ', number="' . $bill['text'][$i]['number'] . '",
-                        date_introduced="' . $bill['text'][$i]['date'] . '", date_created=now()
+                        SET
+                            bill_id = ' . $bill['id'] . ',
+                            number="' . $bill['text'][$i]['number'] . '",
+                            session_id=' . SESSION_ID . ',
+                            date_introduced="' . $bill['text'][$i]['date'] . '",
+                            date_created=now()
                         ON DUPLICATE KEY UPDATE date_introduced=date_introduced';
                 mysqli_query($GLOBALS['db'], $sql);
             }
