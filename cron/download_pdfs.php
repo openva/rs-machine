@@ -112,6 +112,11 @@ foreach ($bills as $bill) {
         continue;
     }
 
+    if (preg_match('/^[a-z]{2,3}\d{1,4}$/', $bill) !== 1) {
+        $log->put('Skipping ' . $bill . ' because it’s not a standard bill number.', 2);
+        continue;
+    }
+
     $bill_tally += 1;
     if ($bill_tally > $bill_limit) {
         break;
