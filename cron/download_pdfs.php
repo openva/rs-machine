@@ -135,6 +135,14 @@ foreach ($bills as $bill) {
         continue;
     }
 
+    if (strlen($binary) < 1024) {
+        $log->put(
+            'The PDF for ' . $document_number . ' is under 1 KB, so it will not be saved',
+            2
+        );
+        continue;
+    }
+
     try {
         $s3_client->putObject([
             'Bucket' => $s3_bucket,
