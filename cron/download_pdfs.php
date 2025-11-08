@@ -79,7 +79,9 @@ $sql = 'SELECT bills_full_text.number
 		FROM bills_full_text
 		LEFT JOIN bills
 		    ON bills_full_text.bill_id = bills.id
-		WHERE bills.session_id = ' . SESSION_ID . '
+		WHERE
+            bills.session_id = ' . SESSION_ID . ' AND
+            bills_full_text.pdf_url IS NULL
         ORDER BY RAND()';
 $result = mysqli_query($GLOBALS['db'], $sql);
 $bills = array();
