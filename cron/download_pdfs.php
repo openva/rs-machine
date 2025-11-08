@@ -99,7 +99,6 @@ $bills = array_diff($bills, $mirrored);
  */
 $import = new Import($log);
 
-
 /*
  * Limit the number of bills processed in one run.
  */
@@ -152,7 +151,7 @@ foreach ($bills as $bill) {
             'ContentType' => 'application/pdf',
             'CacheControl' => 'public, max-age=86400',
         ]);
-        $log->put('Retrieved PDF for ' . $document_number . ' and stored it at s3://'
+        $log->put('Retrieved PDF for ' . $document_number . ' and stored it at https://'
             . $s3_bucket . '/' . $key . '.', 2);
 
         // Record the URL in the database with error handling.
