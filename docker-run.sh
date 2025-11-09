@@ -27,4 +27,4 @@ until docker exec rs_machine_db mysqladmin ping -h localhost --silent >/dev/null
 done
 
 # Run the setup script
-docker exec rs_machine /app/deploy/docker-setup.sh
+docker exec -d rs_machine /home/ubuntu/rs-machine/deploy/docker-setup.sh
