@@ -20,8 +20,11 @@ fi
 # Stand it up
 docker compose build && docker compose up -d
 
-# Wait for MariaDB to be available
-while ! nc -z localhost 3306; do sleep 1; done
+# Wait for MariaDB to be available inside the container
+echo "Waiting for MariaDB (rs_machine_db) to report healthy..."
+until docker exec rs_machine_db mysqladmin ping -h localhost --silent >/dev/null 2>&1; do
+    sleep 1
+done
 
 # Run the setup script
 docker exec rs_machine /app/deploy/docker-setup.sh
