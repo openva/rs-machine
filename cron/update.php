@@ -173,6 +173,11 @@ if ($type == 'vote') {
     require 'vote.php';
 }
 
+# Sync the legacy "representatives" table with the new people + terms tables.
+if ($type == 'representatives_table') {
+    require 'representatives_table.php';
+}
+
 # Auto-tag some bills.
 if (($type == 'all') || ($type == 'tags')) {
     require 'tags.php';

@@ -49,12 +49,6 @@
 # Re-zip the current year's downloadable bill full-text HTML.
 * 3 * * * /usr/bin/zip -rj rs-machine/downloads/bills/2022 rs-machine/downloads/bills/2022
 
-# Run a daily database backup.
-#* 6 * * * /usr/sbin/logrotate -f /vol/www/richmondsunlight.com/backups/logrotate.db -s /var/www/richmondsunlight.com/backups/logrotate.status
-
-# Run a daily contributions update.
-#* 7 * * * /usr/bin/wget --quiet --timeout=240 --delete-after -O /dev/null rs-machine/cron/update_contributions.php > /dev/null 2>&1
-
 # Convert bill data to JSON.
 0 * * * * csvtojson --ignoreEmpty=true rs-machine/cron/bills.csv > rs-machine/downloads/bills.json
 
@@ -63,6 +57,9 @@
 
 # Download House video
 44 12-20 * * * /usr/bin/php rs-machine/cron/poll_house_video.php
+
+# Sync representatives table with people and terms tables
+31 3 * * * /usr/bin/php rs-machine/cron/update.php representatives_table
 
 # Store exports on S3.
 5 * * * * aws s3 sync rs-machine/downloads s3://downloads.richmondsunlight.com --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers --storage-class REDUCED_REDUNDANCY >/dev/null 2>&1
