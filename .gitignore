@@ -6,3 +6,4 @@ composer.phar
 logs/site.log
 cron/bills.csv
 .phpunit.cache/test-results
+settings.local.inc.php
