@@ -69,8 +69,8 @@ $exitStatus = 0;
 $message = "All representatives_table tests passed\n";
 
 try {
-insertPerson($pdo, $person);
-insertTerm($pdo, $term);
+    insertPerson($pdo, $person);
+    insertTerm($pdo, $term);
 
     $projectRoot = realpath(__DIR__ . '/../../');
     $previousCwd = getcwd();
