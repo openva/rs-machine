@@ -1,6 +1,10 @@
 #!/bin/bash
+set -euo pipefail
 
 cd /home/ubuntu/rs-machine/
+
+# Ensure required directories exist
+mkdir -p includes
 
 # Get all functions from the main repo
 git clone -b deploy https://github.com/openva/richmondsunlight.com.git
