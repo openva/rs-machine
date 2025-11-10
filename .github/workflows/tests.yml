@@ -18,6 +18,27 @@ jobs:
       run: |
         docker compose up -d --build
 
+    - name: Initialize application inside container
+      run: |
+        docker exec rs_machine /home/ubuntu/rs-machine/deploy/docker-setup.sh
+
+    - name: Configure local settings overrides
+      env:
+        LIS_KEY_SECRET: ${{ secrets.LIS_KEY }}
+      run: |
+        if [ -n "$LIS_KEY_SECRET" ]; then
+          cat <<PHP > settings.local.inc.php
+<?php
+rs_define('LIS_KEY', '${LIS_KEY_SECRET}');
+PHP
+          docker cp settings.local.inc.php rs_machine:/home/ubuntu/rs-machine/includes/settings.local.inc.php
+          rm -f settings.local.inc.php
+        fi
+
+    - name: Initialize application inside container
+      run: |
+        docker exec rs_machine /home/ubuntu/rs-machine/deploy/docker-setup.sh
+
     - name: Run test suite
       run: |
         chmod +x docker-tests.sh
