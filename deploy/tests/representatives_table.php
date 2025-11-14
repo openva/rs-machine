@@ -86,12 +86,12 @@ try {
         return;
     }
 
-    $stmt = $pdo->prepare('SELECT * FROM representatives_new WHERE id = :id');
+    $stmt = $pdo->prepare('SELECT * FROM representatives WHERE id = :id');
     $stmt->execute([':id' => $testId]);
     $record = $stmt->fetch();
 
     if (!$record) {
-        $message = "Failure: Expected representatives_new record with ID {$testId}.\n";
+        $message = "Failure: Expected representatives record with ID {$testId}.\n";
         $exitStatus = 1;
         return;
     }
@@ -154,7 +154,7 @@ try {
     }
 
     // Verify that rerunning the script refreshes existing rows.
-    $pdo->prepare('UPDATE representatives_new SET name_formal = :value WHERE id = :id')
+    $pdo->prepare('UPDATE representatives SET name_formal = :value WHERE id = :id')
         ->execute([
             ':value' => 'Changed Name',
             ':id' => $testId,
@@ -260,7 +260,7 @@ function tableExists(PDO $pdo, string $table): bool
 function cleanupFixtureRows(PDO $pdo, int $id): void
 {
     $tables = [
-        'representatives_new' => 'id',
+        'representatives' => 'id',
         'terms' => 'id',
         'people' => 'id',
     ];
