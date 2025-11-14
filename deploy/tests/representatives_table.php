@@ -21,7 +21,6 @@ $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 
 ensurePeopleTable($pdo);
 ensureTermsTable($pdo);
-ensureRepresentativesNewTable($pdo);
 
 $testId = 64000;
 $person = [
@@ -241,13 +240,6 @@ function ensureTermsTable(PDO $pdo): void
             PRIMARY KEY (id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;'
     );
-}
-
-function ensureRepresentativesNewTable(PDO $pdo): void
-{
-    if (!tableExists($pdo, 'representatives_new')) {
-        $pdo->exec('CREATE TABLE representatives_new LIKE representatives');
-    }
 }
 
 function tableExists(PDO $pdo, string $table): bool
