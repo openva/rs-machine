@@ -79,7 +79,7 @@ if (empty($rows)) {
 }
 
 $insert = $pdo->prepare(
-    'INSERT INTO representatives_new
+    'INSERT INTO representatives
         (`id`,`name_formal`,`name`,`name_formatted`,`shortname`,`lis_shortname`,`chamber`,`district_id`,
          `date_started`,`date_ended`,`party`,`bio`,`birthday`,`race`,`sex`,`notes`,
          `phone_district`,`phone_richmond`,`address_district`,`address_richmond`,
