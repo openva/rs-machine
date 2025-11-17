@@ -7,6 +7,9 @@ The scrapers, parsers, etc. that drive the backend of [Richmond Sunlight](/openv
 ## Purpose
 A couple of dozen cron jobs drive Richmond Sunlight. They fetch updates to legislation, perform routine maintenence on data, export bulk downloads, etc. This tends to create problematic spikes on server resources, which can interfere with serving up web pages. So they're run on a separate instance.
 
+## Run Locally
+Machine can be stood up locally with `./docker-run.sh`, and then tests can be run with `./docker-tests.sh`.
+
 ## History
 Some of this code was written in 2005. Most of it was written in 2007–08. It was shoveled out of `/cron/` and onto here in late 2017, both to make it possible to run it on a separate server, but also to isolate it to permit better testing and upgrades.
 
