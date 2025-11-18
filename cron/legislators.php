@@ -60,10 +60,15 @@ if (!function_exists('build_legacy_lis_id')) {
  * delegates are already out office. New delegates are listed, departing ones are gone. To
  * avoid two solid months of errors, instead we get a list of delegates with no end date.
  */
-$sql = 'SELECT name, chamber, lis_id, date_ended
-		FROM representatives
-		WHERE chamber="house"
-			AND date_ended IS NULL';
+$sql = 'SELECT
+            p.name,
+            t.chamber,
+            t.lis_id,
+            t.date_ended
+        FROM terms t
+        INNER JOIN people p ON p.id = t.person_id
+        WHERE t.chamber = "house"
+            AND t.date_ended IS NULL';
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $known_legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -72,13 +77,18 @@ $known_legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
  * Now get a list of senators. The senate doesn't change their list of members until the day
  * that a new session starts, so we need to use a slightly different query for them.
  */
-$sql = 'SELECT name, chamber, lis_id, date_ended
-		FROM representatives
-		WHERE chamber="senate"
-			AND (
-				date_ended IS NULL
-				OR
-				date_ended >= NOW())';
+$sql = 'SELECT
+            p.name,
+            t.chamber,
+            t.lis_id,
+            t.date_ended
+        FROM terms t
+        INNER JOIN people p ON p.id = t.person_id
+        WHERE t.chamber = "senate"
+            AND (
+                t.date_ended IS NULL
+                OR
+                t.date_ended >= NOW())';
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $known_legislators = array_merge($known_legislators, $stmt->fetchAll(PDO::FETCH_OBJ));
@@ -147,15 +157,15 @@ if (count($delegates) < 90) {
  * picks up changes.
  */
 $sql = 'SELECT
-			id,
-			name,
-			chamber,
-			lis_id
-		FROM representatives
-		WHERE
-			date_ended IS NULL
-		ORDER BY date_modified ASC
-		LIMIT 10';
+            t.id,
+            p.name,
+            t.chamber,
+            t.lis_id
+        FROM terms t
+        INNER JOIN people p ON p.id = t.person_id
+        WHERE t.date_ended IS NULL
+        ORDER BY t.date_modified ASC
+        LIMIT 10';
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
