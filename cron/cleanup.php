@@ -399,8 +399,9 @@ mysqli_query($GLOBALS['db'], $sql);
 # The only way we know to retrieve bills' full text is if there's an entry in bills_full_text that
 # is missing the full text. In the rare circumstance that this happens, recreate the entry in the
 # bills_full_text table.
-$sql = 'INSERT INTO bills_full_text (bill_id, number, date_introduced, date_created)
-        SELECT bills.id, bills.number, bills.date_introduced, NOW()
+$sql = 'INSERT INTO
+            bills_full_text (bill_id, session_id, number, date_introduced, date_created)
+            SELECT bills.id, bills.session_id, bills.number, bills.date_introduced, NOW()
         FROM bills
         LEFT JOIN bills_full_text
             ON bills.id = bills_full_text.bill_id
