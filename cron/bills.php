@@ -60,7 +60,7 @@ foreach ($bills as $bill) {
     $bill = str_getcsv($bill, ',', '"');
 
     // Before we proceed any farther, see if this record is either new or different than last time
-    // time that we examined it.
+    // that we examined it.
     $hash = md5(serialize($bill));
     $number = strtolower(trim($bill[0]));
 
