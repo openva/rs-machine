@@ -84,8 +84,9 @@ foreach ($bills as $bill) {
     // Check to see if the bill is already in the database.
     $sql = 'SELECT id
 			FROM bills
-			WHERE number="' . $bill['number'] . '" AND
-            session_id=' . SESSION_ID;
+			WHERE
+                number="' . $bill['number'] . '" AND
+                session_id=' . SESSION_ID;
     $result = mysqli_query($GLOBALS['db'], $sql);
 
     if (mysqli_num_rows($result) > 0) {
@@ -113,8 +114,10 @@ foreach ($bills as $bill) {
 
     // Now create the code to insert the bill or update the bill, depending on what the last query
     // established for the preamble.
-    $sql .= 'number="' . $bill['number'] . '", session_id="' . SESSION_ID . '",
-			chamber="' . $bill['chamber'] . '", catch_line="' . $bill['catch_line'] . '",
+    $sql .= 'number="' . $bill['number'] . '",
+            session_id="' . SESSION_ID . '",
+			chamber="' . $bill['chamber'] . '",
+            catch_line="' . $bill['catch_line'] . '",
 			chief_patron_id=
 				(SELECT person_id
 				FROM terms
@@ -133,8 +136,11 @@ foreach ($bills as $bill) {
 			last_committee_id=
 				(SELECT id
 				FROM committees
-				WHERE lis_id = "' . $bill['last_committee'] . '" AND parent_id IS NULL
-				AND chamber = "' . $bill['last_committee_chamber'] . '"),
+				WHERE
+                    lis_id = "' . $bill['last_committee'] . '" AND
+                    parent_id IS NULL AND
+                    chamber = "' . $bill['last_committee_chamber'] . '"
+                ),
 			status="' . $bill['status'] . '"';
     if (isset($sql_suffix)) {
         $sql = $sql . $sql_suffix;
