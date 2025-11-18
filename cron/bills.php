@@ -116,8 +116,8 @@ foreach ($bills as $bill) {
     $sql .= 'number="' . $bill['number'] . '", session_id="' . SESSION_ID . '",
 			chamber="' . $bill['chamber'] . '", catch_line="' . $bill['catch_line'] . '",
 			chief_patron_id=
-				(SELECT id
-				FROM representatives
+				(SELECT person_id
+				FROM terms
 				WHERE
 					lis_id = "' . $bill['chief_patron_id'] . '"
 				AND (
