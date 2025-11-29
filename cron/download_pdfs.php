@@ -159,13 +159,34 @@ foreach ($bills as $bill) {
             $pdfUrl = 'https://' . $s3_bucket . '/' . $key;
             $escapedUrl = mysqli_real_escape_string($GLOBALS['db'], $pdfUrl);
             $escapedNumber = mysqli_real_escape_string($GLOBALS['db'], $bill);
-            $sql = 'UPDATE bills_full_text
-                    SET pdf_url = "' . $escapedUrl . '"
-                    WHERE
-                        session_id = ' . SESSION_ID . ' AND
-                        number = "' . $escapedNumber . '"';
-            if (!mysqli_query($GLOBALS['db'], $sql)) {
-                throw new Exception('MySQL error: ' . mysqli_error($GLOBALS['db']));
+            $maxRetries = 3;
+            $retryDelaySeconds = 5;
+
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                $sql = 'UPDATE bills_full_text
+                        SET pdf_url = "' . $escapedUrl . '"
+                        WHERE
+                            session_id = ' . SESSION_ID . ' AND
+                            number = "' . $escapedNumber . '"';
+                if (mysqli_query($GLOBALS['db'], $sql)) {
+                    break;
+                }
+
+                $errorMessage = mysqli_error($GLOBALS['db']);
+                $isLockWait = (stripos($errorMessage, 'Lock wait timeout') !== false)
+                    || (stripos($errorMessage, 'deadlock') !== false);
+
+                if (!$isLockWait || $attempt === $maxRetries) {
+                    throw new Exception('MySQL error: ' . $errorMessage);
+                }
+
+                $log->put(
+                    'Lock wait storing PDF URL for ' . $document_number . ' (attempt '
+                    . $attempt . '/' . $maxRetries . '), retrying in '
+                    . $retryDelaySeconds . 's.',
+                    4
+                );
+                sleep($retryDelaySeconds);
             }
         } catch (Exception $dbException) {
             $log->put('Warning: could not store PDF URL for ' . $document_number
