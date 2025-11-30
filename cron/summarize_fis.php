@@ -2,7 +2,7 @@
 
 /*
  * Select bills from this session that have fiscal impact statements, but no bill notes, and a
- * last-week view count that's above 10. Limit it 10 at a go.
+ * last-week view count that's above 5. Limit it to 10 at a go.
  */
 $sql = 'SELECT
             bills.id,
@@ -20,7 +20,7 @@ $sql = 'SELECT
             bills.session_id = ' . SESSION_ID . ' AND
             fiscal_impact_statements.pdf_url IS NOT NULL AND
             bills.notes IS NULL
-        HAVING views >= 10
+        HAVING views >= 5
         ORDER BY views DESC
         LIMIT 10';
 $result = mysqli_query($GLOBALS['db'], $sql);
