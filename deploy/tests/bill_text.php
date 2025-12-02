@@ -11,7 +11,51 @@ if ($lis_key === '') {
 }
 
 $log = new Log();
-$import = new Import($log);
+
+/**
+ * Fixture-backed importer to avoid live LIS calls during tests.
+ */
+class FixtureImportForBillText extends Import
+{
+    private $fixtures;
+
+    public function __construct(Log $log, array $fixtures)
+    {
+        parent::__construct($log);
+        $this->fixtures = $fixtures;
+    }
+
+    public function fetch_bill_text_from_api($document_number, $session_lis_id = null)
+    {
+        $document_number = strtoupper(trim((string)$document_number));
+        if (isset($this->fixtures[$document_number])) {
+            return $this->fixtures[$document_number];
+        }
+
+        return [
+            'success' => false,
+            'status' => 'no_text',
+            'message' => 'Fixture: no text available',
+        ];
+    }
+}
+
+$fixtures = [];
+$fixturePath = __DIR__ . '/data/bills/HB1_text.json';
+if (file_exists($fixturePath)) {
+    $decoded = json_decode(file_get_contents($fixturePath), true);
+    if (isset($decoded['TextsList'][0]['DraftText'])) {
+        $fixtures['HB1'] = [
+            'success' => true,
+            'status' => 'ok',
+            'text' => $decoded['TextsList'][0]['DraftText'],
+            'raw_html' => $decoded['TextsList'][0]['DraftText'],
+        ];
+    }
+}
+
+$useLiveLis = getenv('RS_LIVE_LIS_TESTS') === '1';
+$import = $useLiveLis ? new Import($log) : new FixtureImportForBillText($log, $fixtures);
 
 $tests = [
     [

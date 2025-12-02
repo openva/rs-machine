@@ -11,7 +11,45 @@ if ($lis_key === '') {
 }
 
 $log = new Log();
-$import = new Import($log);
+
+/**
+ * Fixture-backed importer to avoid live LIS calls during tests.
+ */
+class FixtureImportForBillPdf extends Import
+{
+    public $bill_number;
+    public $document_number;
+    public $lis_session_id;
+    private $fixtures;
+
+    public function __construct(Log $log, array $fixtures)
+    {
+        parent::__construct($log);
+        $this->fixtures = $fixtures;
+    }
+
+    public function get_bill_pdf_api(?string $destinationPath = null)
+    {
+        $bill = strtoupper(trim((string)$this->bill_number));
+        if (isset($this->fixtures[$bill]) && $destinationPath !== null) {
+            if (copy($this->fixtures[$bill], $destinationPath) === false) {
+                return false;
+            }
+            return $destinationPath;
+        }
+
+        return false;
+    }
+}
+
+$fixtures = [];
+$pdfFixture = __DIR__ . '/data/bills/HB1.pdf';
+if (file_exists($pdfFixture)) {
+    $fixtures['HB1'] = $pdfFixture;
+}
+
+$useLiveLis = getenv('RS_LIVE_LIS_TESTS') === '1';
+$import = $useLiveLis ? new Import($log) : new FixtureImportForBillPdf($log, $fixtures);
 
 $tmpDir = sys_get_temp_dir() . '/rs_machine_pdf_tests';
 if (!is_dir($tmpDir) && !mkdir($tmpDir, 0777, true) && !is_dir($tmpDir)) {
