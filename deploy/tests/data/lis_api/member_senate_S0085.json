@@ -1,0 +1,37 @@
+{
+    "Members": [
+        {
+            "MemberID": 130,
+            "IdentityID": 116,
+            "SessionCode": null,
+            "MemberNumber": "S0085",
+            "ListDisplayName": "Ebbin, Adam P.",
+            "MemberDisplayName": "Adam P. Ebbin",
+            "PatronDisplayName": "Ebbin",
+            "Salutation": null,
+            "ServiceBeginDate": "2011-11-21T00:00:00",
+            "ServiceEndDate": null,
+            "LastElectionDate": null,
+            "RoomNumber": "611",
+            "ServiceEndReason": null,
+            "GABPhoneNumber": "(804) 698-7539",
+            "GABEmailAddress": "senatorebbin@senate.virginia.gov",
+            "SeatNumber": null,
+            "Seniority": null,
+            "VotingSequence": null,
+            "ChamberCode": "S",
+            "ChamberName": null,
+            "DistrictID": 39,
+            "DistrictName": "39th",
+            "PartyCode": "D",
+            "MemberStatusID": 1,
+            "MemberStatus": "Active",
+            "StatusReason": null,
+            "IsPublic": true,
+            "SessionID": null
+        }
+    ],
+    "Success": true,
+    "FailureMessage": "",
+    "CacheKeyName": "{CONTROLLERNAME=PUBLICACTIONSCONTROLLER}{CLASSMODEL=PUBLICMEMBERRESPONSE}{SESSIONCODE=20251}{MEMBERNUMBER=S0085}"
+}

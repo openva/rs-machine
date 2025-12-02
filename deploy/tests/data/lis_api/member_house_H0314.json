@@ -1,0 +1,37 @@
+{
+    "Members": [
+        {
+            "MemberID": 81,
+            "IdentityID": 71,
+            "SessionCode": null,
+            "MemberNumber": "H0314",
+            "ListDisplayName": "Cole, Joshua G.",
+            "MemberDisplayName": "Joshua G. Cole",
+            "PatronDisplayName": "Cole",
+            "Salutation": null,
+            "ServiceBeginDate": "2019-11-18T00:00:00",
+            "ServiceEndDate": null,
+            "LastElectionDate": null,
+            "RoomNumber": "1020",
+            "ServiceEndReason": null,
+            "GABPhoneNumber": "(804) 698-1065",
+            "GABEmailAddress": "DelJCole@house.virginia.gov",
+            "SeatNumber": null,
+            "Seniority": null,
+            "VotingSequence": null,
+            "ChamberCode": "H",
+            "ChamberName": null,
+            "DistrictID": 65,
+            "DistrictName": "65th",
+            "PartyCode": "D",
+            "MemberStatusID": 1,
+            "MemberStatus": "Active",
+            "StatusReason": null,
+            "IsPublic": true,
+            "SessionID": null
+        }
+    ],
+    "Success": true,
+    "FailureMessage": "",
+    "CacheKeyName": "{CONTROLLERNAME=PUBLICACTIONSCONTROLLER}{CLASSMODEL=PUBLICMEMBERRESPONSE}{SESSIONCODE=20251}{MEMBERNUMBER=H0314}"
+}
