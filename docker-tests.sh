@@ -12,6 +12,8 @@ fi
 
 echo "Running tests inside Docker container \"${CONTAINER_NAME}\"..."
 
+tests_failed=0
+
 # Ensure composer autoload prerequisites inside container
 docker exec "${CONTAINER_NAME}" /bin/sh -c "
   set -e
@@ -27,7 +29,14 @@ docker exec "${CONTAINER_NAME}" /bin/sh -c "
 PHPUNIT_PATH="${CONTAINER_WORKDIR}/includes/vendor/bin/phpunit"
 if docker exec "${CONTAINER_NAME}" test -x "${PHPUNIT_PATH}"; then
   echo "Running PHPUnit suite..."
-  docker exec "${CONTAINER_NAME}" "${PHPUNIT_PATH}"
+  set +e
+  phpunit_output=$(docker exec "${CONTAINER_NAME}" "${PHPUNIT_PATH}" --testdox 2>&1)
+  phpunit_status=$?
+  set -e
+  printf "%s\n" "$phpunit_output"
+  if [ $phpunit_status -ne 0 ] || echo "$phpunit_output" | grep -qE "FAILURES!|ERRORS!"; then
+    tests_failed=1
+  fi
 else
   echo "Skipping PHPUnit suite (${PHPUNIT_PATH} not found or not executable)."
 fi
@@ -40,7 +49,21 @@ for test_script in deploy/tests/*.php; do
   fi
 
   echo "Executing ${test_script}..."
-  docker exec "${CONTAINER_NAME}" php "${CONTAINER_WORKDIR}/${test_script}"
+  set +e
+  script_output=$(docker exec "${CONTAINER_NAME}" php "${CONTAINER_WORKDIR}/${test_script}" 2>&1)
+  script_status=$?
+  set -e
+  printf "%s\n" "$script_output"
+  if [ $script_status -ne 0 ] || echo "$script_output" | grep -qi "Failure:"; then
+    tests_failed=1
+  fi
 done
 
 echo "All tests completed."
+
+# Summarize outcome from collected statuses and outputs.
+if [ "$tests_failed" -eq 0 ]; then
+  echo "TEST SUITE RESULT: ✅ All tests passed."
+else
+  echo "TEST SUITE RESULT: ❌ Some tests failed. See output above."
+fi
