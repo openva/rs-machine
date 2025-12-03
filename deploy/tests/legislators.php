@@ -34,7 +34,8 @@ $test_records = array(
             'party' => 'D',
             'lis_id' => '85',
             'photo_url' => 'https://apps.senate.virginia.gov/Senator/images/member_photos/Ebbin39',
-            'email' => 'senatorebbin@senate.virginia.gov'
+            'email' => 'senatorebbin@senate.virginia.gov',
+            'address_richmond' => '611'
         )
     ),
 
@@ -51,7 +52,8 @@ $test_records = array(
             'party' => 'D',
             'lis_id' => 'H0314',
             'photo_url' => 'https://memdata.virginiageneralassembly.gov/images/display_image/H0314',
-            'email' => 'DelJCole@house.virginia.gov'
+            'email' => 'DelJCole@house.virginia.gov',
+            'address_richmond' => '1020'
         )
     )
 );
