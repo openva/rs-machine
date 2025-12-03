@@ -8,6 +8,24 @@ require_once __DIR__ . '/../../includes/vendor/autoload.php';
 require_once __DIR__ . '/../../includes/class.Import.php';
 require_once __DIR__ . '/../../includes/class.Log.php';
 
+if (!class_exists('NullLog', false)) {
+    /**
+     * Silent logger for test isolation.
+     */
+    class NullLog extends Log
+    {
+        public function put($message, $level)
+        {
+            return true;
+        }
+
+        public function filesystem($message)
+        {
+            return true;
+        }
+    }
+}
+
 /**
  * Import stub that feeds controlled member data to exercise shortname generation.
  */
@@ -81,7 +99,7 @@ class LegislatorShortnameTest extends TestCase
             'MemberStatus' => 'Active',
         ];
 
-        $import = new ImportShortnameStub(new Log(), $member);
+        $import = new ImportShortnameStub(new NullLog(), $member);
         $legislator = $import->fetch_legislator_data_api($chamber, $memberNumber);
 
         $this->assertIsArray($legislator, 'Expected legislator data to be returned');

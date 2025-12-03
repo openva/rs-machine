@@ -8,6 +8,24 @@ require_once __DIR__ . '/../../includes/vendor/autoload.php';
 require_once __DIR__ . '/../../includes/class.Import.php';
 require_once __DIR__ . '/../../includes/class.Log.php';
 
+if (!class_exists('NullLog', false)) {
+    /**
+     * Silent logger for test isolation.
+     */
+    class NullLog extends Log
+    {
+        public function put($message, $level)
+        {
+            return true;
+        }
+
+        public function filesystem($message)
+        {
+            return true;
+        }
+    }
+}
+
 /**
  * Import stub that serves a single member payload for deactivation checks.
  */
@@ -52,7 +70,7 @@ class LegislatorDeactivationTest extends TestCase
             'Success' => true,
         ];
 
-        $import = new ImportDeactivationStub(new Log(), $payload);
+        $import = new ImportDeactivationStub(new NullLog(), $payload);
         $this->assertTrue($import->legislator_in_lis('S0085'));
     }
 
@@ -72,7 +90,7 @@ class LegislatorDeactivationTest extends TestCase
             'Success' => true,
         ];
 
-        $import = new ImportDeactivationStub(new Log(), $payload);
+        $import = new ImportDeactivationStub(new NullLog(), $payload);
         $this->assertFalse($import->legislator_in_lis('S0085'));
     }
 
@@ -93,7 +111,7 @@ class LegislatorDeactivationTest extends TestCase
             'Success' => true,
         ];
 
-        $import = new ImportDeactivationStub(new Log(), $payload);
+        $import = new ImportDeactivationStub(new NullLog(), $payload);
         $this->assertFalse($import->legislator_in_lis('S0085'));
     }
 
@@ -114,7 +132,7 @@ class LegislatorDeactivationTest extends TestCase
             'Success' => true,
         ];
 
-        $import = new ImportDeactivationStub(new Log(), $payload);
+        $import = new ImportDeactivationStub(new NullLog(), $payload);
         $this->assertTrue($import->legislator_in_lis('S0085'));
     }
 }

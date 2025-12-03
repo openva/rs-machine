@@ -8,6 +8,24 @@ require_once __DIR__ . '/../../includes/vendor/autoload.php';
 require_once __DIR__ . '/../../includes/class.Import.php';
 require_once __DIR__ . '/../../includes/class.Log.php';
 
+if (!class_exists('NullLog', false)) {
+    /**
+     * Silent logger for test isolation.
+     */
+    class NullLog extends Log
+    {
+        public function put($message, $level)
+        {
+            return true;
+        }
+
+        public function filesystem($message)
+        {
+            return true;
+        }
+    }
+}
+
 /**
  * Import stub that serves canned LIS API fixtures instead of making HTTP requests.
  */
@@ -87,7 +105,7 @@ class LegislatorActiveMatchTest extends TestCase
 
     public function testFetchesCorrectMemberWithNormalizedLisId(): void
     {
-        $import = new ImportFixtureStub(new Log(), $this->fixtures);
+        $import = new ImportFixtureStub(new NullLog(), $this->fixtures);
 
         $result = $import->fetch_legislator_data_api('house', 'H314');
 
@@ -115,7 +133,7 @@ class LegislatorActiveMatchTest extends TestCase
         $fixtures['active_house'] = [];
         $fixtures['active_senate'] = [];
 
-        $import = new ImportFixtureStub(new Log(), $fixtures);
+        $import = new ImportFixtureStub(new NullLog(), $fixtures);
 
         $result = $import->fetch_legislator_data_api('house', 'H0314');
 
@@ -147,7 +165,7 @@ class LegislatorActiveMatchTest extends TestCase
             ]
         ];
 
-        $import = new ImportFixtureStub(new Log(), $fixtures);
+        $import = new ImportFixtureStub(new NullLog(), $fixtures);
         $result = $import->fetch_legislator_data_api('house', 'H0314');
 
         $this->assertIsArray($result);
@@ -189,7 +207,7 @@ class LegislatorActiveMatchTest extends TestCase
             'Success' => true
         ];
 
-        $import = new ImportFixtureStub(new Log(), $fixtures);
+        $import = new ImportFixtureStub(new NullLog(), $fixtures);
         $senators = $import->fetch_active_members('senate');
 
         $this->assertCount(1, $senators, 'Duplicate roster entries should be collapsed to one legislator');
