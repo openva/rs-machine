@@ -61,7 +61,6 @@ while (($row = fgetcsv($docket_csv)) !== false) {
 
     // Don't bother with docket entries that aren't in our list of dates
     if (!in_array($date, $dates)) {
-        echo 'skipped';
         continue;
     }
 
