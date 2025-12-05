@@ -97,12 +97,15 @@ $stmt->execute();
 $known_legislators = array_merge($known_legislators, $stmt->fetchAll(PDO::FETCH_OBJ));
 
 foreach ($known_legislators as &$known_legislator) {
-    if (($known_legislator->lis_id[0] != 'S') && ($known_legislator->lis_id[0] != 'H')) {
-        if ($known_legislator->chamber == 'senate') {
-            $known_legislator->lis_id = 'S' . $known_legislator->lis_id;
-        } elseif ($known_legislator->chamber == 'house') {
-            $known_legislator->lis_id = 'H' . str_pad($known_legislator->lis_id, 4, '0', STR_PAD_LEFT);
-        }
+    $digits = preg_replace('/[^0-9]/', '', (string)$known_legislator->lis_id);
+    if ($digits === '') {
+        continue;
+    }
+
+    if ($known_legislator->chamber == 'senate') {
+        $known_legislator->lis_id = 'S' . str_pad($digits, 4, '0', STR_PAD_LEFT);
+    } elseif ($known_legislator->chamber == 'house') {
+        $known_legislator->lis_id = 'H' . str_pad($digits, 4, '0', STR_PAD_LEFT);
     }
 }
 
