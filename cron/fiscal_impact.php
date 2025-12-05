@@ -12,6 +12,13 @@ if (!file_exists($filename) || !is_readable($filename)) {
 }
 $csv = file($filename);
 
+// See if it's CSV, or log an error message when there's no docket file (in the off season)
+if (strpos($csv, 'does not exist') === 0) {
+    $log->put('Error: FiscalImpactStatements.csv does not contain CSV.', 3);
+    fclose($docket_csv);
+    return;
+}
+
 // Remove the header row
 unset($csv[0]);
 
