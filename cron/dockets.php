@@ -33,7 +33,15 @@ foreach ($dates as $date) {
 // Open the CSV file
 $docket_csv = fopen(__DIR__ . '/docket.csv', 'r');
 if ($docket_csv === false) {
-    die('Could not open docket.csv');
+    $log->put('Error: docket.csv is missing. ' . $sql, 6);
+    return;
+}
+
+// See if it's CSV, or the error message when there's no docket file
+if (strpos(fgets($docket_csv), 'does not exist') === 0) {
+    $log->put('Error: docket.csv does not contain docket records.', 3);
+    fclose($docket_csv);
+    return;
 }
 
 // Skip the header row
