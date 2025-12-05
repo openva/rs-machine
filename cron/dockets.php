@@ -37,7 +37,7 @@ if ($docket_csv === false) {
     return;
 }
 
-// See if it's CSV, or the error message when there's no docket file
+// See if it's CSV, or log an error message when there's no docket file (in the off season)
 if (strpos(fgets($docket_csv), 'does not exist') === 0) {
     $log->put('Error: docket.csv does not contain docket records.', 3);
     fclose($docket_csv);
