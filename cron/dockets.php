@@ -32,14 +32,19 @@ foreach ($dates as $date) {
 
 // Open the CSV file
 $docket_csv = fopen(__DIR__ . '/docket.csv', 'r');
+if (IN_SESSION === true {
+        $docket_alert_level = 6;
+} else {
+        $docket_alert_level = 2;
+}
 if ($docket_csv === false) {
-    $log->put('Error: docket.csv is missing. ' . $sql, 6);
+    $log->put('Error: docket.csv is missing.', $docket_alert_level);
     return;
 }
 
 // See if it's CSV, or log an error message when there's no docket file (in the off season)
 if (stripos(fgets($docket_csv), 'does not exist') != 0) {
-    $log->put('Error: docket.csv does not contain docket records.', 3);
+    $log->put('Error: docket.csv does not contain docket records.', $docket_alert_level);
     fclose($docket_csv);
     return;
 }
