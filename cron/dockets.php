@@ -32,7 +32,7 @@ foreach ($dates as $date) {
 
 // Open the CSV file
 $docket_csv = fopen(__DIR__ . '/docket.csv', 'r');
-if (IN_SESSION === true {
+if (IN_SESSION === true) {
         $docket_alert_level = 6;
 } else {
         $docket_alert_level = 2;
