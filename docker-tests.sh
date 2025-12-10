@@ -25,6 +25,23 @@ docker exec "${CONTAINER_NAME}" /bin/sh -c "
   fi
 "
 
+# Lint all PHP files (syntax check)
+echo "Linting PHP files..."
+set +e
+lint_output=$(docker exec "${CONTAINER_NAME}" /bin/sh -c "
+  cd ${CONTAINER_WORKDIR} \
+    && find . -path './includes/vendor' -prune -o -name '*.php' -type f -print0 \
+    | xargs -0 -n1 php -l
+")
+lint_status=$?
+set -e
+printf "%s\n" "$lint_output"
+if [ $lint_status -ne 0 ]; then
+  tests_failed=1
+elif echo "$lint_output" | grep -q "Errors parsing"; then
+  tests_failed=1
+fi
+
 # Run PHPUnit suite if available
 PHPUNIT_PATH="${CONTAINER_WORKDIR}/includes/vendor/bin/phpunit"
 if docker exec "${CONTAINER_NAME}" test -x "${PHPUNIT_PATH}"; then
