@@ -25,9 +25,6 @@ if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
 
 $import = new Import($log);
 
-$log->put('Error: Not running legislators update until it’s debugged.', 5);
-return;
-
 if (!function_exists('merge_legislator_data_sets')) {
     function merge_legislator_data_sets(array $primary, array $additional)
     {
