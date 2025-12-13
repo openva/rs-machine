@@ -133,14 +133,10 @@ if ($httpCode != '200') {
 // Check for errors
 if ($response === false) {
     $error = curl_error($ch);
-    curl_close($ch);
     $log->put('Error: The cURL query to LIS’s GetScheduleListAsync failed with “' . $error
         . '”—meeting schedule could not be updated.', 6);
     return false;
 }
-
-// Close the cURL session
-curl_close($ch);
 
 if ($response === false) {
     $log->put('Error: LIS’s GetScheduleListAsync returned an invalid response.', 6);

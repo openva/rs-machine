@@ -249,8 +249,3 @@ while ($bill = mysqli_fetch_array($result)) {
 
     $log->put('Identified place names in ' . strtoupper($bill['number']), 2);
 }
-
-/*
- * Shut down the cURL connection.
- */
-curl_close($ch);

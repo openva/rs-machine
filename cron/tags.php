@@ -109,5 +109,3 @@ foreach ($bills as $bill) {
         $log->put('Auto-generated tags: ' . implode(', ', $tags), 2);
     }
 } // end foreach bills
-
-curl_close($ch);

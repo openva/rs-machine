@@ -105,8 +105,6 @@ if (isset($vote_list['Votes'])) {
     $votes = $vote_list['Votes'];
 }
 
-curl_close($ch);
-
 if (empty($votes)) {
     $log->put('No votes found for session ' . SESSION_ID, 3);
     return false;
