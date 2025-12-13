@@ -19,7 +19,7 @@ $sql = 'SELECT
         WHERE
             bills.session_id = ' . SESSION_ID . ' AND
             fiscal_impact_statements.pdf_url IS NOT NULL AND
-            bills.notes IS NULL
+            fiscal_impact_statements.summary IS NULL
         HAVING views >= 5
         ORDER BY views DESC
         LIMIT 10';
