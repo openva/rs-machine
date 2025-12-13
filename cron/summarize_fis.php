@@ -91,7 +91,6 @@ foreach ($bills as $bill) {
     ]);
 
     $response = curl_exec($ch);
-    curl_close($ch);
 
     if (!$response) {
         die("Failed to get a response from OpenAI");
