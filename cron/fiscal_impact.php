@@ -36,16 +36,22 @@ foreach ($fis_data as $statement) {
 
 // Insert the records
 foreach ($fis as $statement) {
-    $sql = 'REPLACE INTO fiscal_impact_statements
-            SET
-                lis_id = "' . $statement['lis_id'] . '",
-                bill_id=(
+    $sql = 'INSERT INTO fiscal_impact_statements (lis_id, bill_id, pdf_url, date_created)
+            VALUES (
+                "' . $statement['lis_id'] . '",
+                (
                     SELECT id
                     FROM bills
                     WHERE number = "' . $statement['bill_number'] . '"
-                    AND session_id=' . SESSION_ID . '),
-                pdf_url = "' . $statement['pdf_url'] . '",
-                date_created = NOW()';
+                    AND session_id=' . SESSION_ID . '
+                ),
+                "' . $statement['pdf_url'] . '",
+                NOW()
+            )
+            ON DUPLICATE KEY UPDATE
+                bill_id = VALUES(bill_id),
+                pdf_url = "' . $statement['pdf_url'] . '"
+                date_created = VALUES(date_created)';
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false) {
         $log->put('Error: Adding a fiscal impact statement ID for ' . $statement['bill_number']
