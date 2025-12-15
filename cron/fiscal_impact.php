@@ -50,7 +50,7 @@ foreach ($fis as $statement) {
             )
             ON DUPLICATE KEY UPDATE
                 bill_id = VALUES(bill_id),
-                pdf_url = "' . $statement['pdf_url'] . '"
+                pdf_url = "' . $statement['pdf_url'] . '",
                 date_created = VALUES(date_created)';
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false) {
