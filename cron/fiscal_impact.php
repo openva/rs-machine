@@ -54,10 +54,10 @@ foreach ($fis as $statement) {
                 date_created = VALUES(date_created)';
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false) {
-        $log->put('Error: Adding a fiscal impact statement ID for ' . $statement['bill_number']
+        $log->put('Error: Adding a fiscal impact statement for ' . $statement['bill_number']
             . ' failed: ' . mysqli_error($GLOBALS['db']), 4);
     } else {
-        $log->put('Added or updated a fiscal impact statement ID for ' . $statement['bill_number']
+        $log->put('Added or updated a fiscal impact statement for ' . $statement['bill_number']
             . '.', 2);
     }
 }
