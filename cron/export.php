@@ -55,9 +55,9 @@ if (mysqli_num_rows($result) > 0) {
 # A list of legislators.
 $sql = 'SELECT representatives.chamber, representatives.name, representatives.date_started,
 		representatives.party, districts.number, districts.description, representatives.sex,
-		representatives.email, representatives.url, representatives.place, representatives.latitude,
-		representatives.longitude, representatives.lis_shortname, representatives.lis_shortname,
-		representatives.lis_id, representatives.shortname, representatives.sbe_id
+		representatives.email, representatives.url, representatives.place,
+        representatives.lis_shortname, representatives.lis_shortname, representatives.lis_id,
+        representatives.shortname, representatives.sbe_id
 		FROM representatives
 		LEFT JOIN districts
 			ON representatives.district_id=districts.id
