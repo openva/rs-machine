@@ -73,13 +73,7 @@ while ($text = mysqli_fetch_array($result)) {
         mysqli_query($GLOBALS['db'], $sql);
 
         if ($status === 'no_text') {
-            $log->put('Full text of ' . $text['number'] . ' was reported as lacking draft text: '
-                . urlencode($url), 3);
-        } else {
-            if (mb_stripos($text['number'], 'CHAP') === false) {
-                $log->put('Full text of ' . $text['number'] . ' came up blank (' . $message . '): '
-                    . urlencode($url), 5);
-            }
+            $log->put('Full text of ' . $text['number'] . ' was reported as lacking draft text', 3);
         }
 
         sleep(1);
