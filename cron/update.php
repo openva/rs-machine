@@ -37,11 +37,11 @@ set_time_limit(1200);
 
 # FUNDAMENTAL VARIABLES
 $session_id = SESSION_ID;
+$session_api_id = SESSION_LIS_API_ID;
 $session_year = SESSION_YEAR;
 $dlas_session_id = SESSION_LIS_ID;
 $max_age_bills = 50 * 60;           // for how many seconds to refuse to refresh the bills CSV
 $max_age_history = 12 * 60 * 60;    // for how many seconds to refuse to refresh the history CSV
-
 
 # WHAT TYPE OF AN UPDATE WE'RE RUNNING.
 # If this page is loaded straight-up, we probably want to run everything. But we also provide the
