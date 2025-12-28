@@ -6,6 +6,48 @@
 $log = new Log();
 
 /*
+ * Build a map of bill number => legislation ID for the current session, using the provided
+ * $api_session_id. This uses the public LIS endpoints and stores the results in $bill_ids_map.
+ */
+$bill_ids_map = array();
+$lis_headers = array(
+    'Content-Type: application/json',
+    'WebAPIKey: ' . LIS_KEY,
+);
+
+if (!empty($session_api_id)) {
+    $lis_bills = curl_init('https://lis.virginia.gov/Legislation/api/GetLegislationIdsListAsync');
+    curl_setopt($lis_bills, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($lis_bills, CURLOPT_HTTPHEADER, $lis_headers);
+    curl_setopt($lis_bills, CURLOPT_TIMEOUT, 30);
+    curl_setopt($lis_bills, CURLOPT_POST, true);
+    curl_setopt(
+        $lis_bills,
+        CURLOPT_POSTFIELDS,
+        json_encode(array('sessionId' => (int) $session_api_id))
+    );
+
+    $bills_response = curl_exec($lis_bills);
+
+    if ($bills_response !== false) {
+        $bills_json = json_decode($bills_response, true);
+        if (isset($bills_json['LegislationIds']) && is_array($bills_json['LegislationIds'])) {
+            foreach ($bills_json['LegislationIds'] as $bill_entry) {
+                if (isset($bill_entry['LegislationNumber'], $bill_entry['LegislationID'])) {
+                    $bill_ids_map[$bill_entry['LegislationNumber']] = (int) $bill_entry['LegislationID'];
+                }
+            }
+        } else {
+            $log->put('LIS bill list response missing LegislationIds.', 2);
+        }
+    } else {
+        $log->put('Failed to retrieve LIS bill list.', 2);
+    }
+} else {
+    $log->put('Missing $api_session_id; cannot retrieve LIS bill list.', 2);
+}
+
+/*
  * Open the bills CSV.
  */
 $bills = file_get_contents(__DIR__ . '/bills.csv');
@@ -141,7 +183,8 @@ foreach ($bills as $bill) {
                     parent_id IS NULL AND
                     chamber = "' . $bill['last_committee_chamber'] . '"
                 ),
-			status="' . $bill['status'] . '"';
+			status="' . $bill['status'] . '",
+            lis_id=' . $bill_ids_map[$bill['number']];
     if (isset($sql_suffix)) {
         $sql = $sql . $sql_suffix;
     }
