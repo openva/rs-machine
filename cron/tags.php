@@ -42,8 +42,10 @@ $role = 'You are a helpful assistant who generates tags to describe legislation.
     'and impact of a bill. Each tag is 1–2 words long, and use simple English. For example, ' .
     'a bill about the regulation of automatic firearms might be tagged include "guns" and ' .
     '"weapon." A bill about the availability of birth control might be tagged "abortion," ' .
-    '"reproductive rights," and "medicine." Provide ONLY tags in response to the query, ' .
-    'separated by commas, in lowercase.';
+    '"reproductive rights," and "medicine." For reference, these are some of the most common ' .
+    'tags: "commendation," "education," "transportation," "regulation," "recognition," "tax," ' .
+    '"locality," "business," "tribute," "crime," "court," "health," "school," and "safety". ' .
+    'Provide ONLY tags in response to the query, separated by commas, in lowercase.';
 
 /*
  * Create an initial connection to the endpoint, to be reused on each loop
