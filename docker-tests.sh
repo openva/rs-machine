@@ -42,20 +42,30 @@ elif echo "$lint_output" | grep -q "Errors parsing"; then
   tests_failed=1
 fi
 
-# Run PHPUnit suite if available
-PHPUNIT_PATH="${CONTAINER_WORKDIR}/includes/vendor/bin/phpunit"
-if docker exec "${CONTAINER_NAME}" test -x "${PHPUNIT_PATH}"; then
-  echo "Running PHPUnit suite..."
+# Run PHPUnit suite (prefer vendor binary, fallback to global phpunit). Fail if neither exists.
+PHPUNIT_VENDOR_PATH="${CONTAINER_WORKDIR}/includes/vendor/bin/phpunit"
+PHPUNIT_FALLBACK_BIN="phpunit"
+
+if docker exec "${CONTAINER_NAME}" test -x "${PHPUNIT_VENDOR_PATH}"; then
+  PHPUNIT_BIN="${PHPUNIT_VENDOR_PATH}"
+elif docker exec "${CONTAINER_NAME}" command -v ${PHPUNIT_FALLBACK_BIN} >/dev/null 2>&1; then
+  PHPUNIT_BIN="${PHPUNIT_FALLBACK_BIN}"
+else
+  echo "PHPUnit not available in container (looked for ${PHPUNIT_VENDOR_PATH} and ${PHPUNIT_FALLBACK_BIN})."
+  tests_failed=1
+  PHPUNIT_BIN=""
+fi
+
+if [ -n "$PHPUNIT_BIN" ]; then
+  echo "Running PHPUnit suite with ${PHPUNIT_BIN}..."
   set +e
-  phpunit_output=$(docker exec "${CONTAINER_NAME}" "${PHPUNIT_PATH}" --testdox 2>&1)
+  phpunit_output=$(docker exec "${CONTAINER_NAME}" "${PHPUNIT_BIN}" --testdox 2>&1)
   phpunit_status=$?
   set -e
   printf "%s\n" "$phpunit_output"
   if [ $phpunit_status -ne 0 ] || echo "$phpunit_output" | grep -qE "FAILURES!|ERRORS!"; then
     tests_failed=1
   fi
-else
-  echo "Skipping PHPUnit suite (${PHPUNIT_PATH} not found or not executable)."
 fi
 
 # Run standalone PHP test scripts (those not based on PHPUnit)
