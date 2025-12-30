@@ -1,0 +1,21 @@
+{
+  "LegislationEvents": [
+    {
+      "ChamberCode": "S",
+      "EventDate": "2025-11-17T14:24:00",
+      "Description": "Prefiled and ordered printed; Offered 01-14-2026 26102073D"
+    },
+    {
+      "ChamberCode": "S",
+      "EventDate": "2025-11-17T14:24:00",
+      "Description": "Referred to Committee on Commerce and Labor"
+    },
+    {
+      "ChamberCode": "H",
+      "EventDate": "2025-12-01T09:00:00",
+      "Description": "Reported from Committee"
+    }
+  ],
+  "Success": true,
+  "FailureMessage": ""
+}
