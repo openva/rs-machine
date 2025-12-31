@@ -290,7 +290,7 @@ $db->exec($sql);
 # date for a vote, which is a bit silly.
 $sql = 'UPDATE votes
 		SET date =
-			(SELECT bills_status.date
+			(SELECT DATE_FORMAT(bills_status.date, "%Y-%m-%d") AS date
 			FROM bills_status
 			LEFT JOIN bills
 				ON bills_status.bill_id=bills.id
