@@ -34,7 +34,7 @@ if (!empty($session_api_id)) {
         if (isset($bills_json['LegislationIds']) && is_array($bills_json['LegislationIds'])) {
             foreach ($bills_json['LegislationIds'] as $bill_entry) {
                 if (isset($bill_entry['LegislationNumber'], $bill_entry['LegislationID'])) {
-                    $bill_ids_map[$bill_entry['LegislationNumber']] = (int) $bill_entry['LegislationID'];
+                    $bill_ids_map[strtolower($bill_entry['LegislationNumber'])] = (int) $bill_entry['LegislationID'];
                 }
             }
         } else {
