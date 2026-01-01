@@ -29,15 +29,17 @@ $stmt = $pdo->prepare(
         latest.status AS current_status
     FROM bills b
     LEFT JOIN (
-        SELECT bs.bill_id, bs.status, bs.date, bs.date_created
-        FROM bills_status bs
-        JOIN (
-            SELECT bill_id, MAX(date) AS max_date
-            FROM bills_status
-            WHERE session_id = :session_id
-            GROUP BY bill_id
-        ) latest_dates ON latest_dates.bill_id = bs.bill_id AND latest_dates.max_date = bs.date
-        WHERE bs.session_id = :session_id
+        SELECT bs_outer.bill_id, bs_outer.status
+        FROM bills_status bs_outer
+        WHERE bs_outer.session_id = :session_id
+          AND bs_outer.id = (
+              SELECT bs_inner.id
+              FROM bills_status bs_inner
+              WHERE bs_inner.bill_id = bs_outer.bill_id
+                AND bs_inner.session_id = :session_id
+              ORDER BY bs_inner.date DESC, bs_inner.id DESC
+              LIMIT 1
+          )
     ) AS latest ON latest.bill_id = b.id
     WHERE
         b.session_id = :session_id AND
