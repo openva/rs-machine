@@ -95,6 +95,13 @@ if (($type == 'all') || ($type == 'history')) {
     require 'history.php';
 }
 
+# Run history_api.php, which contains the functionality that updates the status histories of every
+# bill, retrieving data from the LIS API.
+# Note that this will only be run when specifically requested at the command line, via ?history=y.
+if ($type == 'history_api') {
+    require 'history_api.php';
+}
+
 # Run summaries.php, which contains the functionality that gathers and stores the full summaries for
 # each bill.
 if (($type == 'all') || ($type == 'summaries')) {
