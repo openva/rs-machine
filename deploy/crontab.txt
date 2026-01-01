@@ -3,8 +3,7 @@
 55 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh Committees.csv rs-machine/cron/committees.csv
 55 6-23 * * * /usr/bin/php rs-machine/cron/update.php
 
-# The update script that handles the advancing of bills. This runs hourly at 2 after, 2 minutes after DLAS outputs their data.
-02 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh HISTORY.CSV rs-machine/cron/history.csv
+# The update script that handles the advancing of bills.
 02 6-23 * * * /usr/bin/php rs-machine/cron/update.php history
 
 # The script that collects and tallies votes.

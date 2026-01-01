@@ -102,7 +102,7 @@ class ImportStatusHistoryTest extends TestCase
         $this->assertSame(
             [
                 'chamber' => 'senate',
-                'date' => '2025-11-17T14:24:00',
+                'date' => '2025-11-17 14:24:00',
                 'status' => 'Prefiled and ordered printed; Offered 01-14-2026 26102073D',
             ],
             $normalized[0]
@@ -111,7 +111,7 @@ class ImportStatusHistoryTest extends TestCase
         $this->assertSame(
             [
                 'chamber' => 'senate',
-                'date' => '2025-11-17T14:24:00',
+                'date' => '2025-11-17 14:24:00',
                 'status' => 'Referred to Committee on Commerce and Labor',
             ],
             $normalized[1]
@@ -120,7 +120,7 @@ class ImportStatusHistoryTest extends TestCase
         $this->assertSame(
             [
                 'chamber' => 'house',
-                'date' => '2025-12-01T09:00:00',
+                'date' => '2025-12-01 09:00:00',
                 'status' => 'Reported from Committee',
             ],
             $normalized[2]
@@ -157,13 +157,13 @@ class ImportStatusHistoryTest extends TestCase
         $this->assertSame(42, $first[':bill_id']);
         $this->assertSame(30, $first[':session_id']);
         $this->assertSame('Prefiled and ordered printed', $first[':status']);
-        $this->assertSame('2025-11-17', $first[':date']);
+        $this->assertSame('2025-11-17 14:24:00', $first[':date']);
         $this->assertNull($first[':lis_vote_id']);
         $this->assertMatchesRegularExpression('/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/', $first[':date_created']);
 
         $second = $pdo->statement->executions[1];
         $this->assertSame('Reported from Committee', $second[':status']);
-        $this->assertSame('2025-12-01', $second[':date']);
+        $this->assertSame('2025-12-01 09:00:00', $second[':date']);
         $this->assertSame('1234', $second[':lis_vote_id']);
     }
 }
