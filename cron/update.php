@@ -96,7 +96,6 @@ if (($type == 'all') || ($type == 'history')) {
 
 # Run history_api.php, which contains the functionality that updates the status histories of every
 # bill, retrieving data from the LIS API.
-# Note that this will only be run when specifically requested at the command line, via ?history=y.
 if ($type == 'history_api') {
     require 'history_api.php';
 }
