@@ -1,7 +1,8 @@
 <?php
 
 /**
- * Fetch bill status history from the LIS API and persist it to bills_status for the current session.
+ * Fetch bill status history from the LIS API and persist it to bills_status for the current
+ * session.
  */
 
 $log = new Log();
@@ -19,19 +20,69 @@ if (MEMCACHED_SERVER !== '' && class_exists('Memcached')) {
     $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 }
 
-// Get a list of all bills in the current session that have an LIS ID.
-$stmt = $pdo->prepare('SELECT
-                            id,
-                            number,
-                            lis_id
-                        FROM bills
-                        WHERE
-                            session_id = :session_id AND
-                            lis_id IS NOT NULL');
+// Get a list of bills in the current session (with their latest stored status).
+$stmt = $pdo->prepare(
+    'SELECT
+        b.id,
+        b.number,
+        b.lis_id,
+        latest.status AS current_status
+    FROM bills b
+    LEFT JOIN (
+        SELECT bs.bill_id, bs.status, bs.date, bs.date_created
+        FROM bills_status bs
+        JOIN (
+            SELECT bill_id, MAX(date) AS max_date
+            FROM bills_status
+            WHERE session_id = :session_id
+            GROUP BY bill_id
+        ) latest_dates ON latest_dates.bill_id = bs.bill_id AND latest_dates.max_date = bs.date
+        WHERE bs.session_id = :session_id
+    ) AS latest ON latest.bill_id = b.id
+    WHERE
+        b.session_id = :session_id AND
+        b.lis_id IS NOT NULL'
+);
 $stmt->execute([':session_id' => SESSION_ID]);
-$bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if (empty($allBills)) {
+    $log->put('No bills with LIS IDs found for session ' . SESSION_ID . '; aborting history update.', 4);
+    return;
+}
+
+// Fetch the current statuses from the LIS API for this session.
+$remoteStatuses = $import->get_legislation_session_statuses();
+if (empty($remoteStatuses)) {
+    $log->put('No session status list returned from LIS API; aborting history update.', 4);
+    return;
+}
+
+// Index local bills by LIS ID for quick comparison.
+$localByLisId = [];
+foreach ($allBills as $bill) {
+    $localByLisId[(int)$bill['lis_id']] = $bill;
+}
+
+// Determine which bills have changed statuses according to the API.
+$bills = [];
+foreach ($remoteStatuses as $remote) {
+    $lisId = (int)($remote['legislation_id'] ?? 0);
+    if (!isset($localByLisId[$lisId])) {
+        continue;
+    }
+
+    $apiStatus = is_string($remote['status'] ?? null) ? trim($remote['status']) : null;
+    $localStatus = is_string($localByLisId[$lisId]['current_status'] ?? null)
+        ? trim($localByLisId[$lisId]['current_status'])
+        : null;
+
+    if ($apiStatus !== $localStatus) {
+        $bills[] = $localByLisId[$lisId];
+    }
+}
+
 if (empty($bills)) {
-    $log->put('No bills with LIS IDs found for session ' . SESSION_ID . '; aborting history_api update.', 4);
+    $log->put('No bills with changed statuses detected via LIS API; nothing to update.', 2);
     return;
 }
 
