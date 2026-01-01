@@ -90,7 +90,6 @@ if (($type == 'all') || ($type == 'bills')) {
 }
 
 # Run history.php, which contains the functionality that updates the status histories of every bill.
-# Note that this will only be run when specifically requested at the command line, via ?history=y.
 if (($type == 'all') || ($type == 'history')) {
     require 'history.php';
 }
