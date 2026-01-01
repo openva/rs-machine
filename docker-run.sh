@@ -3,6 +3,24 @@ set -e
 
 # Prepare data for the database
 
+# Refresh includes/ if missing or older than 12 hours (720 minutes).
+needs_includes_refresh=false
+if [ ! -d "includes" ]; then
+    needs_includes_refresh=true
+elif find includes -maxdepth 0 -mmin +720 -print -quit | grep -q "includes"; then
+    needs_includes_refresh=true
+fi
+
+if [ "$needs_includes_refresh" = true ]; then
+    echo "Refreshing includes/ from richmondsunlight.com (stale or missing)."
+    tmp_dir="$(mktemp -d)"
+    git clone -b deploy https://github.com/openva/richmondsunlight.com.git "$tmp_dir"
+    rm -rf includes
+    mkdir -p includes
+    cp "$tmp_dir"/htdocs/includes/*.php includes/
+    rm -rf "$tmp_dir"
+fi
+
 # If the database.sql doesn't exist, create it
 if [ ! -f "deploy/database.sql" ]; then
 
