@@ -3,22 +3,34 @@ set -e
 
 # Prepare data for the database
 
-# Refresh includes/ if missing or older than 12 hours (720 minutes).
+# Refresh includes/ from inside the container if missing, empty, or stale (>12h since newest file).
 needs_includes_refresh=false
 if [ ! -d "includes" ]; then
     needs_includes_refresh=true
-elif find includes -maxdepth 0 -mmin +720 -print -quit | grep -q "includes"; then
-    needs_includes_refresh=true
-fi
-
-if [ "$needs_includes_refresh" = true ]; then
-    echo "Refreshing includes/ from richmondsunlight.com (stale or missing)."
-    tmp_dir="$(mktemp -d)"
-    git clone -b deploy https://github.com/openva/richmondsunlight.com.git "$tmp_dir"
-    rm -rf includes
-    mkdir -p includes
-    cp "$tmp_dir"/htdocs/includes/*.php includes/
-    rm -rf "$tmp_dir"
+else
+    newest_epoch=$(python - <<'PY'
+import os
+root = "includes"
+mtimes = []
+for dirpath, _, filenames in os.walk(root):
+    for name in filenames:
+        try:
+            mtimes.append(os.path.getmtime(os.path.join(dirpath, name)))
+        except OSError:
+            pass
+if mtimes:
+    print(int(max(mtimes)))
+PY
+)
+    if [ -z "$newest_epoch" ]; then
+        needs_includes_refresh=true
+    else
+        now_epoch=$(date +%s)
+        age_seconds=$(( now_epoch - newest_epoch ))
+        if [ "$age_seconds" -gt $((720 * 60)) ]; then
+            needs_includes_refresh=true
+        fi
+    fi
 fi
 
 # If the database.sql doesn't exist, create it
@@ -44,5 +56,14 @@ until docker exec rs_machine_db mysqladmin ping -h localhost --silent >/dev/null
     sleep 1
 done
 
-# Run the setup script
-docker exec -d rs_machine /home/ubuntu/rs-machine/deploy/docker-setup.sh
+# Run the setup script (handles includes refresh inside container if needed)
+if [ "$needs_includes_refresh" = true ]; then
+    echo "Refreshing includes/ inside container via deploy/docker-setup.sh"
+fi
+docker exec rs_machine /home/ubuntu/rs-machine/deploy/docker-setup.sh
+
+# Verify includes were populated (fail fast if setup did not complete).
+if [ ! -d "includes" ] || [ -z "$(ls -A includes 2>/dev/null)" ]; then
+    echo "includes/ is missing or empty after docker-setup.sh; please check container logs."
+    exit 1
+fi
