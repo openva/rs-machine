@@ -8,48 +8,10 @@
 $log = new Log();
 $import = new Import($log);
 
-$pdo = (new Database())->connect();
-if (!$pdo instanceof PDO) {
-    $log->put('Unable to connect to database; aborting history_api update.', 8);
-    exit(1);
-}
-
 $mc = null;
 if (MEMCACHED_SERVER !== '' && class_exists('Memcached')) {
     $mc = new Memcached();
     $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
-}
-
-// Get a list of bills in the current session (with their latest stored status).
-$stmt = $pdo->prepare(
-    'SELECT
-        b.id,
-        b.number,
-        b.lis_id,
-        latest.status AS current_status
-    FROM bills b
-    LEFT JOIN (
-        SELECT bs_outer.bill_id, bs_outer.status
-        FROM bills_status bs_outer
-        WHERE bs_outer.session_id = :session_id
-          AND bs_outer.id = (
-              SELECT bs_inner.id
-              FROM bills_status bs_inner
-              WHERE bs_inner.bill_id = bs_outer.bill_id
-                AND bs_inner.session_id = :session_id
-              ORDER BY bs_inner.date DESC, bs_inner.id DESC
-              LIMIT 1
-          )
-    ) AS latest ON latest.bill_id = b.id
-    WHERE
-        b.session_id = :session_id AND
-        b.lis_id IS NOT NULL'
-);
-$stmt->execute([':session_id' => SESSION_ID]);
-$allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
-if (empty($allBills)) {
-    $log->put('No bills with LIS IDs found for session ' . SESSION_ID . '; aborting history update.', 4);
-    return;
 }
 
 // Fetch the current statuses from the LIS API for this session.
@@ -59,32 +21,51 @@ if (empty($remoteStatuses)) {
     return;
 }
 
-// Index local bills by LIS ID for quick comparison.
-$localByLisId = [];
-foreach ($allBills as $bill) {
-    $localByLisId[(int)$bill['lis_id']] = $bill;
-}
-
-// Determine which bills have changed statuses according to the API.
-$bills = [];
+// Build current status map keyed by LegislationID.
+$currentById = [];
 foreach ($remoteStatuses as $remote) {
-    $lisId = (int)($remote['legislation_id'] ?? 0);
-    if (!isset($localByLisId[$lisId])) {
+    $lisId = $remote['legislation_id'] ?? null;
+    if ($lisId === null) {
         continue;
     }
 
-    $apiStatus = is_string($remote['status'] ?? null) ? trim($remote['status']) : null;
-    $localStatus = is_string($localByLisId[$lisId]['current_status'] ?? null)
-        ? trim($localByLisId[$lisId]['current_status'])
-        : null;
+    $status = is_string($remote['status'] ?? null) ? trim($remote['status']) : null;
+    $number = is_string($remote['number'] ?? null) ? trim($remote['number']) : null;
 
-    if ($apiStatus !== $localStatus) {
-        $bills[] = $localByLisId[$lisId];
-    }
+    $currentById[(int)$lisId] = [
+        'lis_id' => (int)$lisId,
+        'number' => $number,
+        'status' => $status,
+    ];
 }
 
-if (empty($bills)) {
+$cacheFile = __DIR__ . '/bill-statuses.json';
+$changedLisIds = $import->detect_changed_legislation_statuses($currentById, $cacheFile);
+
+if (empty($changedLisIds)) {
     $log->put('No bills with changed statuses detected via LIS API; nothing to update.', 2);
+    return;
+}
+
+// Fetch matching bills from the database for the changed LIS IDs.
+$pdo = (new Database())->connect();
+if (!$pdo instanceof PDO) {
+    $log->put('Unable to connect to database; aborting history update.', 8);
+    return false;
+}
+
+$placeholders = implode(',', array_fill(0, count($changedLisIds), '?'));
+$stmt = $pdo->prepare(
+    'SELECT id, number, lis_id
+     FROM bills
+     WHERE session_id = ? AND lis_id IN (' . $placeholders . ')'
+);
+$params = array_merge([SESSION_ID], $changedLisIds);
+$stmt->execute($params);
+$bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if (empty($bills)) {
+    $log->put('No matching bills found in database for changed LIS IDs; aborting history update.', 4);
     return;
 }
 
