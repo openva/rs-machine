@@ -4,7 +4,7 @@
 55 6-23 * * * /usr/bin/php rs-machine/cron/update.php
 
 # The update script that handles the advancing of bills.
-02 6-23 * * * /usr/bin/php rs-machine/cron/update.php history
+02,12,22,32,42,52 6-23 * * * /usr/bin/php rs-machine/cron/update.php history
 
 # The script that collects and tallies votes.
 0 10,13,16,21 * * * /usr/bin/php rs-machine/cron/update.php vote
