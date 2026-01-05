@@ -20,7 +20,7 @@ $sql = 'SELECT
             bills.session_id = ' . SESSION_ID . ' AND
             fiscal_impact_statements.pdf_url IS NOT NULL AND
             fiscal_impact_statements.summary IS NULL
-        HAVING views >= 5
+        HAVING views >= 2
         ORDER BY views DESC
         LIMIT 10';
 $result = mysqli_query($GLOBALS['db'], $sql);
