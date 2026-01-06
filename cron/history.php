@@ -65,7 +65,9 @@ $stmt->execute($params);
 $bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (empty($bills)) {
-    $log->put('No matching bills found in database for changed LIS IDs; aborting history update.', 4);
+    $log->put('Found ' . count($changedLisIds) . ' changed LIS IDs ('
+        . implode(', ', $changedLisIds) . ') that couldn’t be matched to bills in the database; '
+        . 'aborting history update.', 4);
     return;
 }
 
