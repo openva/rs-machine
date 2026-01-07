@@ -8,151 +8,209 @@
 #
 ###
 
-# PAGE CONTENT
+# Verify we have the API key
+if (!defined('LIS_KEY') || empty(LIS_KEY)) {
+    $log->put('LIS_KEY is not configured—cannot retrieve minutes.', 6);
+    return false;
+}
+
+# Get existing minutes from database to avoid duplicates
 $sql = 'SELECT date, chamber
-		FROM minutes';
+        FROM minutes';
 $result = mysqli_query($GLOBALS['db'], $sql);
+$past_minutes = [];
 if (mysqli_num_rows($result) > 0) {
     while ($tmp = mysqli_fetch_array($result)) {
         $past_minutes[] = $tmp;
     }
 }
 
-$chambers['house'] = 'https://virginiageneralassembly.gov/house/minutes/list.php?ses=' . SESSION_LIS_ID;
-$chambers['senate'] = 'http://leg1.state.va.us/cgi-bin/legp504.exe?ses=' . SESSION_LIS_ID . '&typ=lnk&val=07';
+# Retrieve minutes list from the API
+$session_code = '20' . SESSION_LIS_ID;
+$api_url = 'https://lis.virginia.gov/MinutesBook/api/getpublishedminutesbooklistasync?sessionCode=' . $session_code;
 
-foreach ($chambers as $chamber => $listing_url) {
-    # Begin by connecting to the appropriate session page.
-    $raw_html = get_content($listing_url);
-    $raw_html = explode("\n", $raw_html);
+$headers = [
+    'Content-Type: application/json',
+    'WebAPIKey: ' . LIS_KEY
+];
 
-    # Iterate through every line in the HTML.
-    foreach ($raw_html as &$line) {
-        # Check if this line contains a link to the minutes for a given date.
-        if ($chamber == 'house') {
-            preg_match('|<a href="minutes.php\?mid=([0-9]+)">(.+)</a>|', $line, $regs);
-        } elseif ($chamber == 'senate') {
-            preg_match('#<a href="/cgi-bin/legp504.exe\?([0-9]{3})\+min\+([A-Za-z0-9]+)">([A-Za-z]+) ([0-9]+), ([0-9]{4})</a>#D', $line, $regs);
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $api_url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+$response = curl_exec($ch);
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($http_code != 200) {
+    $log->put('Failed to retrieve minutes list from API: HTTP ' . $http_code, 6);
+    return false;
+}
+
+$minutes_list = json_decode($response, true);
+
+if (empty($minutes_list['Minutes'])) {
+    $log->put('No minutes found in API response for session ' . $session_code, 3);
+    return false;
+}
+
+# Process each minutes entry
+foreach ($minutes_list['Minutes'] as $minutes_book) {
+    # Skip committee minutes (only process floor minutes)
+    if (!empty($minutes_book['CommitteeID'])) {
+        continue;
+    }
+
+    # Extract the date and chamber
+    $minutes_date = date('Y-m-d', strtotime($minutes_book['MinutesDate']));
+    $chamber = ($minutes_book['ChamberCode'] === 'H') ? 'house' : 'senate';
+    $minutes_book_id = $minutes_book['MinutesBookID'];
+
+    # Check if we already have these minutes
+    $is_duplicate = false;
+    foreach ($past_minutes as $past) {
+        if ($past['chamber'] === $chamber && $past['date'] === $minutes_date) {
+            $is_duplicate = true;
+            break;
+        }
+    }
+
+    if ($is_duplicate) {
+        continue;
+    }
+
+    # Fetch the full minutes content
+    $detail_url = 'https://lis.virginia.gov/MinutesBook/api/getminutesbookasync?minutesBookID=' . $minutes_book_id;
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $detail_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    $detail_response = curl_exec($ch);
+    $detail_http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($detail_http_code != 200) {
+        $log->put('Failed to retrieve minutes detail for ' . $minutes_date . ' ' . $chamber
+            . ': HTTP ' . $detail_http_code, 5);
+        continue;
+    }
+
+    $detail_data = json_decode($detail_response, true);
+
+    if (empty($detail_data['MinutesBooks'][0]['MinutesCategories'])) {
+        $log->put('No minutes content for ' . $minutes_date . ' ' . $chamber, 4);
+        continue;
+    }
+
+    # Build the minutes text from the structured data
+    $minutes_text = build_minutes_text($detail_data['MinutesBooks'][0]);
+
+    # If, after all that, we still have any text in these minutes
+    if (strlen($minutes_text) > 150) {
+        # Prepare for MySQL
+        $minutes_text = mysqli_real_escape_string($GLOBALS['db'], $minutes_text);
+
+        # Insert the minutes into the database
+        $sql = 'INSERT INTO minutes
+                SET date = "' . $minutes_date . '", chamber="' . $chamber . '",
+                text="' . $minutes_text . '"';
+        $result = mysqli_query($GLOBALS['db'], $sql);
+
+        if (!$result) {
+            $log->put('Inserting the minutes for ' . $minutes_date . ' in ' . $chamber
+                . ' failed. ' . mysqli_error($GLOBALS['db']), 7);
+        } else {
+            $log->put('Inserted the minutes for ' . $minutes_date . ' in ' . $chamber . '.', 2);
+        }
+    } else {
+        $log->put('The retrieved minutes for ' . $minutes_date . ' in ' . $chamber . ' were '
+            . ' suspiciously short, and not saved.', 6);
+    }
+
+    # Rate limit
+    sleep(1);
+}
+
+/**
+ * Build readable minutes text from the structured API response
+ *
+ * @param array $minutes_book The MinutesBook object from the API
+ * @return string Formatted minutes text
+ */
+function build_minutes_text(array $minutes_book): string
+{
+    $text_parts = [];
+
+    if (empty($minutes_book['MinutesCategories'])) {
+        return '';
+    }
+
+    foreach ($minutes_book['MinutesCategories'] as $category) {
+        # Add category description as a header if present
+        if (!empty($category['CategoryDescription'])) {
+            $text_parts[] = '<b>' . htmlspecialchars($category['CategoryDescription']) . '</b>';
         }
 
-        # We've found a match.
-        if (count($regs) > 0) {
-            # Pull out the source URL and the date from the matched string.
-            if ($chamber == 'house') {
-                $source_url = 'https://hod-minutes.herokuapp.com/vga_day/' . $regs[1];
-                $date = date('Y-m-d', strtotime($regs[2]));
-            } elseif ($chamber == 'senate') {
-                $source_url = 'http://leg1.state.va.us/cgi-bin/legp504.exe?' . $regs[1] . '+min+' . $regs[2];
-                $date = date('Y-m-d', strtotime($regs[3] . ' ' . $regs[4] . ' ' . $regs[5]));
+        if (empty($category['MinutesEntries'])) {
+            continue;
+        }
+
+        foreach ($category['MinutesEntries'] as $entry) {
+            $entry_text = '';
+
+            # Add legislation number if present
+            if (!empty($entry['LegislationNumber'])) {
+                $entry_text .= '<b>' . htmlspecialchars($entry['LegislationNumber']) . '</b>';
+                if (!empty($entry['LegislationDescription'])) {
+                    $entry_text .= ' - ' . htmlspecialchars($entry['LegislationDescription']);
+                }
+            } elseif (!empty($entry['EntryText'])) {
+                $entry_text .= htmlspecialchars($entry['EntryText']);
             }
 
-            # Determines if this is a duplicate. If a match is found, the "repeat" flag is set.
-            for ($i = 0; $i < count($past_minutes); $i++) {
-                if (($past_minutes[$i]['chamber'] == $chamber) && ($past_minutes[$i]['date'] == $date)) {
-                    $repeat = true;
-                    break;
+            # Process activities
+            if (!empty($entry['MinutesActivities'])) {
+                foreach ($entry['MinutesActivities'] as $activity) {
+                    # Skip deleted activities
+                    if (!empty($activity['DeletionDate'])) {
+                        continue;
+                    }
+
+                    $activity_text = '';
+
+                    # Build text from activity references
+                    if (!empty($activity['ActivityReferences'])) {
+                        foreach ($activity['ActivityReferences'] as $ref) {
+                            if (!empty($ref['ReferenceText'])) {
+                                $activity_text .= htmlspecialchars($ref['ReferenceText']);
+                            }
+                        }
+                    } elseif (!empty($activity['Description'])) {
+                        $activity_text = htmlspecialchars($activity['Description']);
+                    }
+
+                    # Add vote tally if present
+                    if (!empty($activity['VoteTally'])) {
+                        $activity_text .= ' - ' . htmlspecialchars($activity['VoteTally']);
+                    }
+
+                    if (!empty($activity_text)) {
+                        if (!empty($entry_text)) {
+                            $entry_text .= '<br>' . "\n";
+                        }
+                        $entry_text .= $activity_text;
+                    }
                 }
             }
 
-            # If the repeat flag is set then we've seen these minutes before, in which case continue
-            # to the next line in the minutes listing.
-            if ($repeat === true) {
-                unset($repeat);
-                unset($date);
-                unset($source_url);
-                unset($regs);
-                continue;
-            }
-
-            # Retrieve and clean up the minutes.
-            $minutes = get_content($source_url);
-
-            # If the query was successful.
-            if ($minutes != false) {
-                # Run the minutes through HTML Purifier, just to make sure they're clean.
-                $config = HTMLPurifier_Config::createDefault();
-                $purifier = new HTMLPurifier($config);
-                $minutes = $purifier->purify($minutes);
-
-                # Strip out the bulk of the markup. We allow the HR tag because we sometimes use
-                # it as a marker for where the page content concludes.
-                $minutes = strip_tags($minutes, '<b><i><hr><br>');
-
-                # Start the minutes with the call to order.
-                $minutes = stristr($minutes, 'called to order');
-
-                # Determine where to end the minutes. We have three versions of this strpos() to
-                # accomodation variations in the data, primarily between the house and senate.
-                $end = strpos($minutes, 'KEY: A');
-                if ($end === false) {
-                    $end = strpos($minutes, 'KEY:  A');
-                    if ($end === false) {
-                        $end = stripos($minutes, '<hr>');
-                    }
-                    if ($end === false) {
-                        $end = stripos($minutes, 'iFrame Resizer');
-                    }
-                }
-                if ($end != false) {
-                    $minutes = substr($minutes, 0, $end);
-                }
-                $minutes = trim($minutes);
-
-                # Clean up some known House-minutes problems.
-                if ($chamber == 'house') {
-                    $minutes = str_replace('<i class="fa fa-times"></i>', '', $minutes);
-                    $minutes = str_replace('<i class="fa fa-ellipsis-v"></i>', '', $minutes);
-                    $minutes = preg_replace("/[\r\n][[:space:]]+/", "\n\n", $minutes);
-                    $minutes = str_replace(' - Agreed to', " - Agreed to<br>\n", $minutes);
-                }
-
-                /*
-                 * Minutes sometimes display vote results (e.g., "38-Y 2-N") with a non-breaking
-                 * hyphen instead of an en dash. An en dash is the correct way to indicate this,
-                 * but also it's within the Latin-1 codeset, which is how we encode minutes, for
-                 * historical reasons.
-                 */
-                $minutes = str_replace('‑', '–', $minutes);
-
-                # Prepare them for MySQL.
-                $minutes = mysqli_real_escape_string($GLOBALS['db'], $minutes);
-
-                # If, after all that, we still have any text in these minutes, picking an arbitrary
-                # length of 150 characters.
-                if (strlen($minutes) > 150) {
-                    # Insert the minutes into the database.
-                    $sql = 'INSERT INTO minutes
-							SET date = "' . $date . '", chamber="' . $chamber . '",
-							text="' . $minutes . '"';
-                    echo $sql;
-                    $result = mysqli_query($GLOBALS['db'], $sql);
-                    if (!$result) {
-                        $log->put('Inserting the minutes for ' . $date . ' in ' . $chamber
-                            . ' failed. ' . $sql, 7);
-                    } else {
-                        $log->put('Inserted the minutes for ' . $date . ' in ' . $chamber . '.', 2);
-                    }
-                } else {
-                    $log->put('The retrieved minutes for ' . $date . ' in ' . $chamber . ' were '
-                        . ' suspiciously short, and not saved. They are as follows: ' . $minutes, 6);
-                }
-
-                # Unset our variables to prevent them from being reused on the next line.
-                unset($regs);
-                unset($source_url);
-                unset($date);
-                unset($minutes);
-                unset($done);
-                unset($started);
-                unset($repeat);
-                unset($date);
-                unset($strpos);
-
-                sleep(1);
+            if (!empty($entry_text)) {
+                $text_parts[] = $entry_text;
             }
         }
     }
 
-    # Don't accidentally reuse the HTML for the next chamber.
-    unset($raw_html);
+    return implode("\n\n", $text_parts);
 }
