@@ -16,9 +16,9 @@
 # Get the floor minutes from the House and the Senate.
 0 16,20 * * * /usr/bin/php rs-machine/cron/update.php minutes
 
-# Update the bill summaries (which is updated daily at 11:53).
-59 11 * * * /bin/bash rs-machine/cron/fetch_csv.sh Summaries.csv rs-machine/cron/summaries.csv
-59 11 * * * /usr/bin/php rs-machine/cron/update.php summaries
+# Update the bill summaries
+58 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh Summaries.csv rs-machine/cron/summaries.csv
+59 6-23 * * * /usr/bin/php rs-machine/cron/update.php summaries
 
 # Update the bill full text.
 11,21,31,41,51 * * * * /usr/bin/php rs-machine/cron/update.php full_text
