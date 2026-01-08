@@ -60,26 +60,28 @@ class ImportSessionStatusTest extends TestCase
     public function testGetLegislationSessionStatusesNormalizesAndFilters(): void
     {
         $response = [
-            [
-                'LegislationID' => 101,
-                'LegislationNumber' => 'HB1',
-                'LegislationStatus' => 'Introduced',
-            ],
-            [
-                'LegislationID' => 102,
-                'LegislationNumber' => 'SB2',
-                'LegislationStatus' => 'In Committee',
-            ],
-            // Missing ID should be ignored.
-            [
-                'LegislationNumber' => 'HB3',
-                'LegislationStatus' => 'Failed',
-            ],
-            // Non-string status should become null.
-            [
-                'LegislationID' => 103,
-                'LegislationNumber' => 'HB4',
-                'LegislationStatus' => ['array'],
+            'Legislations' => [
+                [
+                    'LegislationID' => 101,
+                    'LegislationNumber' => 'HB1',
+                    'LegislationStatus' => 'Introduced',
+                ],
+                [
+                    'LegislationID' => 102,
+                    'LegislationNumber' => 'SB2',
+                    'LegislationStatus' => 'In Committee',
+                ],
+                // Missing ID should be ignored.
+                [
+                    'LegislationNumber' => 'HB3',
+                    'LegislationStatus' => 'Failed',
+                ],
+                // Non-string status should become null.
+                [
+                    'LegislationID' => 103,
+                    'LegislationNumber' => 'HB4',
+                    'LegislationStatus' => ['array'],
+                ],
             ],
         ];
 
@@ -110,7 +112,9 @@ class ImportSessionStatusTest extends TestCase
     public function testGetLegislationSessionStatusesPrefixesThreeDigitSessionCode(): void
     {
         $response = [
-            ['LegislationID' => 201, 'LegislationNumber' => 'HB10', 'LegislationStatus' => 'Introduced'],
+            'Legislations' => [
+                ['LegislationID' => 201, 'LegislationNumber' => 'HB10', 'LegislationStatus' => 'Introduced'],
+            ],
         ];
 
         $import = new StubImportSession(new NullLogSession(), $response);
