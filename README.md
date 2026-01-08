@@ -10,6 +10,22 @@ A couple of dozen cron jobs drive Richmond Sunlight. They fetch updates to legis
 ## Run Locally
 Machine can be stood up locally with `./docker-run.sh`, and then tests can be run with `./docker-tests.sh`.
 
+### Refreshing the Database
+If you've updated `deploy/database.sql` and need to reload it into the MariaDB container:
+
+```bash
+docker exec -i rs_machine_db mariadb -u ricsun -ppassword richmondsunlight < deploy/database.sql
+```
+
+Alternatively, for a complete refresh (removes all data and reloads from scratch):
+
+```bash
+./docker-stop.sh
+docker compose down
+docker volume rm rs-machine_db_data
+./docker-run.sh
+```
+
 ## History
 Some of this code was written in 2005. Most of it was written in 2007–08. It was shoveled out of `/cron/` and onto here in late 2017, both to make it possible to run it on a separate server, but also to isolate it to permit better testing and upgrades.
 
