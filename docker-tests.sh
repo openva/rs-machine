@@ -5,9 +5,21 @@ set -euo pipefail
 CONTAINER_NAME="rs_machine"
 CONTAINER_WORKDIR="/home/ubuntu/rs-machine"
 
-if ! docker ps --filter "name=^${CONTAINER_NAME}$" --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Docker container \"${CONTAINER_NAME}\" is not running. Start it before running tests."
-  exit 1
+# Check if Docker container is already running
+DOCKER_WAS_RUNNING=false
+if docker ps --filter "name=^${CONTAINER_NAME}$" --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  DOCKER_WAS_RUNNING=true
+  echo "Docker container \"${CONTAINER_NAME}\" is already running."
+else
+  echo "Docker container \"${CONTAINER_NAME}\" is not running. Starting it..."
+  if [ ! -x ./docker-run.sh ]; then
+    echo "Error: ./docker-run.sh not found or not executable."
+    exit 1
+  fi
+  ./docker-run.sh
+
+  # Give the container a moment to fully start up
+  sleep 2
 fi
 
 echo "Running tests inside Docker container \"${CONTAINER_NAME}\"..."
@@ -94,3 +106,15 @@ if [ "$tests_failed" -eq 0 ]; then
 else
   echo "TEST SUITE RESULT: ❌ Some tests failed. See output above."
 fi
+
+# Stop Docker if we started it
+if [ "$DOCKER_WAS_RUNNING" = false ]; then
+  echo "Stopping Docker container (was started by this script)..."
+  if [ -x ./docker-stop.sh ]; then
+    ./docker-stop.sh
+  else
+    echo "Warning: ./docker-stop.sh not found or not executable."
+  fi
+fi
+
+exit $tests_failed
