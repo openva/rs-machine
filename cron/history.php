@@ -67,7 +67,7 @@ $bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 if (empty($bills)) {
     $log->put('Found ' . count($changedLisIds) . ' changed LIS IDs ('
         . implode(', ', $changedLisIds) . ') that couldn’t be matched to bills in the database; '
-        . 'aborting history update.', 4);
+        . 'aborting history update.', 2);
     return;
 }
 
