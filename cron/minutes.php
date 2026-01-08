@@ -41,7 +41,6 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
 $response = curl_exec($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
 
 if ($http_code != 200) {
     $log->put('Failed to retrieve minutes list from API: HTTP ' . $http_code, 6);
@@ -90,7 +89,6 @@ foreach ($minutes_list['Minutes'] as $minutes_book) {
 
     $detail_response = curl_exec($ch);
     $detail_http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     if ($detail_http_code != 200) {
         $log->put('Failed to retrieve minutes detail for ' . $minutes_date . ' ' . $chamber
