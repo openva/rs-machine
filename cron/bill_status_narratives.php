@@ -214,7 +214,7 @@ function get_bill_candidates(mysqli $db, int $session_year): array
                     FROM bills_status_narratives
                     WHERE bill_id = bills.id AND current = "y"
                 )
-            ORDER BY bills.id ASC
+            ORDER BY bills.interestingness DESC
             LIMIT 10';
     $result = mysqli_query($db, $sql);
     if ($result === false || mysqli_num_rows($result) === 0) {
