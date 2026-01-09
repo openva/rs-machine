@@ -92,7 +92,7 @@ if (stripos($prompt_template, 'TODO:') === 0) {
     return;
 }
 
-$bills = get_bill_candidates($db);
+$bills = get_bill_candidates($db, $session_year);
 if (empty($bills)) {
     $log->put('No bills need narratives right now.', 3);
     return;
@@ -182,7 +182,7 @@ function get_crossover_date(mysqli $db, int $session_year): ?string
 /**
  * Select bills in the current session that do not yet have a current narrative.
  */
-function get_bill_candidates(mysqli $db): array
+function get_bill_candidates(mysqli $db, int $session_year): array
 {
     $sql = 'SELECT
                 bills.id,
@@ -202,7 +202,8 @@ function get_bill_candidates(mysqli $db): array
             LEFT JOIN terms
             	ON bills.chief_patron_id = terms.person_id
             WHERE
-                bills.session_id = ' . SESSION_ID . ' AND
+		sessions.year = ' . $session_year . ' AND
+		sessions.suffix IS NULL AND
                 EXISTS (
                     SELECT 1
                     FROM bills_status
@@ -215,7 +216,6 @@ function get_bill_candidates(mysqli $db): array
                 )
             ORDER BY bills.id ASC
             LIMIT 10';
-
     $result = mysqli_query($db, $sql);
     if ($result === false || mysqli_num_rows($result) === 0) {
         return [];
