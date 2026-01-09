@@ -169,7 +169,7 @@ if ($type == 'minutes') {
 }
 
 # Generate bill status narratives with OpenAI.
-if ($type == 'bills_status_narratives') {
+if (($type == 'all') || ($type == 'bills_status_narratives')) {
     require 'bills_status_narratives.php';
 }
 
