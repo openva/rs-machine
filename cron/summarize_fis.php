@@ -2,7 +2,7 @@
 
 /*
  * Select bills from this session that have fiscal impact statements, but no bill notes, and a
- * last-week view count that's above 5. Limit it to 10 at a go.
+ * last-week view count that's above 2. Limit it to 10 at a go.
  */
 $sql = 'SELECT
             bills.id,
