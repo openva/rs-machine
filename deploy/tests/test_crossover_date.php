@@ -7,10 +7,10 @@
 require_once __DIR__ . '/../../includes/settings.inc.php';
 require_once __DIR__ . '/../../includes/functions.inc.php';
 
-// Define session_year to prevent bill_status_narratives.php from failing
+// Define session_year to prevent bills_status_narratives.php from failing
 $session_year = SESSION_YEAR;
 
-require_once __DIR__ . '/../../cron/bill_status_narratives.php';
+require_once __DIR__ . '/../../cron/bills_status_narratives.php';
 
 $dbh = new Database();
 $db = $dbh->connect_mysqli();
