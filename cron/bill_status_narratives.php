@@ -100,7 +100,7 @@ if (stripos($prompt_template, 'TODO:') === 0) {
 
 $bills = get_bill_candidates($db, $session_year);
 if (empty($bills)) {
-    $log->put('No bills need narratives right now.', 3);
+    $log->put('No bills need narratives right now.', 1);
     return;
 }
 
