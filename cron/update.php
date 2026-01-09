@@ -169,8 +169,8 @@ if ($type == 'minutes') {
 }
 
 # Generate bill status narratives with OpenAI.
-if ($type == 'bill_status_narratives') {
-    require 'bill_status_narratives.php';
+if ($type == 'bills_status_narratives') {
+    require 'bills_status_narratives.php';
 }
 
 # Update the voting record.

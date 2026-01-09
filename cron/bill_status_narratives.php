@@ -210,7 +210,7 @@ function get_bill_candidates(mysqli $db): array
                 ) AND
                 NOT EXISTS (
                     SELECT 1
-                    FROM bill_status_narratives
+                    FROM bills_status_narratives
                     WHERE bill_id = bills.id AND current = "y"
                 )
             ORDER BY bills.id ASC
@@ -292,12 +292,12 @@ function store_bill_narrative(mysqli $db, array $bill, string $narrative, Log $l
 
     $escaped_narrative = mysqli_real_escape_string($db, $narrative);
 
-    $sql = 'UPDATE bill_status_narratives
+    $sql = 'UPDATE bills_status_narratives
             SET current = "n"
             WHERE bill_id = ' . $bill_id . ' AND current = "y"';
     mysqli_query($db, $sql);
 
-    $sql = 'INSERT INTO bill_status_narratives
+    $sql = 'INSERT INTO bills_status_narratives
             SET
                 bill_id = ' . $bill_id . ',
                 session_id = ' . $session_id . ',
