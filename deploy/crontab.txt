@@ -20,8 +20,8 @@
 # Get the floor minutes from the House and the Senate.
 04 16,20 * * * /usr/bin/php rs-machine/cron/update.php minutes
 
-# Update the bill full text.
-11,21,31,41,51 * * * * /usr/bin/php rs-machine/cron/update.php full_text
+# Update the bills' full text.
+11,31,51 6-23 * * * /usr/bin/php rs-machine/cron/update.php full_text
 
 # Update the meeting schedules.
 03,33 6-23 * * * /usr/bin/php rs-machine/cron/update.php meetings
