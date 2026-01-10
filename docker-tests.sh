@@ -43,7 +43,7 @@ set +e
 lint_output=$(docker exec "${CONTAINER_NAME}" /bin/sh -c "
   cd ${CONTAINER_WORKDIR} \
     && find . -path './includes/vendor' -prune -o -name '*.php' -type f -print0 \
-    | xargs -0 -n1 php -l
+    | xargs -0 -n1 sh -c 'output=\$(php -l \"\$1\" 2>&1); status=\$?; if [ \$status -ne 0 ]; then echo \"\$output\"; fi; exit \$status' _
 ")
 lint_status=$?
 set -e
