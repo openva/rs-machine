@@ -61,6 +61,9 @@
 # Sync representatives table with people and terms tables
 31 3 * * * /usr/bin/php rs-machine/cron/update.php representatives_table
 
+# Nightly JSONL export for bills (current year only, backfills missing years).
+30 2 * * * RS_JSONL_ONLY=1 /usr/bin/php rs-machine/cron/export.php
+
 # Store exports on S3.
 5 * * * * aws s3 sync rs-machine/downloads s3://downloads.richmondsunlight.com --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers --storage-class REDUCED_REDUNDANCY >/dev/null 2>&1
 

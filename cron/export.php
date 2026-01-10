@@ -14,13 +14,30 @@
 #
 ###
 
+if (!defined('SESSION_YEAR')) {
+    include_once(__DIR__ . '/../includes/settings.inc.php');
+    include_once(__DIR__ . '/../includes/functions.inc.php');
+    include_once(__DIR__ . '/../includes/vendor/autoload.php');
+}
+
+if (!isset($log) || !($log instanceof Log)) {
+    $log = new Log();
+}
+
+$jsonl_only = getenv('RS_JSONL_ONLY');
+$jsonl_only = is_string($jsonl_only) && in_array(strtolower($jsonl_only), ['1', 'true', 'yes'], true);
+
 $downloads_dir = __DIR__ . '/../downloads/';
+$downloads_dir_env = getenv('RS_JSONL_DOWNLOADS_DIR');
+if ($downloads_dir_env !== false && $downloads_dir_env !== '') {
+    $downloads_dir = rtrim($downloads_dir_env, "/\\") . '/';
+}
 
 /*
  * Make sure that our downloads directory exists and is writable.
  */
 if (file_exists($downloads_dir) == false) {
-    mkdir($downloads_dir);
+    mkdir($downloads_dir, 0775, true);
 }
 if (is_writeable($downloads_dir) == false) {
     $log->put('Could not write to downloads directory', 8);
@@ -28,6 +45,63 @@ if (is_writeable($downloads_dir) == false) {
     return false;
 }
 
+// JSONL bills export settings.
+$api_base = 'https://api.richmondsunlight.com/1.1';
+$start_year = 2006;
+$current_year = (int) date('Y');
+$throttle_usec = 200000;
+
+$api_base_env = getenv('RS_JSONL_API_BASE');
+if ($api_base_env !== false && $api_base_env !== '') {
+    $api_base = rtrim($api_base_env, '/');
+}
+
+$start_year_env = getenv('RS_JSONL_START_YEAR');
+if ($start_year_env !== false && $start_year_env !== '') {
+    $start_year = (int) $start_year_env;
+}
+
+$current_year_env = getenv('RS_JSONL_CURRENT_YEAR');
+if ($current_year_env !== false && $current_year_env !== '') {
+    $current_year = (int) $current_year_env;
+}
+
+$throttle_env = getenv('RS_JSONL_SLEEP_USEC');
+if ($throttle_env !== false && $throttle_env !== '') {
+    $throttle_usec = (int) $throttle_env;
+}
+
+function fetch_json(string $url, Log $log)
+{
+    $curl = curl_init($url);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+    curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+    curl_setopt($curl, CURLOPT_USERAGENT, 'rs-machine-jsonl-export/1.0');
+
+    $body = curl_exec($curl);
+    if ($body === false) {
+        $log->put('Error fetching ' . $url . ': ' . curl_error($curl), 5);
+        return false;
+    }
+
+    $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    if ($status >= 400) {
+        $log->put('HTTP ' . $status . ' for ' . $url, 5);
+        return false;
+    }
+
+    $decoded = json_decode($body, true);
+    if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+        $log->put('Invalid JSON for ' . $url . ': ' . json_last_error_msg(), 5);
+        return false;
+    }
+
+    return $decoded;
+}
+
+if ($jsonl_only === false) {
 # Save a listing of the proposed changes to laws as JSON.
 $sql = 'SELECT UPPER(bills.number) AS bill_number, bills.catch_line AS bill_catch_line,
 		bills_section_numbers.section_number AS law
@@ -277,4 +351,70 @@ if (is_writeable($filename)) {
     fseek($fp, 0, SEEK_END);
     fwrite($fp, ']');
     fclose($fp);
+}
+}
+
+# JSONL exports for bills (per year).
+for ($year = $start_year; $year <= $current_year; $year++) {
+    $output_path = $downloads_dir . 'bills-' . $year . '.jsonl';
+    $temp_path = $output_path . '.tmp';
+    $should_refresh = $jsonl_only || $year === $current_year || !file_exists($output_path);
+
+    if (!$should_refresh) {
+        continue;
+    }
+
+    $list_url = $api_base . '/bills/' . $year . '.json';
+    $bill_list = fetch_json($list_url, $log);
+    if ($bill_list === false || !is_array($bill_list)) {
+        $log->put('Could not load bill list for ' . $year . '.', 5);
+        continue;
+    }
+
+    $fp = fopen($temp_path, 'w');
+    if ($fp === false) {
+        $log->put('Could not write JSONL temp file for ' . $year . '.', 8);
+        continue;
+    }
+
+    $count = 0;
+    $errors = 0;
+
+    foreach ($bill_list as $bill_summary) {
+        if (!isset($bill_summary['number'])) {
+            $errors++;
+            continue;
+        }
+
+        $bill_id = $bill_summary['number'];
+        $bill_url = $api_base . '/bill/' . $year . '/' . rawurlencode($bill_id) . '.json';
+        $bill_detail = fetch_json($bill_url, $log);
+        if ($bill_detail === false) {
+            $errors++;
+            continue;
+        }
+
+        $line = json_encode($bill_detail, JSON_UNESCAPED_SLASHES);
+        if ($line === false) {
+            $errors++;
+            continue;
+        }
+
+        fwrite($fp, $line . "\n");
+        $count++;
+
+        if ($throttle_usec > 0) {
+            usleep($throttle_usec);
+        }
+    }
+
+    fclose($fp);
+
+    if (!rename($temp_path, $output_path)) {
+        $log->put('Could not finalize JSONL export for ' . $year . '.', 5);
+        unlink($temp_path);
+        continue;
+    }
+
+    $log->put('Exported ' . $count . ' bills for ' . $year . ' with ' . $errors . ' errors.', 2);
 }

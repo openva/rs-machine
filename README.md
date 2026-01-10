@@ -10,6 +10,24 @@ A couple of dozen cron jobs drive Richmond Sunlight. They fetch updates to legis
 ## Run Locally
 Machine can be stood up locally with `./docker-run.sh`, and then tests can be run with `./docker-tests.sh`.
 
+## JSONL Bill Exports
+Nightly JSONL exports are written to `downloads/bills-YYYY.jsonl` using the public Richmond Sunlight API.
+
+To refresh only the current year (and backfill any missing years):
+```bash
+RS_JSONL_ONLY=1 php cron/export.php
+```
+
+To refresh all years since 2006:
+```bash
+RS_JSONL_ONLY=1 RS_JSONL_START_YEAR=2006 RS_JSONL_CURRENT_YEAR=$(date +%Y) php cron/export.php
+```
+
+Quick validation (line count should match the bill list size):
+```bash
+wc -l downloads/bills-YYYY.jsonl
+```
+
 ### Refreshing the Database
 If you've updated `deploy/database.sql` and need to reload it into the MariaDB container:
 
