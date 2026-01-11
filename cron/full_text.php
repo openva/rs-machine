@@ -73,7 +73,7 @@ while ($text = mysqli_fetch_array($result)) {
         mysqli_query($GLOBALS['db'], query: $sql);
 
         if ($status === 'no_text') {
-            $log->put('Full text of ' . $text['number'] . ' was reported as lacking any text yet', 3);
+            $log->put('Full text of ' . $text['number'] . ' was reported as not having any text yet', 3);
         }
 
         sleep(1);
