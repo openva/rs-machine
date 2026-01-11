@@ -70,10 +70,10 @@ while ($text = mysqli_fetch_array($result)) {
         $sql = 'UPDATE bills_full_text
 				SET failed_retrievals = failed_retrievals+1
 				WHERE id=' . $text['id'];
-        mysqli_query($GLOBALS['db'], $sql);
+        mysqli_query($GLOBALS['db'], query: $sql);
 
         if ($status === 'no_text') {
-            $log->put('Full text of ' . $text['number'] . ' was reported as lacking draft text', 3);
+            $log->put('Full text of ' . $text['number'] . ' was reported as lacking any text yet', 3);
         }
 
         sleep(1);
