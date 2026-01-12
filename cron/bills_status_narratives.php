@@ -83,11 +83,11 @@ A few procedural notes that may or may not inform the summary:
   was a Republican, the lieutenant governor (who presides over the Senate and casts
   tie-breaking votes) was a Republican, and the bill was introduced by a {{sponsor_party}}.
 
-Do not mention partisanship unless it is relevant to the outcome of the bill. Do not specify
-the bill's number—that is not relevant to the summary. Simply describe it as "the bill,"
-"the legislation," or "this." There is no need to describe the bill's subject matter, either,
-unless it's relevant to the outcome. There is no need to provide specific dates unless it’s
-important to describing the bill’s journey.
+Do not mention a legislator’s party unless it is relevant to the outcome of the bill. Do not
+specify the bill's number—that is not relevant to the summary. Simply describe it as "the bill,"
+"the legislation," or "this." Do not describe the bill's subject matter, unless it's relevant to
+the outcome. There is no need to provide specific dates unless it’s important to describing the
+bill’s journey.
 
 {{bill_number}}: {{catch_line}}
 {{status_history}}
