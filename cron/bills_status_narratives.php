@@ -313,11 +313,11 @@ function store_bill_narrative(mysqli $db, array $bill, string $narrative, Log $l
     $result = mysqli_query($db, $sql);
 
     if ($result === false) {
-        $log->put('Error: could not store narrative for ' . $session_year . '’s '
+        $log->put('Error: could not store narrative for ' . $bill['session_year'] . ''s '
             . strtoupper($bill['number']) . ': '
             . mysqli_error($db), 5);
     } else {
-        $log->put('Stored bill status narrative for ' . $session_year . '’s '
+        $log->put('Stored bill status narrative for ' . $bill['session_year'] . ''s '
             . strtoupper($bill['number']) . '.', 3);
     }
 }
