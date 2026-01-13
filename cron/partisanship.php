@@ -6,8 +6,8 @@
 # It's a 0-100 scale, with 0 representing left-wing and 100 representing right-wing.
 ###
 
-$sql = 'SELECT DISTINCT person_id
-		FROM people
+$sql = 'SELECT DISTINCT person_id AS id
+		FROM terms
 		WHERE
             date_ended IS NULL OR
 		    date_ended >= now()';
