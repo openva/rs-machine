@@ -65,7 +65,7 @@ $error = false;
 foreach ($test_records as $test_record) {
     $legislator = $import->fetch_legislator_data_api($test_record['chamber'], $test_record['lis_id']);
     if ($legislator === false) {
-        echo 'Failure: API lookup returned no data for ' . $test_record['lis_id'] . "\n";
+        echo 'Skipped: API lookup returned no data for ' . $test_record['lis_id'] . "\n";
         $error = true;
         continue;
     }
@@ -82,7 +82,7 @@ foreach ($test_records as $test_record) {
 
     $photo_path = $import->fetch_photo($legislator['photo_url'], $legislator['shortname']);
     if ($photo_path === false) {
-        echo 'Failure: Photo ' . $legislator['photo_url'] . ' couldn’t be fetched' . "\n";
+        echo 'Skipped: Photo ' . $legislator['photo_url'] . ' couldn’t be fetched' . "\n";
         $error = true;
     } elseif (is_string($photo_path) && file_exists($photo_path)) {
         unlink($photo_path);
