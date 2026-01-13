@@ -43,7 +43,7 @@ function count_videos_needing_download(PDO $db): int
 {
     $sql = "SELECT COUNT(*) as count FROM files
             WHERE video_index_cache IS NOT NULL
-            AND (path IS NULL OR path = '' OR path NOT LIKE 'https://s3.amazonaws.com/video.richmondsunlight.com/%')";
+            AND (path IS NULL OR path = '' OR path NOT LIKE 'https://video.richmondsunlight.com/%')";
     $stmt = $db->query($sql);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return (int) ($row['count'] ?? 0);
@@ -55,7 +55,7 @@ function count_videos_needing_download(PDO $db): int
 function count_videos_needing_screenshots(PDO $db): int
 {
     $sql = "SELECT COUNT(*) as count FROM files
-            WHERE path LIKE 'https://s3.amazonaws.com/video.richmondsunlight.com/%'
+            WHERE path LIKE 'https://video.richmondsunlight.com/%'
             AND (capture_directory IS NULL OR capture_directory = '')";
     $stmt = $db->query($sql);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -118,7 +118,7 @@ function count_videos_needing_archive(PDO $db): int
     $sql = "SELECT COUNT(*) as count FROM files f
             WHERE f.capture_directory IS NOT NULL
             AND f.capture_directory != ''
-            AND f.path LIKE 'https://s3.amazonaws.com/%'
+            AND f.path LIKE 'https://video.richmondsunlight.com/%'
             AND f.path NOT LIKE 'https://archive.org/%'";
     $stmt = $db->query($sql);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
