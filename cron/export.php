@@ -2,16 +2,7 @@
 
 ###
 # MISC. DATA EXPORT FUNCTOINS
-# By Waldo Jaquith <waldo@jaquith.org>
-# 02/10/2011
-#
-# PURPOSE
 # Dumps a bunch of data to flat files for folks to download in bulk.
-#
-# NOTES
-# This won't work if called on its own -- it will only function when invoked from within
-# update_db.php.
-#
 ###
 
 if (!defined('SESSION_YEAR')) {
@@ -23,9 +14,6 @@ if (!defined('SESSION_YEAR')) {
 if (!isset($log) || !($log instanceof Log)) {
     $log = new Log();
 }
-
-$jsonl_only = getenv('RS_JSONL_ONLY');
-$jsonl_only = is_string($jsonl_only) && in_array(strtolower($jsonl_only), ['1', 'true', 'yes'], true);
 
 $downloads_dir = __DIR__ . '/../downloads/';
 $downloads_dir_env = getenv('RS_JSONL_DOWNLOADS_DIR');
@@ -41,12 +29,14 @@ if (file_exists($downloads_dir) == false) {
 }
 if (is_writeable($downloads_dir) == false) {
     $log->put('Could not write to downloads directory', 8);
-    echo 'No data found on DLAS’s FTP server.';
     return false;
 }
 
 // JSONL bills export settings.
-$api_base = 'https://api.richmondsunlight.com/1.1';
+// Set this to true to export JSONL for all years between $start_year and $current_year.
+$export_all_years_jsonl = false;
+
+$api_base = API_URL . '1.1';
 $start_year = 2006;
 $current_year = (int) date('Y');
 $throttle_usec = 200000;
@@ -101,7 +91,6 @@ function fetch_json(string $url, Log $log)
     return $decoded;
 }
 
-if ($jsonl_only === false) {
 # Save a listing of the proposed changes to laws as JSON.
 $sql = 'SELECT UPPER(bills.number) AS bill_number, bills.catch_line AS bill_catch_line,
 		bills_section_numbers.section_number AS law
@@ -352,17 +341,12 @@ if (is_writeable($filename)) {
     fwrite($fp, ']');
     fclose($fp);
 }
-}
 
 # JSONL exports for bills (per year).
-for ($year = $start_year; $year <= $current_year; $year++) {
+$years = $export_all_years_jsonl ? range($start_year, $current_year) : array($current_year);
+foreach ($years as $year) {
     $output_path = $downloads_dir . 'bills-' . $year . '.jsonl';
     $temp_path = $output_path . '.tmp';
-    $should_refresh = $jsonl_only || $year === $current_year || !file_exists($output_path);
-
-    if (!$should_refresh) {
-        continue;
-    }
 
     $list_url = $api_base . '/bills/' . $year . '.json';
     $bill_list = fetch_json($list_url, $log);

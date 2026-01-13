@@ -35,11 +35,10 @@ final class BillsJsonlExportTest extends TestCase
             'RS_JSONL_CURRENT_YEAR' => '2024',
             'RS_JSONL_DOWNLOADS_DIR' => $downloads_dir,
             'RS_JSONL_SLEEP_USEC' => '0',
-            'RS_JSONL_ONLY' => '1',
         ];
 
         $command = escapeshellarg(PHP_BINARY) . ' '
-            . escapeshellarg('cron/export.php');
+            . escapeshellarg('cron/update.php') . ' export';
 
         $descriptor_spec = [
             1 => ['pipe', 'w'],

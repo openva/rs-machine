@@ -13,14 +13,14 @@ Machine can be stood up locally with `./docker-run.sh`, and then tests can be ru
 ## JSONL Bill Exports
 Nightly JSONL exports are written to `downloads/bills-YYYY.jsonl` using the public Richmond Sunlight API.
 
-To refresh only the current year (and backfill any missing years):
+To refresh the current year:
 ```bash
-RS_JSONL_ONLY=1 php cron/export.php
+php cron/update.php export
 ```
 
-To refresh all years since 2006:
+To refresh all years since 2006, set `$export_all_years_jsonl = true;` in `cron/export.php` and run:
 ```bash
-RS_JSONL_ONLY=1 RS_JSONL_START_YEAR=2006 RS_JSONL_CURRENT_YEAR=$(date +%Y) php cron/export.php
+php cron/update.php export
 ```
 
 Quick validation (line count should match the bill list size):
