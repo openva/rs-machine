@@ -22,6 +22,8 @@ include_once(__DIR__ . '/../includes/functions.inc.php');
 include_once(__DIR__ . '/../includes/vendor/autoload.php');
 
 // Video processor EC2 instance ID
+// Note that this will not work unless a) the instance ID is correct and b) the AWS keys have
+// permission to start it. The permissions are scoped down to the specific instance ID.
 define('VIDEO_PROCESSOR_INSTANCE_ID', 'i-05a12457e82c9aed5');
 
 // Instantiate logging
