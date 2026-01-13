@@ -143,7 +143,7 @@ if (($type == 'all') || ($type == 'cache')) {
 
 # Run export.php, which gathers up data to be exported into flat files for folks to download and
 # play with.
-if (($type == 'all') || ($type == 'export')) {
+if ($type == 'export') {
     require 'export.php';
 }
 
