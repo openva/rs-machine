@@ -22,6 +22,8 @@ variables=(
 	MEMCACHED_SERVER
 	OPENAI_KEY
 	SLACK_WEBHOOK
+	AWS_SECRET_KEY
+	AWS_ACCESS_KEY
 )
 
 # Iterate over the variables and make sure that they're all populated.
