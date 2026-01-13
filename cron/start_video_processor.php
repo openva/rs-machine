@@ -22,7 +22,7 @@ include_once(__DIR__ . '/../includes/functions.inc.php');
 include_once(__DIR__ . '/../includes/vendor/autoload.php');
 
 // Video processor EC2 instance ID
-define('VIDEO_PROCESSOR_INSTANCE_ID', 'i-076d0d5ee323c4e83');
+define('VIDEO_PROCESSOR_INSTANCE_ID', 'i-05a12457e82c9aed5');
 
 // Instantiate logging
 $log = new Log();
