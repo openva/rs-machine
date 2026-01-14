@@ -9,5 +9,5 @@ sudo apt-get -y upgrade
 
 # Install necessary packages.
 sudo apt-get install -y php-mysql php-memcached php-xml composer zip ruby awscli npm expect \
-    memcached poppler-utils
+    poppler-utils
 sudo npm i -g csvtojson
