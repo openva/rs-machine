@@ -92,7 +92,7 @@ foreach ($bills as $bill) {
                 continue;
             }
 
-            $sql = 'INSERT INTO tags
+            $sql = 'INSERT IGNORE INTO tags
                     SET bill_id=:bill_id,
                     tag=:tag,
                     ip="127.0.0.1",
