@@ -7,7 +7,11 @@
 # twenty tries, we just can't manage to retrieve.
 ###
 /* This only works if there's already an entry in bills_full_text. */
-$sql = 'SELECT bills_full_text.id, bills_full_text.number, sessions.lis_id AS session_id
+$sql = 'SELECT
+            bills_full_text.id,
+            bills_full_text.number,
+            sessions.lis_id AS session_id,
+            bills.date_introduced
 		FROM bills_full_text
 		LEFT JOIN bills
 			ON bills_full_text.bill_id = bills.id
@@ -72,7 +76,7 @@ while ($text = mysqli_fetch_array($result)) {
 				WHERE id=' . $text['id'];
         mysqli_query($GLOBALS['db'], query: $sql);
 
-        if ($status === 'no_text') {
+        if ($status === 'no_text' && time() - strtotime($text['date_introduced']) > 86400) {
             $log->put('Full text of ' . $text['number'] . ' was reported as not having any text yet', 3);
         }
 
