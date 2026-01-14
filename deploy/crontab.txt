@@ -14,7 +14,7 @@
 04 10,13,16,21 * * * /usr/bin/php rs-machine/cron/update.php vote
 
 # Collects scheduled meetings and hearings.
-08 6-15 * * * /bin/bash rs-machine/cron/fetch_csv.sh Docket.csv rs-machine/cron/docket.csv
+01 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh DOCKET.CSV rs-machine/cron/docket.csv
 09 6-15 * * * /usr/bin/php rs-machine/cron/update.php dockets
 
 # Get the floor minutes from the House and the Senate.
