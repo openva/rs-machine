@@ -348,7 +348,11 @@ foreach ($senators as $lis_id => $name) {
                 if ($photo_success == false) {
                     $log->put('Could not retrieve photo of ' . $data['name_formatted'], 4);
                 } else {
-                    $log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_success
+                    $photo_path = $photo_success;
+                    if (substr($photo_path, 0, 1) !== '/') {
+                        $photo_path = getcwd() . '/' . $photo_path;
+                    }
+                    $log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_path
                         . '. You need to manually commit it to the Git repo.', 5);
                 }
             }
@@ -445,7 +449,11 @@ foreach ($delegates as $lis_id => $name) {
                 if ($photo_success == false) {
                     $log->put('Could not retrieve photo of ' . $data['name_formatted'], 4);
                 } else {
-                    $log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_success
+                    $photo_path = $photo_success;
+                    if (substr($photo_path, 0, 1) !== '/') {
+                        $photo_path = getcwd() . '/' . $photo_path;
+                    }
+                    $log->put('Photo of ' . $data['name_formatted'] . ' stored at ' . $photo_path
                         . '. You need to manually commit it to the Git repo.', 5);
                 }
             }
