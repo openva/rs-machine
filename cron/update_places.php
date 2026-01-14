@@ -232,7 +232,8 @@ while ($bill = mysqli_fetch_array($result)) {
 					latitude=' . $coordinates['latitude'] . ',
 					longitude=' . $coordinates['longitude'] . ',
                     coordinates = Point(' . $coordinates['longitude'] . ', '
-                    . $coordinates['longitude'] . ')';
+                    . $coordinates['latitude'] . ')
+                ON DUPLICATE KEY UPDATE date_modified=NOW()';
         $place_result = mysqli_query($db, $sql);
         if ($place_result == false) {
             $log->put('Error: Could not add place names for ' . strtoupper($bill['number'])
