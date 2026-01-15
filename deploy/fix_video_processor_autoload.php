@@ -15,8 +15,8 @@ if (file_exists($targetFile)) {
 }
 
 if (!file_exists($sourceFile)) {
-    fwrite(STDERR, "Missing source functions file at {$sourceFile}\n");
-    exit(1);
+    fwrite(STDERR, "Missing source functions file at {$sourceFile}; skipping stub creation.\n");
+    exit(0);
 }
 
 if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
