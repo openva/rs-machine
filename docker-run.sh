@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# Ensure Docker daemon is running locally (skip in GitHub Actions)
+if [ -z "${GITHUB_ACTIONS:-}" ]; then
+    if ! docker info >/dev/null 2>&1; then
+        echo "Docker is not running. Please start Docker and try again." >&2
+        exit 1
+    fi
+fi
+
 # Prepare data for the database
 
 # Refresh includes/ from inside the container if missing, empty, or stale (>12h since newest file).
