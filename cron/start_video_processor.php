@@ -4,22 +4,29 @@
 /**
  * Start Video Processor EC2 Instance
  *
- * Checks if there are videos in the database that need processing (downloading,
- * screenshots, transcripts, bill detection, speaker detection, or archival).
- * If work is pending, starts the rs-video-processor EC2 instance.
+ * Checks whether new House or Senate videos are available by comparing the
+ * latest scraped lists against cached copies on disk. If new videos are found,
+ * starts the rs-video-processor EC2 instance.
  *
  * This script runs on rs-machine (always-on) to trigger the expensive GPU instance
  * only when there's actual work to do.
  *
- * Intended to run via cron every 15-30 minutes during legislative session.
+ * Intended to run via cron regularly during legislative session.
  */
 
 use Aws\Ec2\Ec2Client;
 use Aws\Exception\AwsException;
+use GuzzleHttp\Client;
+use RichmondSunlight\VideoProcessor\Scraper\House\HouseScraper;
+use RichmondSunlight\VideoProcessor\Scraper\Http\GuzzleHttpClient;
+use RichmondSunlight\VideoProcessor\Scraper\Http\RateLimitedHttpClient;
+use RichmondSunlight\VideoProcessor\Scraper\Senate\SenateScraper;
 
 include_once(__DIR__ . '/../includes/settings.inc.php');
 include_once(__DIR__ . '/../includes/functions.inc.php');
 include_once(__DIR__ . '/../includes/vendor/autoload.php');
+
+define('MACHINE_CACHE_DIR', __DIR__);
 
 // Video processor EC2 instance ID
 // Note that this will not work unless a) the instance ID is correct and b) the AWS keys have
@@ -29,102 +36,88 @@ define('VIDEO_PROCESSOR_INSTANCE_ID', 'i-05a12457e82c9aed5');
 // Instantiate logging
 $log = new Log();
 
-// Connect to database
-$database = new Database();
-$db = $database->connect();
-
-if (!$db) {
-    $log->put('Could not connect to database for video processor check.', 6);
+// Locate rs-video-processor repo (sibling of rs-machine)
+$video_processor_root = realpath(__DIR__ . '/../../rs-video-processor');
+if ($video_processor_root === false) {
+    $log->put('Could not locate rs-video-processor repository.', 6);
     exit(1);
 }
 
+$video_autoload = $video_processor_root . '/includes/vendor/autoload.php';
+if (!file_exists($video_autoload)) {
+    $log->put('rs-video-processor dependencies not found at ' . $video_autoload, 6);
+    exit(1);
+}
+
+require_once $video_autoload;
+
 /**
- * Check for videos needing download (have video_index_cache but path not on S3)
+ * Load a cached snapshot of scraped records.
  */
-function count_videos_needing_download(PDO $db): int
+function load_scraper_snapshot(string $path): array
 {
-    $sql = "SELECT COUNT(*) as count FROM files
-            WHERE video_index_cache IS NOT NULL
-            AND (path IS NULL OR path = '' OR path NOT LIKE 'https://s3.amazonaws.com/video.richmondsunlight.com/%')";
-    $stmt = $db->query($sql);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return (int) ($row['count'] ?? 0);
+    if (!file_exists($path)) {
+        return [];
+    }
+
+    $payload = json_decode((string)file_get_contents($path), true);
+    if (!is_array($payload)) {
+        return [];
+    }
+
+    return $payload['records'] ?? $payload;
 }
 
 /**
- * Check for videos needing screenshots (have S3 path but no capture_directory)
+ * Persist scraped records to a snapshot file.
+ *
+ * @param array<int, array<string, mixed>> $records
  */
-function count_videos_needing_screenshots(PDO $db): int
+function save_scraper_snapshot(string $path, array $records): void
 {
-    $sql = "SELECT COUNT(*) as count FROM files
-            WHERE path LIKE 'https://s3.amazonaws.com/video.richmondsunlight.com/%'
-            AND (capture_directory IS NULL OR capture_directory = '')";
-    $stmt = $db->query($sql);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return (int) ($row['count'] ?? 0);
+    $directory = dirname($path);
+    if (!is_dir($directory)) {
+        mkdir($directory, 0775, true);
+    }
+
+    $payload = [
+        'generated_at' => date(DATE_ATOM),
+        'record_count' => count($records),
+        'records' => $records,
+    ];
+
+    file_put_contents($path, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
 /**
- * Check for videos needing transcripts (have screenshots but no transcript entries)
+ * Build a stable key for a scraped record, mirroring rs-video-processor's pipeline.
  */
-function count_videos_needing_transcripts(PDO $db): int
+function record_key(array $record): string
 {
-    $sql = "SELECT COUNT(*) as count FROM files f
-            WHERE f.capture_directory IS NOT NULL
-            AND f.capture_directory != ''
-            AND NOT EXISTS (
-                SELECT 1 FROM video_transcript vt WHERE vt.file_id = f.id
-            )";
-    $stmt = $db->query($sql);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return (int) ($row['count'] ?? 0);
+    $id = $record['content_id'] ?? $record['clip_id'] ?? $record['video_id'] ?? uniqid();
+    $chamber = $record['chamber'] ?? 'unknown';
+    return $chamber . '|' . $id;
 }
 
 /**
- * Check for videos needing bill detection (have screenshots but no bill index entries)
+ * Determine whether any new records exist compared to the cached snapshot.
+ *
+ * @param array<int, array<string, mixed>> $current
+ * @param array<int, array<string, mixed>> $cached
  */
-function count_videos_needing_bill_detection(PDO $db): int
+function has_new_records(array $current, array $cached): bool
 {
-    $sql = "SELECT COUNT(*) as count FROM files f
-            WHERE f.capture_directory IS NOT NULL
-            AND f.capture_directory != ''
-            AND NOT EXISTS (
-                SELECT 1 FROM video_index vi WHERE vi.file_id = f.id AND vi.type = 'bill'
-            )";
-    $stmt = $db->query($sql);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return (int) ($row['count'] ?? 0);
-}
+    $current_keys = array_map('record_key', $current);
+    $cached_keys = array_map('record_key', $cached);
+    $cached_lookup = array_fill_keys($cached_keys, true);
 
-/**
- * Check for videos needing speaker detection (have screenshots but no speaker index entries)
- */
-function count_videos_needing_speaker_detection(PDO $db): int
-{
-    $sql = "SELECT COUNT(*) as count FROM files f
-            WHERE f.capture_directory IS NOT NULL
-            AND f.capture_directory != ''
-            AND NOT EXISTS (
-                SELECT 1 FROM video_index vi WHERE vi.file_id = f.id AND vi.type = 'legislator'
-            )";
-    $stmt = $db->query($sql);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return (int) ($row['count'] ?? 0);
-}
+    foreach ($current_keys as $key) {
+        if (!isset($cached_lookup[$key])) {
+            return true;
+        }
+    }
 
-/**
- * Check for videos needing Internet Archive upload (processed but not archived)
- */
-function count_videos_needing_archive(PDO $db): int
-{
-    $sql = "SELECT COUNT(*) as count FROM files f
-            WHERE f.capture_directory IS NOT NULL
-            AND f.capture_directory != ''
-            AND f.path LIKE 'https://s3.amazonaws.com/%'
-            AND f.path NOT LIKE 'https://archive.org/%'";
-    $stmt = $db->query($sql);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    return (int) ($row['count'] ?? 0);
+    return false;
 }
 
 /**
@@ -164,32 +157,53 @@ function start_instance(Ec2Client $ec2, string $instanceId, Log $log): bool
     }
 }
 
-// Count pending work
-$pending = [
-    'download' => count_videos_needing_download($db),
-    'screenshots' => count_videos_needing_screenshots($db),
-    'transcripts' => count_videos_needing_transcripts($db),
-    'bill_detection' => count_videos_needing_bill_detection($db),
-    'speaker_detection' => count_videos_needing_speaker_detection($db),
-    'archive' => count_videos_needing_archive($db),
-];
+// Scrape latest House and Senate listings
+$http = new RateLimitedHttpClient(
+    new GuzzleHttpClient(new Client([
+        'timeout' => 60,
+        'connect_timeout' => 10,
+        'headers' => [
+            'User-Agent' => 'rs-machine video processor trigger (+https://richmondsunlight.com/)',
+        ],
+    ])),
+    1.0,
+    3,
+    5.0
+);
 
-$total_pending = array_sum($pending);
+$house_scraper = new HouseScraper($http, logger: $log, maxRecords: 50);
+$senate_scraper = new SenateScraper($http, logger: $log, maxRecords: 50);
 
-// Log current status
-if ($total_pending === 0) {
-    $log->put('No videos pending processing.', 1);
+try {
+    $house_records = $house_scraper->scrape();
+    $senate_records = $senate_scraper->scrape();
+} catch (Throwable $e) {
+    $log->put('Video scraper failed: ' . $e->getMessage(), 5);
+    exit(1);
+}
+
+$cache_root = rtrim(MACHINE_CACHE_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'video-processor';
+$house_snapshot = $cache_root . DIRECTORY_SEPARATOR . 'house-scrape.json';
+$senate_snapshot = $cache_root . DIRECTORY_SEPARATOR . 'senate-scrape.json';
+
+$cached_house = load_scraper_snapshot($house_snapshot);
+$cached_senate = load_scraper_snapshot($senate_snapshot);
+
+$has_new_house = has_new_records($house_records, $cached_house);
+$has_new_senate = has_new_records($senate_records, $cached_senate);
+
+save_scraper_snapshot($house_snapshot, $house_records);
+save_scraper_snapshot($senate_snapshot, $senate_records);
+
+if (!$has_new_house && !$has_new_senate) {
+    $log->put('No new House or Senate videos detected.', 1);
     exit(0);
 }
 
 $log->put(sprintf(
-    'Videos pending: %d download, %d screenshots, %d transcripts, %d bill detection, %d speaker detection, %d archive',
-    $pending['download'],
-    $pending['screenshots'],
-    $pending['transcripts'],
-    $pending['bill_detection'],
-    $pending['speaker_detection'],
-    $pending['archive']
+    'New videos detected: house=%s, senate=%s',
+    $has_new_house ? 'yes' : 'no',
+    $has_new_senate ? 'yes' : 'no'
 ), 3);
 
 // Initialize EC2 client
@@ -221,7 +235,7 @@ if ($state === 'running') {
 }
 
 if ($state === 'pending') {
-    $log->put('Video processor instance is starting up.', 2);
+    $log->put('Video processor instance is starting.', 2);
     exit(0);
 }
 
@@ -232,10 +246,7 @@ if ($state === 'stopping') {
 
 // Instance is stopped (or in another non-running state) - start it
 if (start_instance($ec2, VIDEO_PROCESSOR_INSTANCE_ID, $log)) {
-    $log->put(sprintf(
-        'Started video processor instance (%d videos pending processing).',
-        $total_pending
-    ), 5);
+    $log->put('Started video processor instance (new videos detected).', 4);
 } else {
     exit(1);
 }

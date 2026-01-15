@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "10e5e199365771c6a5734e04914f0644",
+    "content-hash": "32c8b6c2081d85bc022b8066280d4500",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -156,6 +156,76 @@
                 "source": "https://github.com/aws/aws-sdk-php/tree/3.369.9"
             },
             "time": "2026-01-07T19:06:56+00:00"
+        },
+        {
+            "name": "doctrine/instantiator",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/doctrine/instantiator.git",
+                "reference": "c6222283fa3f4ac679f8b9ced9a4e23f163e80d0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/doctrine/instantiator/zipball/c6222283fa3f4ac679f8b9ced9a4e23f163e80d0",
+                "reference": "c6222283fa3f4ac679f8b9ced9a4e23f163e80d0",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "doctrine/coding-standard": "^11",
+                "ext-pdo": "*",
+                "ext-phar": "*",
+                "phpbench/phpbench": "^1.2",
+                "phpstan/phpstan": "^1.9.4",
+                "phpstan/phpstan-phpunit": "^1.3",
+                "phpunit/phpunit": "^9.5.27",
+                "vimeo/psalm": "^5.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Doctrine\\Instantiator\\": "src/Doctrine/Instantiator/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Marco Pivetta",
+                    "email": "ocramius@gmail.com",
+                    "homepage": "https://ocramius.github.io/"
+                }
+            ],
+            "description": "A small, lightweight utility to instantiate objects in PHP without invoking their constructors",
+            "homepage": "https://www.doctrine-project.org/projects/instantiator.html",
+            "keywords": [
+                "constructor",
+                "instantiate"
+            ],
+            "support": {
+                "issues": "https://github.com/doctrine/instantiator/issues",
+                "source": "https://github.com/doctrine/instantiator/tree/2.0.0"
+            },
+            "funding": [
+                {
+                    "url": "https://www.doctrine-project.org/sponsorship.html",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://www.patreon.com/phpdoctrine",
+                    "type": "patreon"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/doctrine%2Finstantiator",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2022-12-30T00:23:10+00:00"
         },
         {
             "name": "ezyang/htmlpurifier",
@@ -610,6 +680,57 @@
             "time": "2024-09-04T18:46:31+00:00"
         },
         {
+            "name": "openva/rs-video-processor",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/openva/rs-video-processor.git",
+                "reference": "8dcfa394ce188cad3c9f83369cdc6096af726814"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/openva/rs-video-processor/zipball/8dcfa394ce188cad3c9f83369cdc6096af726814",
+                "reference": "8dcfa394ce188cad3c9f83369cdc6096af726814",
+                "shasum": ""
+            },
+            "require": {
+                "aws/aws-sdk-php": "^3.186",
+                "doctrine/instantiator": "^2.0",
+                "ezyang/htmlpurifier": "^4.13",
+                "php": "^8.0",
+                "phpmailer/phpmailer": "^6.5",
+                "romainneutron/sphinx-search-api-php-client": "2.0.8.1",
+                "simplepie/simplepie": "^1.7"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^10.5"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RichmondSunlight\\VideoProcessor\\": "src/"
+                },
+                "files": [
+                    "includes/functions.inc.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RichmondSunlight\\VideoProcessor\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Richmond Sunlight video processor utilities",
+            "support": {
+                "source": "https://github.com/openva/rs-video-processor/tree/master",
+                "issues": "https://github.com/openva/rs-video-processor/issues"
+            },
+            "time": "2026-01-15T17:44:58+00:00"
+        },
+        {
             "name": "phpmailer/phpmailer",
             "version": "v6.12.0",
             "source": {
@@ -893,6 +1014,97 @@
                 "source": "https://github.com/ralouphie/getallheaders/tree/develop"
             },
             "time": "2019-03-08T08:55:37+00:00"
+        },
+        {
+            "name": "romainneutron/sphinx-search-api-php-client",
+            "version": "2.0.8.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/romainneutron/Sphinx-Search-API-PHP-Client/",
+                "reference": "origin/master"
+            },
+            "type": "library"
+        },
+        {
+            "name": "simplepie/simplepie",
+            "version": "1.9.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/simplepie/simplepie.git",
+                "reference": "76cccb1b2c5dcaf44f304c925ab30c0f48643992"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/simplepie/simplepie/zipball/76cccb1b2c5dcaf44f304c925ab30c0f48643992",
+                "reference": "76cccb1b2c5dcaf44f304c925ab30c0f48643992",
+                "shasum": ""
+            },
+            "require": {
+                "ext-pcre": "*",
+                "ext-xml": "*",
+                "ext-xmlreader": "*",
+                "php": ">=7.2.0"
+            },
+            "require-dev": {
+                "donatj/mock-webserver": "^2.7",
+                "friendsofphp/php-cs-fixer": "^2.19 || ^3.8",
+                "mf2/mf2": "^0.5.0",
+                "phpstan/phpstan": "~1.12.2",
+                "phpunit/phpunit": "^8 || ^9 || ^10",
+                "psr/http-client": "^1.0",
+                "psr/http-factory": "^1.0",
+                "psr/simple-cache": "^1 || ^2 || ^3"
+            },
+            "suggest": {
+                "ext-curl": "",
+                "ext-iconv": "",
+                "ext-intl": "",
+                "ext-mbstring": "",
+                "mf2/mf2": "Microformat module that allows for parsing HTML for microformats"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "SimplePie": "library"
+                },
+                "psr-4": {
+                    "SimplePie\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Ryan Parman",
+                    "homepage": "http://ryanparman.com/",
+                    "role": "Creator, alumnus developer"
+                },
+                {
+                    "name": "Sam Sneddon",
+                    "homepage": "https://gsnedders.com/",
+                    "role": "Alumnus developer"
+                },
+                {
+                    "name": "Ryan McCue",
+                    "email": "me@ryanmccue.info",
+                    "homepage": "http://ryanmccue.info/",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A simple Atom/RSS parsing library for PHP",
+            "homepage": "http://simplepie.org/",
+            "keywords": [
+                "atom",
+                "feeds",
+                "rss"
+            ],
+            "support": {
+                "issues": "https://github.com/simplepie/simplepie/issues",
+                "source": "https://github.com/simplepie/simplepie/tree/1.9.0"
+            },
+            "time": "2025-09-12T06:34:27+00:00"
         },
         {
             "name": "sunra/php-simple-html-dom-parser",
@@ -3066,7 +3278,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "openva/rs-video-processor": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

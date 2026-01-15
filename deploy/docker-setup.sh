@@ -26,10 +26,21 @@ fi
 # Get all functions from the main repo
 rm -rf richmondsunlight.com
 git clone -b deploy https://github.com/openva/richmondsunlight.com.git
-cd richmondsunlight.com && composer install && cd ..
+
 rm -Rf includes
 mkdir -p includes
-cp richmondsunlight.com/htdocs/includes/*.php includes/
+
+includes_source=""
+if [ -d "richmondsunlight.com/htdocs/includes" ]; then
+    includes_source="richmondsunlight.com/htdocs/includes"
+elif [ -d "richmondsunlight.com/includes" ]; then
+    includes_source="richmondsunlight.com/includes"
+else
+    echo "Could not locate includes/ in richmondsunlight.com checkout." >&2
+    exit 1
+fi
+
+cp "$includes_source"/*.php includes/
 rm -Rf richmondsunlight.com
 
 # Restore preserved class.*.php overrides if any.
