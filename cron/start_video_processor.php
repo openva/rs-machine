@@ -37,7 +37,7 @@ define('VIDEO_PROCESSOR_INSTANCE_ID', 'i-05a12457e82c9aed5');
 $log = new Log();
 
 // Locate rs-video-processor repo (sibling of rs-machine)
-$video_processor_root = realpath(__DIR__ . '/../../rs-video-processor');
+$video_processor_root = realpath(__DIR__ . '/../includes/vendor/openva/rs-video-processor');
 if ($video_processor_root === false) {
     $log->put('Could not locate rs-video-processor repository.', 6);
     exit(1);
