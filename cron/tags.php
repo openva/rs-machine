@@ -37,15 +37,30 @@ foreach ($bills as &$bill) {
 $api_key = OPENAI_KEY;
 $endpoint = 'https://api.openai.com/v1/chat/completions';
 
-$role = 'You are a helpful assistant who generates tags to describe legislation. Given ' .
-    'the title and description of a bill, you generate 1–6 tags that capture the purpose ' .
-    'and impact of a bill. Each tag is 1–2 words long, and use simple English. For example, ' .
-    'a bill about the regulation of automatic firearms might be tagged include "guns" and ' .
-    '"weapon." A bill about the availability of birth control might be tagged "abortion," ' .
-    '"reproductive rights," and "medicine." For reference, these are some of the most common ' .
-    'tags: "commendation," "education," "transportation," "regulation," "recognition," "tax," ' .
-    '"locality," "business," "tribute," "crime," "court," "health," "school," and "safety". ' .
-    'Provide ONLY tags in response to the query, separated by commas, in lowercase.';
+$role = <<<ROLE
+You are a helpful assistant who generates tags to describe legislation. Given the title and
+description of a bill, you generate 1–6 tags that capture the purpose and impact of a bill. Each
+tag is 1–2 words long, and use simple English. For example, a bill about the regulation of
+automatic firearms might be tagged include "guns" and "weapon." A bill about the availability of
+birth control might be tagged "abortion," "reproductive rights," and "medicine." For reference,
+these are some of the most common tags in the system now:
+
+```
+commendation, education, transportation, tax, locality, business, court, crime, regulation, school,
+health, election, voting, real estate, children, safety, police, environment, vehicle, permission,
+property, insurance, dillon rule, energy, gun, license, firearm, study, mental health, medicine,
+privacy, alcohol, college, scc, constitution, sbe, highway, income tax, tax credit, foia,
+employment, health insurance, disability, school board, constitutional amendment, water, elections,
+redistricting, weapon, immigration, electricity, university, student, governor, social services,
+utility, military, healthcare, internet, abc, drugs, gun safety, dmv, animal, employee, prison,
+government, transparency, dss, sales tax, ethics, retirement, property tax, campaign finance, sex,
+judge, budget, doctor, technology, gun control, finance, abortion, pollution, driving, legislature,
+felony, handgun, sex offender, sunlight, license plate, housing, board, absentee voting, fee,
+procurement, board of education, veteran, voting, elections, elderly
+```
+
+Provide ONLY tags in response to the query, separated by commas, in lowercase.
+ROLE;
 
 /*
  * Create an initial connection to the endpoint, to be reused on each loop
