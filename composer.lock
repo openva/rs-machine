@@ -62,16 +62,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.369.9",
+            "version": "3.369.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "cb7c0a255a34d44f13f9276d720827d56a3b381b"
+                "reference": "b40eb1177d2e621c18cd797ca6cc9efb5a0e99d9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/cb7c0a255a34d44f13f9276d720827d56a3b381b",
-                "reference": "cb7c0a255a34d44f13f9276d720827d56a3b381b",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/b40eb1177d2e621c18cd797ca6cc9efb5a0e99d9",
+                "reference": "b40eb1177d2e621c18cd797ca6cc9efb5a0e99d9",
                 "shasum": ""
             },
             "require": {
@@ -153,9 +153,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.369.9"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.369.14"
             },
-            "time": "2026-01-07T19:06:56+00:00"
+            "time": "2026-01-15T19:10:54+00:00"
         },
         {
             "name": "doctrine/instantiator",
@@ -685,12 +685,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/openva/rs-video-processor.git",
-                "reference": "8dcfa394ce188cad3c9f83369cdc6096af726814"
+                "reference": "a4c72c024fd2a7333588198bc8452fcb54946369"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/openva/rs-video-processor/zipball/8dcfa394ce188cad3c9f83369cdc6096af726814",
-                "reference": "8dcfa394ce188cad3c9f83369cdc6096af726814",
+                "url": "https://api.github.com/repos/openva/rs-video-processor/zipball/a4c72c024fd2a7333588198bc8452fcb54946369",
+                "reference": "a4c72c024fd2a7333588198bc8452fcb54946369",
                 "shasum": ""
             },
             "require": {
@@ -728,7 +728,7 @@
                 "source": "https://github.com/openva/rs-video-processor/tree/master",
                 "issues": "https://github.com/openva/rs-video-processor/issues"
             },
-            "time": "2026-01-15T17:44:58+00:00"
+            "time": "2026-01-16T01:54:08+00:00"
         },
         {
             "name": "phpmailer/phpmailer",

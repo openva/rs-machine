@@ -36,20 +36,10 @@ define('VIDEO_PROCESSOR_INSTANCE_ID', 'i-05a12457e82c9aed5');
 // Instantiate logging
 $log = new Log();
 
-// Locate rs-video-processor repo (sibling of rs-machine)
-$video_processor_root = realpath(__DIR__ . '/../includes/vendor/openva/rs-video-processor');
-if ($video_processor_root === false) {
-    $log->put('Could not locate rs-video-processor repository.', 6);
+if (!class_exists(HouseScraper::class)) {
+    $log->put('rs-video-processor classes are not available via Composer autoload.', 6);
     exit(1);
 }
-
-$video_autoload = $video_processor_root . '/includes/vendor/autoload.php';
-if (!file_exists($video_autoload)) {
-    $log->put('rs-video-processor dependencies not found at ' . $video_autoload, 6);
-    exit(1);
-}
-
-require_once $video_autoload;
 
 /**
  * Load a cached snapshot of scraped records.
