@@ -25,18 +25,18 @@ $sql = 'SELECT c1.id, c1.lis_id, c2.name AS parent, c1.name, c1.chamber
 		LEFT JOIN committees AS c2
 			ON c1.parent_id=c2.id
 		ORDER BY c1.chamber, c2.name, c1.name';
-$result = mysqli_query($GLOBALS['db'], $sql);
-if (mysqli_num_rows($result) == 0) {
+$stmt = $GLOBALS['dbh']->prepare($sql);
+$stmt->execute();
+$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if (count($result) == 0) {
     $log->put('No subcommittees were found, which seems bad.', 7);
     return false;
 }
 
 $committees = array();
 
-while ($committee = mysqli_fetch_array($result)) {
-    $committee = array_map(static function ($value) {
-        return is_string($value) ? stripslashes($value) : $value;
-    }, $committee);
+foreach ($result as $committee) {
 
     // If this is a subcommittee, shuffle around the array keys.
     if (!empty($committee['parent'])) {
@@ -92,16 +92,13 @@ while ($committee = mysqli_fetch_array($result)) {
 // in the PHP?
 $sql = 'SELECT committee_id, date, time, timedesc, description, location
 		FROM meetings
-		WHERE session_id=' . SESSION_ID . ' AND date >= now()';
-$result = mysqli_query($GLOBALS['db'], $sql);
-if (mysqli_num_rows($result) > 0) {
-    $upcoming = array();
-    while ($tmp = mysqli_fetch_array($result)) {
-        $tmp = array_map(static function ($value) {
-            return is_string($value) ? stripslashes($value) : $value;
-        }, $tmp);
-        $upcoming[] = $tmp;
-    }
+		WHERE session_id = :session_id AND date >= NOW()';
+$stmt = $GLOBALS['dbh']->prepare($sql);
+$stmt->execute([':session_id' => SESSION_ID]);
+$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if (count($result) > 0) {
+    $upcoming = $result;
 }
 
 # Retrieve the meeting schedule from the API
@@ -164,17 +161,15 @@ foreach ($meetings['Schedules'] as $meeting) {
     $meeting['description'] = $meeting['OwnerName'] . ' ' . $meeting['ScheduleType'];
     $meeting['location'] = $meeting['RoomDescription'];
 
-    // Skip any meeting for which any stored fields are empty
-    foreach ($meeting as $element) {
-        if (empty($element)) {
-            continue;
-        }
+    // Skip any meeting for which required fields are empty
+    if (empty($meeting['date']) || empty($meeting['description']) || empty($meeting['location'])) {
+        continue;
     }
 
     // Determine which chamber that this meeting is for
-    if (preg_match('/house/Di', $meeting['description_raw']) !== true) {
+    if (preg_match('/house/i', $meeting['description_raw']) === 1) {
         $meeting['chamber'] = 'house';
-    } elseif (preg_match('/senate/Di', $meeting['description_raw']) !== true) {
+    } elseif (preg_match('/senate/i', $meeting['description_raw']) === 1) {
         $meeting['chamber'] = 'senate';
     } else {
         continue;
@@ -299,30 +294,42 @@ foreach ($meetings['Schedules'] as $meeting) {
         }
     }
 
-    // Prepare and insert the data into the DB.
-    $meeting = array_map('addslashes', $meeting);
+    // Prepare and insert the data into the DB using prepared statements
     $sql = 'INSERT INTO meetings
             SET
-                date="' . $meeting['date'] . '",
-                description="' . $meeting['description'] . '",
-                session_id=' . SESSION_ID . ',
-                location="' . $meeting['location'] . '",
-                date_created=now()';
+                date = :date,
+                description = :description,
+                session_id = :session_id,
+                location = :location,
+                date_created = NOW()';
+
+    $params = [
+        ':date' => $meeting['date'],
+        ':description' => $meeting['description'],
+        ':session_id' => SESSION_ID,
+        ':location' => $meeting['location']
+    ];
+
     if (!empty($meeting['time'])) {
-        $sql .= ', time="' . $meeting['time'] . '"';
+        $sql .= ', time = :time';
+        $params[':time'] = $meeting['time'];
     }
     if (!empty($meeting['timedesc'])) {
-        $sql .= ', timedesc="' . $meeting['timedesc'] . '"';
+        $sql .= ', timedesc = :timedesc';
+        $params[':timedesc'] = $meeting['timedesc'];
     }
     if (!empty($meeting['committee_id'])) {
-        $sql .= ', committee_id=' . $meeting['committee_id'];
+        $sql .= ', committee_id = :committee_id';
+        $params[':committee_id'] = $meeting['committee_id'];
     }
 
-    $result = mysqli_query($GLOBALS['db'], $sql);
+    $stmt = $GLOBALS['dbh']->prepare($sql);
+    $result = $stmt->execute($params);
 
     if (!$result) {
+        $errorInfo = $stmt->errorInfo();
         $log->put('Failed to add meeting ' . $meeting['description'] . ' on ' . $meeting['date']
-            . '. ' . $sql . "\n\n" . mysqli_error($GLOBALS['db']), 5);
+            . '. Error: ' . $errorInfo[2], 5);
     } else {
         $log->put('Added meeting ' . $meeting['description'] . ' on ' . $meeting['date'] . '.', 1);
     }
@@ -333,9 +340,9 @@ foreach ($meetings['Schedules'] as $meeting) {
 $sql = 'DELETE m1
 		FROM meetings m1, meetings m2
 		WHERE
-            m1.date=m2.date AND
-            m1.time=m2.time AND
-            m1.location=m2.location AND
-		    m1.description=m2.description AND
+            m1.date = m2.date AND
+            m1.time = m2.time AND
+            m1.location = m2.location AND
+		    m1.description = m2.description AND
             m1.id < m2.id';
-mysqli_query($GLOBALS['db'], $sql);
+$GLOBALS['dbh']->exec($sql);
