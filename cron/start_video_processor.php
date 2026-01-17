@@ -8,6 +8,11 @@
  * latest scraped lists against cached copies on disk. If new videos are found,
  * starts the rs-video-processor EC2 instance.
  *
+ * Scrapers:
+ * - House (Granicus)
+ * - Senate (Granicus)
+ * - Senate YouTube (@SenateofVirginia)
+ *
  * This script runs on rs-machine (always-on) to trigger the expensive GPU instance
  * only when there's actual work to do.
  *
@@ -21,6 +26,7 @@ use RichmondSunlight\VideoProcessor\Scraper\House\HouseScraper;
 use RichmondSunlight\VideoProcessor\Scraper\Http\GuzzleHttpClient;
 use RichmondSunlight\VideoProcessor\Scraper\Http\RateLimitedHttpClient;
 use RichmondSunlight\VideoProcessor\Scraper\Senate\SenateScraper;
+use RichmondSunlight\VideoProcessor\Scraper\Senate\SenateYouTubeScraper;
 
 include_once(__DIR__ . '/../includes/settings.inc.php');
 include_once(__DIR__ . '/../includes/functions.inc.php');
@@ -163,10 +169,17 @@ $http = new RateLimitedHttpClient(
 
 $house_scraper = new HouseScraper($http, logger: $log, maxRecords: 50);
 $senate_scraper = new SenateScraper($http, logger: $log, maxRecords: 50);
+$senate_youtube_scraper = new SenateYouTubeScraper(
+    $http,
+    YOUTUBE_API_KEY ?? '',
+    logger: $log,
+    maxRecords: 50
+);
 
 try {
     $house_records = $house_scraper->scrape();
     $senate_records = $senate_scraper->scrape();
+    $senate_youtube_records = $senate_youtube_scraper->scrape();
 } catch (Throwable $e) {
     $log->put('Video scraper failed: ' . $e->getMessage(), 5);
     exit(1);
@@ -175,25 +188,30 @@ try {
 $cache_root = rtrim(MACHINE_CACHE_DIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'video-processor';
 $house_snapshot = $cache_root . DIRECTORY_SEPARATOR . 'house-scrape.json';
 $senate_snapshot = $cache_root . DIRECTORY_SEPARATOR . 'senate-scrape.json';
+$senate_youtube_snapshot = $cache_root . DIRECTORY_SEPARATOR . 'senate-youtube-scrape.json';
 
 $cached_house = load_scraper_snapshot($house_snapshot);
 $cached_senate = load_scraper_snapshot($senate_snapshot);
+$cached_senate_youtube = load_scraper_snapshot($senate_youtube_snapshot);
 
 $has_new_house = has_new_records($house_records, $cached_house);
 $has_new_senate = has_new_records($senate_records, $cached_senate);
+$has_new_senate_youtube = has_new_records($senate_youtube_records, $cached_senate_youtube);
 
 save_scraper_snapshot($house_snapshot, $house_records);
 save_scraper_snapshot($senate_snapshot, $senate_records);
+save_scraper_snapshot($senate_youtube_snapshot, $senate_youtube_records);
 
-if (!$has_new_house && !$has_new_senate) {
+if (!$has_new_house && !$has_new_senate && !$has_new_senate_youtube) {
     $log->put('No new House or Senate videos detected.', 1);
     exit(0);
 }
 
 $log->put(sprintf(
-    'New videos detected: house=%s, senate=%s',
+    'New videos detected: house=%s, senate=%s, senate-youtube=%s',
     $has_new_house ? 'yes' : 'no',
-    $has_new_senate ? 'yes' : 'no'
+    $has_new_senate ? 'yes' : 'no',
+    $has_new_senate_youtube ? 'yes' : 'no'
 ), 3);
 
 // Initialize EC2 client
