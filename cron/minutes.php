@@ -28,6 +28,7 @@ if (mysqli_num_rows($result) > 0) {
         $past_minutes[] = $tmp;
     }
 }
+$today = date('Y-m-d');
 
 if ($senate_enabled) {
     # Retrieve minutes list from the API
@@ -107,7 +108,7 @@ if ($senate_enabled) {
                 }
 
                 # Build the minutes text from the structured data
-    $minutes_text = $import->build_minutes_text($detail_data['MinutesBooks'][0]);
+                $minutes_text = $import->build_minutes_text($detail_data['MinutesBooks'][0]);
 
                 # If, after all that, we still have any text in these minutes
                 if (strlen($minutes_text) > 150) {
@@ -197,6 +198,12 @@ for ($offset = 0; $offset < $house_max_iterations; $offset++) {
     $minutes_text = $house_minutes['text'];
     $chamber = 'house';
 
+    if ($minutes_date > $today) {
+        $log->put('Skipping future House minutes dated ' . $minutes_date . '.', 3);
+        $max_house_id_seen = max($max_house_id_seen, $actual_house_id);
+        continue;
+    }
+
     # Check if we already have these minutes
     $is_duplicate = false;
     foreach ($past_minutes as $past) {
@@ -211,7 +218,8 @@ for ($offset = 0; $offset < $house_max_iterations; $offset++) {
         continue;
     }
 
-    if (strlen($minutes_text) > 150) {
+    $word_count = count_minutes_words($minutes_text);
+    if ($word_count >= 120) {
         $minutes_text = mysqli_real_escape_string($GLOBALS['db'], $minutes_text);
         $sql = 'INSERT INTO minutes
                 SET date = "' . $minutes_date . '", chamber="' . $chamber . '",
@@ -226,8 +234,8 @@ for ($offset = 0; $offset < $house_max_iterations; $offset++) {
             $past_minutes[] = ['date' => $minutes_date, 'chamber' => $chamber];
         }
     } else {
-        $log->put('The retrieved House minutes for ' . $minutes_date . ' were suspiciously short, and not saved.',
-            6);
+        $log->put('The retrieved House minutes for ' . $minutes_date . ' had only '
+            . $word_count . ' words, and were not saved.', 6);
     }
 
     $max_house_id_seen = max($max_house_id_seen, $actual_house_id);
@@ -243,15 +251,18 @@ if ($max_house_id_seen > $last_house_id) {
 }
 
 /**
- * Build readable minutes text from the structured API response
+ * Count words in minutes text, ignoring HTML markup.
  *
- * @param array $minutes_book The MinutesBook object from the API
- * @return string Formatted minutes text
+ * @param string $text
+ * @return int
  */
+function count_minutes_words(string $text): int
+{
+    $plain = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    if ($plain === '') {
+        return 0;
+    }
 
-/**
- * Extract the House minutes ID from the minutes page HTML.
- *
- * @param string $html
- * @return int|null
- */
+    preg_match_all('/[\\p{L}\\p{N}]+/u', $plain, $matches);
+    return isset($matches[0]) ? count($matches[0]) : 0;
+}
