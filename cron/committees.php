@@ -47,7 +47,7 @@ function generate_committee_shortname($name) {
         $shortname = 'committee';
     }
 
-    return $shortname;
+    return trim($shortname);
 }
 
 /*
@@ -207,7 +207,7 @@ foreach ($parent_committees as $parent_committee) {
 
     $name = $parent_committee['Name'] ?? '';
     $shortname = !empty($parent_committee['Abbreviation'])
-        ? strtolower($parent_committee['Abbreviation'])
+        ? strtolower(trim($parent_committee['Abbreviation']))
         : generate_committee_shortname($name);
     $meeting_time = $parent_committee['MeetingNote'] ?? null;
 
@@ -296,7 +296,7 @@ foreach ($parent_committees as $parent_committee) {
 
             $sub_name = $subcommittee['Name'] ?? '';
             $sub_shortname = !empty($subcommittee['Abbreviation'])
-                ? strtolower($subcommittee['Abbreviation'])
+                ? strtolower(trim($subcommittee['Abbreviation']))
                 : generate_committee_shortname($sub_name);
             $sub_meeting_time = $subcommittee['MeetingNote'] ?? null;
 
