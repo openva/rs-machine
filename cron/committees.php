@@ -24,12 +24,13 @@ $log = new Log();
 $log->put('Fetching committee list from Committee API...', 3);
 
 $api_committees = [];
+
+// First fetch parent committees (those without a parent)
 foreach (['H', 'S'] as $chamber_code) {
     $url = 'https://lis.virginia.gov/Committee/api/getcommitteelistasync';
     $query_params = [
         'sessionID' => SESSION_ID,
-        'chamberCode' => $chamber_code,
-        'includeSubCommittees' => true
+        'chamberCode' => $chamber_code
     ];
 
     $ch = curl_init();
@@ -66,9 +67,39 @@ foreach (['H', 'S'] as $chamber_code) {
         die('Error: Committee API reported failure.');
     }
 
-    if (!empty($data['ListItems'])) {
-        foreach ($data['ListItems'] as $committee) {
+    if (!empty($data['Committees'])) {
+        foreach ($data['Committees'] as $committee) {
             $api_committees[] = $committee;
+
+            // For each parent committee, also fetch its subcommittees
+            if (empty($committee['ParentCommitteeID']) && !empty($committee['CommitteeID'])) {
+                $sub_url = 'https://lis.virginia.gov/Committee/api/getcommitteelistasync';
+                $sub_query_params = [
+                    'sessionID' => SESSION_ID,
+                    'chamberCode' => $chamber_code,
+                    'parentCommitteeID' => $committee['CommitteeID']
+                ];
+
+                $sub_ch = curl_init();
+                curl_setopt($sub_ch, CURLOPT_URL, $sub_url . '?' . http_build_query($sub_query_params));
+                curl_setopt($sub_ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($sub_ch, CURLOPT_HTTPHEADER, [
+                    'WebAPIKey: ' . LIS_KEY,
+                    'Accept: application/json'
+                ]);
+
+                $sub_response = curl_exec($sub_ch);
+                $sub_http_code = curl_getinfo($sub_ch, CURLINFO_HTTP_CODE);
+
+                if ($sub_response !== false && $sub_http_code == 200) {
+                    $sub_data = json_decode($sub_response, true);
+                    if (!empty($sub_data['Committees'])) {
+                        foreach ($sub_data['Committees'] as $subcommittee) {
+                            $api_committees[] = $subcommittee;
+                        }
+                    }
+                }
+            }
         }
     }
 }
