@@ -225,7 +225,10 @@ $sql = 'SELECT CONCAT(UPPER(SUBSTRING(committees.chamber, 1, 1)), SUBSTRING(comm
 			ON committees.id = committee_members.committee_id
 		LEFT JOIN representatives
 			ON committee_members.representative_id = representatives.id
-		WHERE committees.parent_id IS NULL AND committee_members.date_ended IS NULL AND committee.date_ended IS NULL
+		WHERE
+            committees.parent_id IS NULL AND
+            committee_members.date_ended IS NULL AND
+            committees.date_ended IS NULL
 		ORDER BY committees.chamber ASC, committees.name ASC, position DESC';
 $result = mysqli_query($GLOBALS['db'], $sql);
 if (mysqli_num_rows($result) > 0) {
