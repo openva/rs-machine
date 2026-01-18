@@ -150,14 +150,14 @@ foreach ($bills as $bill) {
 
     $response = curl_exec($ch);
     if ($response === false) {
-        $log->put('OpenAI request failed for ' . $bill['number'] . ': ' . curl_error($ch), 6);
+        $log->put('Bill narratives OpenAI request failed for ' . $bill['number'] . ': ' . curl_error($ch), 6);
         continue;
     }
 
     $decoded = json_decode($response, true);
     $content = $decoded['choices'][0]['message']['content'] ?? null;
     if (empty($content)) {
-        $log->put('OpenAI returned no content for ' . $bill['number'] . '.', 5);
+        $log->put('OpenAI returned no content for ' . $bill['number'] . ' bill narrative.', 5);
         continue;
     }
 
