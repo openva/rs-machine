@@ -54,6 +54,54 @@ if (!function_exists('build_legacy_lis_id')) {
     }
 }
 
+if (!function_exists('rebuild_name_formatted')) {
+    function rebuild_name_formatted(array $legislator)
+    {
+        // Extract components
+        $chamber = $legislator['chamber'] ?? '';
+        $party = strtoupper(trim($legislator['party'] ?? ''));
+        $place = trim($legislator['place'] ?? '');
+        $district_number = $legislator['district_number'] ?? $legislator['district_id'] ?? '';
+
+        // Extract name from existing name_formatted or construct from components
+        if (!empty($legislator['name_formatted'])) {
+            // Extract just the name portion (before the party designation)
+            if (preg_match('/^((?:Sen\.|Del\.)\s+[^(]+)/', $legislator['name_formatted'], $matches)) {
+                $name_part = trim($matches[1]);
+            } else {
+                $name_part = $legislator['name_formatted'];
+            }
+        } else {
+            $prefix = ($chamber === 'senate') ? 'Sen.' : 'Del.';
+            $name_part = $prefix . ' ' . ($legislator['name_formal'] ?? '');
+        }
+
+        // Build the suffix (place or district number)
+        $suffix = '';
+        if (!empty($place)) {
+            // Use place if available
+            $suffix = $place;
+        } elseif (!empty($district_number)) {
+            // Fall back to district number
+            $suffix = $district_number;
+        }
+
+        // Construct the formatted name
+        $formatted = trim($name_part);
+        if ($party === '') {
+            $party = '?';
+        }
+
+        if (!empty($suffix)) {
+            $formatted .= ' (' . $party . '-' . $suffix . ')';
+        } else {
+            $formatted .= ' (' . $party . ')';
+        }
+
+        return $formatted;
+    }
+}
+
 /*
  * Retrieve a list of all active delegates' names and IDs. Though that's not *quite* right.
  * Within a couple of weeks of the election, the House's website pretends that the departing
@@ -186,6 +234,9 @@ foreach ($legislators as &$legislator) {
         $api_data = merge_legislator_data_sets($api_data, $legacy_data);
     }
 
+    // Rebuild name_formatted after merge to use the best available place name
+    $api_data['name_formatted'] = rebuild_name_formatted($api_data);
+
     $api_data['id'] = $legislator->id;
     $import->update_legislator($api_data);
 
@@ -316,6 +367,9 @@ foreach ($senators as $lis_id => $name) {
             continue;
         }
 
+        // Rebuild name_formatted after merge to use the best available place name
+        $data['name_formatted'] = rebuild_name_formatted($data);
+
         $errors = false;
 
         foreach ($required_fields as $field) {
@@ -399,6 +453,9 @@ foreach ($delegates as $lis_id => $name) {
         } else {
             $data = $api_data;
         }
+
+        // Rebuild name_formatted after merge to use the best available place name
+        $data['name_formatted'] = rebuild_name_formatted($data);
 
         $required_fields = array(
             'name_formal',
