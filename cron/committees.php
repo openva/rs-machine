@@ -19,6 +19,38 @@ $GLOBALS['dbh'] = $db;
 $log = new Log();
 
 /*
+ * Helper function to generate a committee shortname from its name
+ */
+function generate_committee_shortname($name) {
+    // Remove common prefixes/suffixes
+    $name = preg_replace('/^(Committee on|Committee for|Subcommittee on|Subcommittee for|Committee|Subcommittee)\s+/i', '', $name);
+    $name = preg_replace('/\s+(Committee|Subcommittee)$/i', '', $name);
+
+    // Split into words and take first letter of each significant word
+    $words = preg_split('/\s+/', trim($name));
+    $shortname = '';
+
+    foreach ($words as $word) {
+        // Skip small words like 'and', 'of', 'the', 'for', 'on'
+        if (strlen($word) > 2 && !in_array(strtolower($word), ['and', 'the', 'for'])) {
+            $shortname .= strtolower($word[0]);
+        }
+    }
+
+    // If we got nothing, just use the first word (lowercased and cleaned)
+    if (empty($shortname) && !empty($words)) {
+        $shortname = strtolower(preg_replace('/[^a-z]/i', '', $words[0]));
+    }
+
+    // Final fallback
+    if (empty($shortname)) {
+        $shortname = 'committee';
+    }
+
+    return $shortname;
+}
+
+/*
  * Fetch all committees (including subcommittees) from the Committee API
  */
 $log->put('Fetching committee list from Committee API...', 3);
@@ -174,7 +206,9 @@ foreach ($parent_committees as $parent_committee) {
     $existing = $check_stmt->fetch(PDO::FETCH_ASSOC);
 
     $name = $parent_committee['Name'] ?? '';
-    $shortname = $parent_committee['Abbreviation'] ?? null;
+    $shortname = !empty($parent_committee['Abbreviation'])
+        ? strtolower($parent_committee['Abbreviation'])
+        : generate_committee_shortname($name);
     $meeting_time = $parent_committee['MeetingNote'] ?? null;
 
     if ($existing) {
@@ -261,7 +295,9 @@ foreach ($parent_committees as $parent_committee) {
             $existing_sub = $check_sub_stmt->fetch(PDO::FETCH_ASSOC);
 
             $sub_name = $subcommittee['Name'] ?? '';
-            $sub_shortname = $subcommittee['Abbreviation'] ?? null;
+            $sub_shortname = !empty($subcommittee['Abbreviation'])
+                ? strtolower($subcommittee['Abbreviation'])
+                : generate_committee_shortname($sub_name);
             $sub_meeting_time = $subcommittee['MeetingNote'] ?? null;
 
             if ($existing_sub) {
