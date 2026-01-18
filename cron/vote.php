@@ -34,7 +34,7 @@ while ($legislator = $result->fetch(PDO::FETCH_ASSOC)) {
 # COMMITTEE ID TRANSLATION
 $sql = 'SELECT id, lis_id, chamber
 		FROM committees
-		WHERE parent_id IS NULL
+		WHERE parent_id IS NULL AND committees.date_ended IS NULL
 		ORDER BY id ASC';
 $result = $db->query($sql);
 if (($result === false) || ($result->rowCount() == 0)) {

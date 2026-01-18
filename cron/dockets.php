@@ -80,6 +80,7 @@ while (($row = fgetcsv($docket_csv)) !== false) {
                 WHERE
                     chamber="' . $chamber . '" AND
                     lis_id="' . $lis_id . '" AND
+                    date_ended IS NULL AND
                     parent_id IS NULL),
             bill_id=
                 (SELECT id

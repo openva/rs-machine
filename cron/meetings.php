@@ -24,6 +24,7 @@ $sql = 'SELECT c1.id, c1.lis_id, c2.name AS parent, c1.name, c1.chamber
 		FROM committees AS c1
 		LEFT JOIN committees AS c2
 			ON c1.parent_id=c2.id
+        WHERE committees.date_ended IS NULL
 		ORDER BY c1.chamber, c2.name, c1.name';
 $stmt = $GLOBALS['dbh']->prepare($sql);
 $stmt->execute();

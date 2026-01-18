@@ -181,6 +181,7 @@ foreach ($bills as $bill) {
 				WHERE
                     lis_id = "' . $bill['last_committee'] . '" AND
                     parent_id IS NULL AND
+                    date_ended IS NULL AND
                     chamber = "' . $bill['last_committee_chamber'] . '"
                 ),
 			status="' . $bill['status'] . '",
