@@ -266,6 +266,50 @@ The database structure includes (key tables):
 - Session-based partitioning (most queries filter by `session_id`)
 - Subquery-based foreign key lookups in INSERT/UPDATE statements
 
+### Database Schema Modifications
+
+**CRITICAL: Never use text-based edit tools on SQL dump files containing binary data.**
+
+The `deploy/database.sql` file contains INSERT statements with binary data (e.g., BLOB, GEOMETRY, POINT types) in tables like `bills_places`. The `coordinates` column contains binary-encoded geographic data that appears as escape sequences like `'\0\0\0\0\0\0\0\0\0\0@3�S�\0\0\0���B@'`.
+
+**Problem:** When text-based editing tools (Edit, Write, sed, awk) read and write SQL dump files, they can corrupt binary data by:
+- Re-encoding bytes with different character encodings
+- Transforming escape sequences
+- Altering byte values during text processing
+
+**Solution:** When modifying database schema:
+
+1. **Preferred approach:** Use ALTER TABLE statements directly on the database instead of editing dump files:
+   ```bash
+   docker exec -it rs_machine_db mariadb -u ricsun -ppassword richmondsunlight -e \
+     "ALTER TABLE bills_status ADD COLUMN chamber ENUM('house','senate') DEFAULT NULL AFTER status"
+   ```
+
+2. **If you must edit the dump file:** Use binary-safe tools:
+   - Python with binary file mode (`open('file', 'rb')` and `open('file', 'wb')`)
+   - Only replace the specific CREATE TABLE definition, avoiding INSERT statements with binary data
+   - Never use tools that perform text encoding/decoding transformations
+
+3. **After editing:** Verify no unintended changes occurred:
+   ```bash
+   git diff deploy/database.sql | grep -v "CREATE TABLE.*bills_status"
+   ```
+   Check that only your intended table definition changed, not INSERT statements in other tables.
+
+**Example of proper binary-safe editing:**
+```python
+with open('deploy/database.sql', 'rb') as f:
+    content = f.read()
+
+# Replace only the specific table definition
+old_def = b'CREATE TABLE `bills_status` (...)'
+new_def = b'CREATE TABLE `bills_status` (...with new column...)'
+content = content.replace(old_def, new_def, 1)
+
+with open('deploy/database.sql', 'wb') as f:
+    f.write(content)
+```
+
 ### Configuration
 
 **Session Management:**
