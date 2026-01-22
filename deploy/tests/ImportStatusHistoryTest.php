@@ -137,10 +137,10 @@ class ImportStatusHistoryTest extends TestCase
         $reflector->setValue($import, $pdo);
 
         $history = [
-            ['status' => 'Prefiled and ordered printed', 'date' => '2025-11-17T14:24:00'],
+            ['status' => 'Prefiled and ordered printed', 'chamber' => 'senate', 'date' => '2025-11-17T14:24:00'],
             // Duplicate should be ignored.
-            ['status' => 'Prefiled and ordered printed', 'date' => '2025-11-17T14:24:00'],
-            ['status' => 'Reported from Committee', 'date' => '2025-12-01T09:00:00', 'lis_vote_id' => '1234'],
+            ['status' => 'Prefiled and ordered printed', 'chamber' => 'senate', 'date' => '2025-11-17T14:24:00'],
+            ['status' => 'Reported from Committee', 'chamber' => 'house', 'date' => '2025-12-01T09:00:00', 'lis_vote_id' => '1234'],
             // Invalid entries skipped.
             ['status' => '', 'date' => '2025-12-02T09:00:00'],
             ['status' => 'Missing date'],
@@ -151,19 +151,48 @@ class ImportStatusHistoryTest extends TestCase
         $this->assertSame(2, $persisted, 'Expected only valid, unique rows to be persisted.');
         $this->assertNotNull($pdo->statement, 'Statement should have been prepared.');
         $this->assertStringContainsString('ON DUPLICATE KEY UPDATE', $pdo->preparedSql);
+        $this->assertStringContainsString('chamber', $pdo->preparedSql, 'SQL should include chamber column');
         $this->assertCount(2, $pdo->statement->executions, 'Should execute once per unique status.');
 
         $first = $pdo->statement->executions[0];
         $this->assertSame(42, $first[':bill_id']);
         $this->assertSame(30, $first[':session_id']);
         $this->assertSame('Prefiled and ordered printed', $first[':status']);
+        $this->assertSame('senate', $first[':chamber']);
         $this->assertSame('2025-11-17 14:24:00', $first[':date']);
         $this->assertNull($first[':lis_vote_id']);
         $this->assertMatchesRegularExpression('/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/', $first[':date_created']);
 
         $second = $pdo->statement->executions[1];
         $this->assertSame('Reported from Committee', $second[':status']);
+        $this->assertSame('house', $second[':chamber']);
         $this->assertSame('2025-12-01 09:00:00', $second[':date']);
         $this->assertSame('1234', $second[':lis_vote_id']);
+    }
+
+    public function testStoreStatusHistoryHandlesInvalidChamberValues(): void
+    {
+        $import = new Import(new NullLog());
+        $pdo = new RecordingPdo();
+
+        $reflector = new ReflectionProperty(Import::class, 'pdo');
+        $reflector->setAccessible(true);
+        $reflector->setValue($import, $pdo);
+
+        $history = [
+            ['status' => 'Status with invalid chamber', 'chamber' => 'invalid', 'date' => '2025-11-17T14:24:00'],
+            ['status' => 'Status with missing chamber', 'date' => '2025-11-18T14:24:00'],
+        ];
+
+        $persisted = $import->store_status_history(42, $history, 30);
+
+        $this->assertSame(2, $persisted);
+        $this->assertCount(2, $pdo->statement->executions);
+
+        $first = $pdo->statement->executions[0];
+        $this->assertNull($first[':chamber'], 'Invalid chamber value should be normalized to null');
+
+        $second = $pdo->statement->executions[1];
+        $this->assertNull($second[':chamber'], 'Missing chamber value should be null');
     }
 }
