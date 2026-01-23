@@ -23,9 +23,12 @@ if [ -d includes ] && [ -n "$(ls -A includes 2>/dev/null)" ]; then
     fi
 fi
 
-# Get all functions from the main repo
-rm -rf richmondsunlight.com
-git clone -b deploy https://github.com/openva/richmondsunlight.com.git
+# Get all functions from the main repo (clone or update to avoid wasteful downloads)
+if [ ! -d "richmondsunlight.com" ]; then
+    git clone -b deploy https://github.com/openva/richmondsunlight.com.git
+else
+    cd richmondsunlight.com && git pull && cd ..
+fi
 
 rm -Rf includes
 mkdir -p includes
@@ -41,15 +44,19 @@ else
 fi
 
 cp "$includes_source"/*.php includes/
-rm -Rf richmondsunlight.com
 
 # Restore preserved class.*.php overrides if any.
 if [ -d "$backup_dir" ] && [ -n "$(ls -A "$backup_dir" 2>/dev/null)" ]; then
     cp "$backup_dir"/class.*.php includes/ 2>/dev/null || true
 fi
 
-# Install Composer dependencies
-composer install
+# Install Composer dependencies (only if needed)
+if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ] || [ "composer.lock" -nt "vendor/autoload.php" ]; then
+    echo "Installing Composer dependencies..."
+    composer install
+else
+    echo "Composer dependencies up to date, skipping install"
+fi
 
 # Move over the settings file.
 cp deploy/settings-docker.inc.php includes/settings.inc.php

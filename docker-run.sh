@@ -44,19 +44,22 @@ fi
 # If the database.sql doesn't exist, create it
 if [ ! -f "deploy/database.sql" ]; then
 
-    git clone -b deploy https://github.com/openva/richmondsunlight.com.git
+    # Clone or update the repo instead of deleting it
+    if [ ! -d "richmondsunlight.com" ]; then
+        git clone -b deploy https://github.com/openva/richmondsunlight.com.git
+    else
+        cd richmondsunlight.com && git pull && cd ..
+    fi
 
     # Concatenate the database dumps into a single file, for MariaDB to load
     cd richmondsunlight.com/deploy/
     cat mysql/structure.sql mysql/basic-contents.sql mysql/test-records.sql > ../../deploy/database.sql
-    cd ..
-
-    rm -Rf richmondsunlight.com
+    cd ../..
 
 fi
 
-# Stand it up
-docker compose build && docker compose up -d
+# Stand it up (build only if needed, then start)
+docker compose up -d --build
 
 # Wait for MariaDB to be available inside the container
 echo "Waiting for MariaDB (rs_machine_db) to report healthy..."
