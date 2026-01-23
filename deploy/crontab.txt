@@ -61,7 +61,7 @@
 44 12-20 * * * /usr/bin/php rs-machine/cron/poll_house_video.php
 
 # Start video processor EC2 instance if there's work pending
-0 10-21 * * * /usr/bin/php rs-machine/cron/start_video_processor.php
+0 12,18,22 * * * /usr/bin/php rs-machine/cron/start_video_processor.php
 
 # Sync representatives table with people and terms tables
 31 3 * * * /usr/bin/php rs-machine/cron/update.php representatives_table
