@@ -315,7 +315,9 @@ $sql = $dbh->prepare('UPDATE bills
 						SET status =
 							(SELECT translation
 							FROM bills_status
-							WHERE bills_status.bill_id = bills.id AND translation IS NOT NULL
+							WHERE
+                                bills_status.bill_id = bills.id AND
+                                translation IS NOT NULL
 							ORDER BY date DESC, id DESC
 							LIMIT 1)
 						WHERE session_id=:session_id');
@@ -348,17 +350,33 @@ mysqli_query($GLOBALS['db'], $sql);
 
 $sql = 'UPDATE bills
 		SET outcome="passed"
-		WHERE (status="signed by governor" OR status="enacted")
-		AND (outcome IS NULL OR outcome="failed") AND session_id=' . $session_id;
+		WHERE (status="signed by governor" OR status="enacted") AND
+        (outcome IS NULL OR outcome="failed") AND
+        session_id=' . $session_id;
 mysqli_query($GLOBALS['db'], $sql);
 
 $sql = 'UPDATE bills
 		SET outcome = NULL
-		WHERE outcome="failed" AND status != "failed committee" AND status != "failed" AND
-		status != "failed house"
-		AND status != "failed senate" AND status != "vetoed by governor" AND status != "stricken"
-		AND status != "signed by governor" AND status != "enacted" AND session_id=' . $session_id;
+		WHERE
+            outcome="failed" AND
+            status != "failed committee" AND
+            status != "failed" AND
+		    status != "failed house" AND
+            status != "failed senate" AND
+            status != "vetoed by governor" AND
+            status != "stricken" AND
+            status != "signed by governor" AND
+            status != "enacted" AND
+            session_id=' . $session_id;
 mysqli_query($GLOBALS['db'], $sql);
+
+// Mark bills as failed if their status is still "introduced" after the session is over.
+if (IN_SESSION == false && time() > strtotime(SESSION_END)) {
+    $sql = 'UPDATE bills
+            SET outcome="failed"
+            WHERE status="introduced" AND session_id = ' . ($session_id - 1);
+    mysqli_query($GLOBALS['db'], $sql);
+}
 
 ###
 # UPDATE BILLS' FULL TEXT WHERE IT'S CURRENTLY BLANK
@@ -369,7 +387,9 @@ $sql = 'UPDATE bills
 		SET full_text =
 			(SELECT text
 			FROM bills_full_text
-			WHERE bill_id = bills.id AND text IS NOT NULL
+			WHERE
+                bill_id = bills.id AND
+                text IS NOT NULL
 			ORDER BY date_introduced DESC
 			LIMIT 1)
 		WHERE session_id=' . $session_id . ' AND full_text IS NULL';
