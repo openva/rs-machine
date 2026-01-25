@@ -157,7 +157,12 @@ foreach ($bills as $bill) {
     $decoded = json_decode($response, true);
     $content = $decoded['choices'][0]['message']['content'] ?? null;
     if (empty($content)) {
-        $log->put('OpenAI returned no content for ' . $bill['number'] . ' bill narrative.', 5);
+        if (isset($decoded['error'])) {
+            $log->put('OpenAI returned an error for ' . $bill['number'] . ' bill narrative: '
+                . ($decoded['error']['message'] ?? 'Unknown error'), 5);
+        } else {
+            $log->put('OpenAI returned no content for ' . $bill['number'] . ' bill narrative.', 5);
+        }
         continue;
     }
 
