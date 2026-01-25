@@ -41,7 +41,7 @@ $sql = <<<SQL
         t.lis_id,
         t.chamber,
         t.party,
-        t.district_Id AS district_id,
+        t.district_id AS district_id,
         t.date_started,
         t.date_ended,
         t.sbe_id,
