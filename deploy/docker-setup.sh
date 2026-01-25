@@ -6,11 +6,16 @@ cd /home/ubuntu/rs-machine/
 # Ensure required directories exist
 mkdir -p includes
 
-# Preserve locally modified class.*.php files (newer than the modal timestamp) before wiping includes.
+# Preserve local files before wiping includes.
 backup_dir="/tmp/rs-machine"
 mkdir -p "$backup_dir"
 if [ -d includes ] && [ -n "$(ls -A includes 2>/dev/null)" ]; then
-    # Build histogram of modification times (seconds).
+    # Always preserve settings.local.inc.php if it exists
+    if [ -f "includes/settings.local.inc.php" ]; then
+        cp "includes/settings.local.inc.php" "$backup_dir"/
+    fi
+
+    # Preserve locally modified class.*.php files (newer than the modal timestamp).
     mapfile -t mtimes < <(find includes -type f -name '*.php' -printf '%T@\n' 2>/dev/null | awk '{printf "%.0f\n",$1}' )
     if [ "${#mtimes[@]}" -gt 0 ]; then
         modal_ts=$(printf "%s\n" "${mtimes[@]}" | sort | uniq -c | sort -nr | head -n1 | awk '{print $2}')
@@ -45,9 +50,10 @@ fi
 
 cp "$includes_source"/*.php includes/
 
-# Restore preserved class.*.php overrides if any.
+# Restore preserved files if any.
 if [ -d "$backup_dir" ] && [ -n "$(ls -A "$backup_dir" 2>/dev/null)" ]; then
     cp "$backup_dir"/class.*.php includes/ 2>/dev/null || true
+    cp "$backup_dir"/settings.local.inc.php includes/ 2>/dev/null || true
 fi
 
 # Install Composer dependencies (only if needed)
