@@ -18,7 +18,6 @@ if (IN_SESSION == true) {
     */
     $files = array(
            'bills.csv' => 10,
-           'history.csv' => 10,
            'summaries.csv' => 24,
     );
     foreach ($files as $file => $age) {
