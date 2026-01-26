@@ -35,7 +35,7 @@ if (IN_SESSION == true) {
     /*
      * Make sure that the number of bills in the database equals the number in the CSV.
      */
-    $csv_lines = file(__DIR__ . '/bills.csv') - 1;
+    $csv_lines = count(file(__DIR__ . '/bills.csv')) - 1;
     $sql = 'SELECT *
             FROM bills
             WHERE session_id=' . SESSION_ID;
