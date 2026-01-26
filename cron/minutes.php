@@ -160,6 +160,8 @@ $last_house_id = isset($house_state['last_id']) ? (int)$house_state['last_id'] :
 $next_house_id = max($house_minutes_start_id, $last_house_id + 1);
 $max_house_id_seen = $last_house_id;
 $house_max_iterations = 500;
+$consecutive_failures = 0;
+$max_consecutive_failures = 10;
 
 for ($offset = 0; $offset < $house_max_iterations; $offset++) {
     $requested_id = $next_house_id + $offset;
@@ -173,15 +175,30 @@ for ($offset = 0; $offset < $house_max_iterations; $offset++) {
 
     if ($house_http_code != 200 || $house_response === false) {
         $log->put('Failed to retrieve House minutes at ' . $house_url
-            . ': HTTP ' . $house_http_code, 5);
-        break;
+            . ': HTTP ' . $house_http_code, 4);
+        $consecutive_failures++;
+        if ($consecutive_failures >= $max_consecutive_failures) {
+            $log->put('Stopping iterating through House minutes after ' . $consecutive_failures
+                . ' consecutive failures', 4);
+            break;
+        }
+        continue;
     }
 
     $actual_house_id = $import->parse_house_minutes_id($house_response);
     if ($actual_house_id === null) {
         $log->put('Could not locate House minutes ID at ' . $house_url, 5);
-        break;
+        $consecutive_failures++;
+        if ($consecutive_failures >= $max_consecutive_failures) {
+            $log->put('Stopping iterating through House minutes after ' . $consecutive_failures
+                . ' consecutive failures', 4);
+            break;
+        }
+        continue;
     }
+
+    // Reset consecutive failures on success
+    $consecutive_failures = 0;
 
     if ($actual_house_id < $requested_id) {
         # We have stepped past the most recent minutes.
@@ -191,8 +208,16 @@ for ($offset = 0; $offset < $house_max_iterations; $offset++) {
     $house_minutes = $import->extract_house_minutes_data($house_response);
     if (empty($house_minutes) || empty($house_minutes['date']) || empty($house_minutes['text'])) {
         $log->put('Could not parse House minutes content at ' . $house_url, 5);
-        break;
+        $consecutive_failures++;
+        if ($consecutive_failures >= $max_consecutive_failures) {
+            $log->put('Stopping after ' . $consecutive_failures . ' consecutive failures', 4);
+            break;
+        }
+        continue;
     }
+
+    // Successfully parsed minutes, reset failure counter
+    $consecutive_failures = 0;
 
     $minutes_date = $house_minutes['date'];
     $minutes_text = $house_minutes['text'];
