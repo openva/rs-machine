@@ -51,12 +51,12 @@ if (IN_SESSION == true) {
     if (( date('N') > 0 && date('N') < 6) && (date('G') > 10) & (date('G') < 17)) {
         $sql = 'SELECT *
                 FROM `bills_status`
-                WHERE date_created > NOW() - INTERVAL 24 HOUR
+                WHERE date_created > NOW() - INTERVAL 4 HOUR
                 ORDER BY date_created DESC';
         $result = mysqli_query($GLOBALS['db'], $sql);
         if (mysqli_num_rows($result) == 0) {
-            $log->put('Error: No bills have advanced in the past 24 hours. Bill histories are '
-                . 'not being updated. Make sure that history.csv is being updated, and that '
+            $log->put('Error: No bills have advanced in the past 4 hours. Bill histories are '
+                . 'not being updated. Make sure that histories are being updated, and that '
                 . 'data is being loaded correctly.', 6);
         }
     }
