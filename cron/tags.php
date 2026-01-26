@@ -98,7 +98,14 @@ foreach ($bills as $bill) {
      * Use the response
      */
     $result = json_decode($response, true);
-    if (isset($result['choices'][0]['message']['content'])) {
+    if (!isset($result['choices'][0]['message']['content'])) {
+        if (isset($result['error'])) {
+            $log->put('OpenAI returned an error for ' . $bill['number'] . ' tags: '
+                . ($decoded['error']['message'] ?? 'Unknown error'), 5);
+        } else {
+            $log->put('OpenAI failed to return tags for ' . $bill['number'] . '.', 5);
+        }
+    } else {
         $generated_text = strtolower($result['choices'][0]['message']['content']);
         $tags = explode(', ', $generated_text);
 
