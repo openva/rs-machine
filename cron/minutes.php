@@ -50,7 +50,7 @@ if ($senate_enabled) {
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
     if ($http_code != 200) {
-        $log->put('Failed to retrieve minutes list from API: HTTP ' . $http_code, 6);
+        $log->put('Failed to retrieve minutes list from API: HTTP ' . $http_code, 3);
     } else {
         $minutes_list = json_decode($response, true);
 
