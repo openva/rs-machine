@@ -77,6 +77,7 @@ else {
 $database = new Database();
 $database->connect_mysqli();
 $dbh = new PDO(PDO_DSN, PDO_USERNAME, PDO_PASSWORD);
+$GLOBALS['dbh'] = $dbh;
 if ($dbh === false) {
     $log->put('Could not connect to database.', 8);
     die('Could not connect to database.');

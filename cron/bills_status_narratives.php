@@ -9,14 +9,9 @@
 #
 ###
 
-# INCLUDES
-include_once(__DIR__ . '/../includes/settings.inc.php');
-include_once(__DIR__ . '/../includes/functions.inc.php');
-include_once(__DIR__ . '/../includes/photosynthesis.inc.php');
-include_once(__DIR__ . '/../includes/vendor/autoload.php');
-
-$dbh = new Database();
-$db = $dbh->connect_mysqli();
+// This temp thing is about dealing with a weird database connetion bug
+$dbh_temp = new Database();
+$db = $dbh_temp->connect_mysqli();
 $log = new Log();
 
 if (!defined('OPENAI_KEY') || empty(OPENAI_KEY)) {
