@@ -41,7 +41,7 @@ if (IN_SESSION == true) {
     $result = mysqli_query($GLOBALS['db'], $sql);
     $difference = $csv_lines - mysqli_num_rows($result);
     if ($difference != 0) {
-        $log->put('Error: bills.csv has ' . $difference . ' more records than the database.');
+        $log->put('Error: bills.csv has ' . $difference . ' more records than the database.', 5);
     }
 
     /*
