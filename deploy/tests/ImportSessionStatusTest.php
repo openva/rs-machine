@@ -14,7 +14,7 @@ if (!class_exists('NullLogSession', false)) {
      */
     class NullLogSession extends Log
     {
-        public function put($message, $level)
+        public function put($message, $level = 3)
         {
             return true;
         }
