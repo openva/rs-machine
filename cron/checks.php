@@ -51,7 +51,7 @@ if (IN_SESSION == true) {
     if (( date('N') > 0 && date('N') < 6) && (date('G') > 10) & (date('G') < 17)) {
         $sql = 'SELECT *
                 FROM `bills_status`
-                WHERE date_created > NOW() - INTERVAL 4 HOUR
+                WHERE date_created > CONVERT_TZ(NOW(), "UTC", "America/New_York") - INTERVAL 4 HOUR
                 ORDER BY date_created DESC';
         $result = mysqli_query($GLOBALS['db'], $sql);
         if (mysqli_num_rows($result) == 0) {
