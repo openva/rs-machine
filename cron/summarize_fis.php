@@ -98,7 +98,7 @@ foreach ($bills as $bill) {
 
     $responseData = json_decode($response, true);
     if (!isset($responseData['choices'][0]['message']['content'])) {
-        $log->put('Error: OpenAI could summarie ' . $bill['number'], 4);
+        $log->put('Error: OpenAI couldn’t summarize ' . $bill['number'], 4);
         continue;
     }
     $summary = $responseData['choices'][0]['message']['content'];
