@@ -80,9 +80,9 @@ A few procedural notes that may or may not inform the summary:
 
 Do not mention a legislator’s party unless it is relevant to the outcome of the bill. Do not
 specify the bill's number—that is not relevant to the summary. Simply describe it as "the bill,"
-"the legislation," or "this." Do not describe the bill's subject matter, unless it's relevant to
-the outcome. There is no need to provide specific dates unless it’s important to describing the
-bill’s journey.
+"the legislation," or "this." Do not describe the bill's subject matter or the purpose of the
+bill. There is no need to provide specific dates unless it’s important to describing the bill’s
+journey.
 
 {{bill_number}}: {{catch_line}}
 {{status_history}}
