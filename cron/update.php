@@ -131,6 +131,11 @@ if (($type == 'all') || ($type == 'cleanup')) {
     require 'cleanup.php';
 }
 
+# Fetch news articles that reference bills.
+if (($type == 'all') || ($type == 'articles')) {
+    require 'articles.php';
+}
+
 # Check for missing / excess legislators.
 if ($type == 'legislators') {
     require 'legislators.php';
