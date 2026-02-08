@@ -61,12 +61,13 @@ a layperson can understand the journey of the legislation. Note if the various v
 unanimous or near-unanimous, or if they were narrow, note that, too. If votes were unanimous
 or near-unanimous, there is no need to specify the vote tally. Most important is the outcome:
 if the bill was killed in subcommittee, if it failed to get a majority vote on the floor, if it
-was vetoed by the governor, or if it passed into law.
+was vetoed by the governor, or if it passed into law. Note that today's date is {{current_date}}.
+If the session is still underway, the outcome of the bill is likely to be unknown.
 
 A few procedural notes that may or may not inform the summary:
 
 - The date of "crossover" (by when bills must pass their chamber in order to be considered in
-  the other chamber) was Feb. 7, 2024.
+  the other chamber) was (or will be) {{crossover_date}}.
 - Bills are often referred to the Rules committee in order to kill them without having to
   record a vote—the Rules committee simply never votes on them. If a bill isn't about the rules
   of the legislature, and was sent to Rules, and failed because it did not receive a vote there,
@@ -287,6 +288,7 @@ function build_prompt_from_template(
         '{{senate_majority}}' => $senate_majority,
         '{{governor_party}}' => $governor_party,
         '{{lg_party}}' => $lg_party,
+        '{{current_date}}' => date('Y-m-d'),
     ];
 
     return strtr($template, $replacements);
