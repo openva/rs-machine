@@ -813,3 +813,27 @@ if (mysqli_num_rows($result) > 0) {
         mysqli_query($GLOBALS['db'], $sql);
     }
 }
+
+###
+# DISABLE STATUS NARRATIVES WHEN STATUS HAS CHANGED
+# When a bill has advanced further, then any status narrative that has been built for it should
+# be assumed to be out of date. Here we disable any status narrative for a bill when the bill's
+# status has substantially change since the narrative was created.
+###
+$sql = 'UPDATE bills_status_narratives
+        SET current="n"
+        WHERE
+            session_id = ' . SESSION_ID . ' AND
+            current="y" AND
+            date_created < (
+                SELECT date
+                FROM bills_status
+                WHERE
+                    bill_id = bills_status_narratives.bill_id AND
+                    translation IS NOT NULL
+                ORDER BY
+                    date DESC,
+                    id DESC
+                LIMIT 1
+            )';
+mysqli_query($GLOBALS['db'], $sql);
