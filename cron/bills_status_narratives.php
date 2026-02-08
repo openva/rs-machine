@@ -78,9 +78,11 @@ A few procedural notes that may or may not inform the summary:
 
 Do not mention a legislator’s party unless it is relevant to the outcome of the bill. Do not
 specify the bill's number—that is not relevant to the summary. Simply describe it as "the bill,"
-"the legislation," or "this." Do not describe the bill's subject matter or the purpose of the
-bill. There is no need to provide specific dates unless it’s important to describing the bill’s
-journey.
+"the legislation," or "this." DO NOT DESCRIBE THE BILL’S SUBJECT MATTER OR THE PURPOSE OF THE BILL.
+There is no need to provide specific dates unless it’s important to describing the bill’s
+journey. Do describe a bill in the past tense (e.g. "the bill did not pass into law") until the
+session has concluded—it is always possible that a bill could be revived later in the session.
+Instead say something like "the bill has not passed" or "the bill is effectively dead."
 
 {{bill_number}}: {{catch_line}}
 {{status_history}}
