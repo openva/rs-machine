@@ -24,9 +24,6 @@ $model = 'gpt-4o';
 $temperature = 0.3;
 $max_tokens = 350;
 
-// Only summarize last year's bills
-$session_year=$session_year - 1;
-
 if ($session_year >= 2022 && $session_year < 2026) {
     $house_majority = 'Democratic';
     $senate_majority = 'Democratic';
@@ -173,7 +170,9 @@ function get_crossover_date(mysqli $db, int $session_year): ?string
 {
     $sql = 'SELECT crossover
             FROM sessions
-            WHERE year = ' . $session_year . ' AND crossover IS NOT NULL
+            WHERE
+                year = ' . $session_year . ' AND
+                crossover IS NOT NULL
             LIMIT 1';
 
     $result = mysqli_query($db, $sql);
@@ -186,7 +185,9 @@ function get_crossover_date(mysqli $db, int $session_year): ?string
 }
 
 /**
- * Select bills in the current session that do not yet have a current narrative.
+ * Select bills in the session that do not yet have a current narrative, and have an
+ * interestingness score of at least 20 (an admittedly arbitrary threshold, designed
+ * to keep LLM costs down).
  */
 function get_bill_candidates(mysqli $db, int $session_year): array
 {
@@ -208,8 +209,8 @@ function get_bill_candidates(mysqli $db, int $session_year): array
             LEFT JOIN terms
             	ON bills.chief_patron_id = terms.person_id
             WHERE
-		sessions.year = ' . $session_year . ' AND
-		sessions.suffix IS NULL AND
+                sessions.year = ' . $session_year . ' AND
+                sessions.suffix IS NULL AND
                 EXISTS (
                     SELECT 1
                     FROM bills_status
@@ -219,7 +220,8 @@ function get_bill_candidates(mysqli $db, int $session_year): array
                     SELECT 1
                     FROM bills_status_narratives
                     WHERE bill_id = bills.id AND current = "y"
-                )
+                ) AND
+                interestingness >= 20
             ORDER BY bills.interestingness DESC
             LIMIT 10';
     $result = mysqli_query($db, $sql);
@@ -237,7 +239,9 @@ function get_bill_status_history(mysqli $db, int $bill_id, int $session_id): arr
 {
     $sql = 'SELECT status, date
             FROM bills_status
-            WHERE bill_id = ' . $bill_id . ' AND session_id = ' . $session_id . '
+            WHERE
+                bill_id = ' . $bill_id . ' AND
+                session_id = ' . $session_id . '
             ORDER BY date ASC, id ASC';
 
     $result = mysqli_query($db, $sql);
