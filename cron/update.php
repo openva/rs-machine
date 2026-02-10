@@ -221,4 +221,9 @@ if (($type == 'all') || ($type == 'photosynthesis')) {
     }
 }
 
+# Prune old log messages.
+if (($type == 'all') || ($type == 'log_prune')) {
+    require 'log_prune.php';
+}
+
 $log->put('Updated ' . $type, 2);
