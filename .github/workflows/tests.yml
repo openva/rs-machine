@@ -5,6 +5,10 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_call:
+    secrets:
+      LIS_KEY:
+        required: false
 
 jobs:
   test:

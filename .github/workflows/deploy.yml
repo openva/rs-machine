@@ -10,6 +10,11 @@ on:
     - cron: 0 4 * * * # Redeploy at 4 AM every day
 
 jobs:
+  test:
+    uses: ./.github/workflows/tests.yml
+    secrets:
+      LIS_KEY: ${{ secrets.LIS_KEY }}
+
   build:
     runs-on: ubuntu-22.04
     steps:
@@ -23,7 +28,7 @@ jobs:
       - name: Make branch name available as Bash variable
         run: echo "GITHUB_BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
       - run: >-
-          sudo apt-get update && 
+          sudo apt-get update &&
           sudo apt-get install -y awscli php-cli php-curl php-memcached php-mysql yarn zip
       - uses: actions/checkout@v3
       - run: sudo apt-get update -qq
@@ -66,7 +71,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-22.04
-    needs: build # Don't deploy unless the build succeeds
+    needs: [build, test] # Don't deploy unless both build and tests succeed
     steps:
       - name: Get the secret-populated code
         uses: actions/download-artifact@v4
