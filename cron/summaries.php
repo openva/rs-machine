@@ -96,7 +96,7 @@ $new_headers = array(
 /*
  * Step through each row in the CSV file, one by one.
  */
-while (($summary = fgetcsv($fp, 1000, ',')) !== false) {
+while (($summary = fgetcsv($fp, 0, ',')) !== false) {
     # If this is something other than a header row, parse it.
     if (isset($first)) {
         unset($first);
