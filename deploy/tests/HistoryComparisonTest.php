@@ -58,9 +58,14 @@ class HistoryComparisonTest extends TestCase
 
         sort($changed);
         $this->assertSame([101, 102], $changed, 'First run should treat all statuses as changed.');
-        $this->assertFileExists($this->cacheFile);
+
+        // Cache should not be written by detect — caller is responsible.
+        $this->assertSame('', file_get_contents($this->cacheFile), 'detect should not write the cache.');
+
+        // Verify write_status_cache works separately.
+        $import->write_status_cache($current, $this->cacheFile);
         $cached = json_decode(file_get_contents($this->cacheFile), true);
-        $this->assertCount(2, $cached, 'Cache should persist current statuses.');
+        $this->assertCount(2, $cached, 'write_status_cache should persist current statuses.');
     }
 
     public function testDetectChangedLegislationStatusesOnlyReturnsDifferences(): void
@@ -86,7 +91,12 @@ class HistoryComparisonTest extends TestCase
 
         $this->assertSame([102, 103], $changed, 'Only changed or new bills should be flagged.');
 
-        // Cache should be updated to new snapshot.
+        // Cache should still contain the old snapshot (detect does not write).
+        $cached = json_decode(file_get_contents($this->cacheFile), true);
+        $this->assertCount(2, $cached, 'detect should leave the cache untouched.');
+
+        // After writing, cache reflects the new state.
+        $import->write_status_cache($current, $this->cacheFile);
         $cached = json_decode(file_get_contents($this->cacheFile), true);
         $this->assertCount(3, $cached);
     }

@@ -72,6 +72,7 @@ if (empty($bills)) {
 }
 
 $updated = 0;
+$failedLisIds = [];
 
 // Iterate through the bills and get the status history for each.
 foreach ($bills as $bill) {
@@ -79,6 +80,7 @@ foreach ($bills as $bill) {
     $raw_history = $import->get_bill_status_history($bill['lis_id']);
     if (empty($raw_history)) {
         $log->put('No status history returned for ' . strtoupper($bill['number']) . ' (LegislationID ' . $bill['lis_id'] . ')', 2);
+        $failedLisIds[] = (int) $bill['lis_id'];
         continue;
     }
 
@@ -86,6 +88,7 @@ foreach ($bills as $bill) {
     $normalized_history = $import->normalize_status_history($raw_history);
     if (empty($normalized_history)) {
         $log->put('Normalized history empty for ' . strtoupper($bill['number']) . '; skipping.', 2);
+        $failedLisIds[] = (int) $bill['lis_id'];
         continue;
     }
 
@@ -98,7 +101,15 @@ foreach ($bills as $bill) {
         }
     } else {
         $log->put('Failed to store status history for ' . strtoupper($bill['number']), 4);
+        $failedLisIds[] = (int) $bill['lis_id'];
     }
 }
+
+// Remove failed bills from the cache so they are retried on the next run.
+foreach ($failedLisIds as $failedId) {
+    unset($currentById[$failedId]);
+}
+
+$import->write_status_cache($currentById, $cacheFile);
 
 $log->put('Updated status history for ' . $updated . ' bills via LIS API.', 2);
