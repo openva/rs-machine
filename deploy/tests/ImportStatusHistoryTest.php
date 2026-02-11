@@ -104,6 +104,7 @@ class ImportStatusHistoryTest extends TestCase
                 'chamber' => 'senate',
                 'date' => '2025-11-17 14:24:00',
                 'status' => 'Prefiled and ordered printed; Offered 01-14-2026 26102073D',
+                'lis_vote_id' => null,
             ],
             $normalized[0]
         );
@@ -113,6 +114,7 @@ class ImportStatusHistoryTest extends TestCase
                 'chamber' => 'senate',
                 'date' => '2025-11-17 14:24:00',
                 'status' => 'Referred to Committee on Commerce and Labor',
+                'lis_vote_id' => null,
             ],
             $normalized[1]
         );
@@ -122,6 +124,7 @@ class ImportStatusHistoryTest extends TestCase
                 'chamber' => 'house',
                 'date' => '2025-12-01 09:00:00',
                 'status' => 'Reported from Committee',
+                'lis_vote_id' => '292987',
             ],
             $normalized[2]
         );

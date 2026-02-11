@@ -13,7 +13,9 @@
     {
       "ChamberCode": "H",
       "EventDate": "2025-12-01T09:00:00",
-      "Description": "Reported from Committee"
+      "Description": "Reported from Committee",
+      "VoteID": 292987,
+      "VoteTally": "(21-Y 1-N)"
     }
   ],
   "Success": true,
