@@ -130,7 +130,7 @@ $result = $sql->execute();
 $sql = $dbh->prepare('UPDATE bills_status
                     SET translation="failed committee"
                     WHERE
-                        (status LIKE "House: Failed to report%" OR status LIKE "Senate: Failed to report%")
+                        status LIKE "%Failed to report%"
                         AND translation IS NULL AND
                         session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -139,7 +139,7 @@ $result = $sql->execute();
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="failed committee"
                         WHERE
-                            (status LIKE "House: Continued to %" OR status LIKE "Senate: Continued to %")
+                            status LIKE "Continued to %"
                             AND translation IS NULL AND
                             session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -148,7 +148,7 @@ $result = $sql->execute();
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="failed committee"
                         WHERE
-                            (status LIKE "House: Stricken from docket%" OR status LIKE "Senate: Stricken from docket%")
+                            status LIKE "%Stricken from docket%"
                             AND translation IS NULL AND
                         session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -157,14 +157,10 @@ $result = $sql->execute();
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="failed subcommittee"
                         WHERE
-                            (status LIKE "House: Subcommittee recommends passing by indefinitely%" OR
-                            status LIKE "Senate: Subcommittee recommends passing by indefinitely%" OR
-                            status LIKE "House: Subcommittee recommends laying on the table" OR 
-                            status LIKE "Senate: Subcommittee recommends laying on the table" OR 
-                            status LIKE "House: Subcommittee failed to recommend reporting%" OR
-                            status LIKE "Senate: Subcommittee failed to recommend reporting%" OR
-                            status LIKE "House: Subcommittee recommends striking from the docket%" OR
-                            status LIKE "Senate: Subcommittee recommends striking from the docket%")
+                            (status LIKE "%Subcommittee recommends passing by indefinitely%" OR
+                            status LIKE "%Subcommittee recommends laying on the table" OR 
+                            status LIKE "%Subcommittee failed to recommend reporting%" OR
+                            status LIKE "%Subcommittee recommends striking from the docket%")
                             AND translation IS NULL AND
                         session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -173,8 +169,7 @@ $result = $sql->execute();
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="passed subcommittee"
                         WHERE
-                            (status LIKE "House: Subcommittee recommends reporting%"
-							OR status LIKE "Senate: Subcommittee recommends reporting%")
+                            status LIKE "%Subcommittee recommends reporting%"
                             AND translation IS NULL AND
                         session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -183,7 +178,7 @@ $result = $sql->execute();
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="incorporated"
                         WHERE
-                            (status LIKE "House: Incorporated%" OR status LIKE "Senate: Incorporated%")
+                            status LIKE "%Incorporated%"
                             AND translation IS NULL AND
                         session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -192,8 +187,8 @@ $result = $sql->execute();
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="stricken"
                         WHERE
-                            (status LIKE "House: Stricken at request of patron%"
-							OR status LIKE "Senate: Stricken at request of patron%")
+                            (status LIKE "%Stricken at request of patron%"
+							OR status LIKE "%Stricken at request of patron%")
                             AND translation IS NULL AND
                         session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -204,7 +199,8 @@ $sql = $dbh->prepare('UPDATE bills_status
                         WHERE
                                 (status LIKE "House: Reported from %" OR status LIKE "Senate: Reported from %" OR
                                 status LIKE "House: Discharged from %" OR status LIKE "Senate: Discharged from %" OR
-                                status LIKE "House: Rereferred from %" OR status LIKE "Senate: Rereferred from %")
+                                status LIKE "House: Rereferred from %" OR status LIKE "Senate: Rereferred from %" OR
+                                status LIKE "Reported from%")
                             AND translation IS NULL AND
                             session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
@@ -232,7 +228,8 @@ $result = $sql->execute();
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="failed house"
                         WHERE
-                            (status LIKE "Failed to pass in House" OR status LIKE "Defeated by House%")
+                            (status LIKE "Failed to pass in House" OR status LIKE "Defeated by House%"
+                            OR status LIKE "%failed to pass in House" OR status LIKE "%defeated by House%")
                             AND translation IS NULL AND
                             session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
