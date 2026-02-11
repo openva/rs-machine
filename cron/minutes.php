@@ -270,7 +270,7 @@ for ($offset = 0; $offset < $house_max_iterations; $offset++) {
 }
 
 if ($max_house_id_seen > $last_house_id) {
-    $house_state['last_id'] = $max_house_id_seen;
+    $house_state['last_id'] = $max_house_id_seen - 1;
     $house_state['updated_at'] = date('c');
     file_put_contents($house_state_file, json_encode($house_state));
 }
