@@ -77,7 +77,10 @@ foreach ($bills as $bill) {
                 "role" => "system",
                 "content" => "What does this Fiscal Impact Statement say that this legislation will
                     cost? Please provide the answer in a single paragraph, without using numbered
-                    lists or bullet points."
+                    lists or bullet points. Please specify which agency, department, or
+                    organization created the fiscal impact statement, which is usually the the
+                    Department of Planning and Budget, but may come from others, such as the
+                    Virginia Criminal Sentencing Commission."
             ],
             [
                 "role" => "user",
