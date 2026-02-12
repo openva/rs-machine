@@ -126,8 +126,9 @@ while (($summary = fgetcsv($fp, 0, ',')) !== false) {
     if (isset($hashes[$number]) && ($hash == $hashes[$number])) {
         continue;
     } else {
+        $is_new = !isset($hashes[$number]);
         $hashes[$number] = $hash;
-        if (!isset($hashes[$number])) {
+        if ($is_new) {
             $log->put('Adding summary ' . $summary['number'] . '.', 2);
         } else {
             $log->put('Updating summary ' . $summary['number'] . '.', 1);
