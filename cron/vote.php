@@ -128,7 +128,7 @@ file_put_contents($votes_file_path, json_encode($votes));
 foreach ($votes as $vote) {
     // Only bother with votes that we know we are missing (because their identifier is present
     // in bills_status, courtesy of the LIS data, but not in our votes table).
-    if (in_array($vote['VoteNumber'], $empty_votes) == false) {
+    if (in_array((string)$vote['VoteID'], $empty_votes) == false) {
         continue;
     }
 
@@ -209,7 +209,7 @@ foreach ($votes as $vote) {
     }
     $stmt = $db->prepare($sql);
     $session_id = SESSION_ID;  // Create variable to hold session ID
-    $stmt->bindParam(':lis_id', $vote['VoteNumber']);
+    $stmt->bindParam(':lis_id', $vote['VoteID']);
     $stmt->bindParam(':tally', $tally);
     $stmt->bindParam(':session_id', $session_id); // Pass variable reference
     $stmt->bindParam(':total', $total);
