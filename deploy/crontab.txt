@@ -1,5 +1,6 @@
 # The core update script.
 01 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh BILLS.CSV rs-machine/cron/bills.csv
+01 6-23 * * * /bin/bash rs-machine/cron/fetch_csv.sh Sponsors.csv rs-machine/cron/sponsors.csv
 01 6-23 * * * /usr/bin/php rs-machine/cron/update.php
 
 # Update the bill summaries
