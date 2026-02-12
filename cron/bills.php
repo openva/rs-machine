@@ -109,8 +109,9 @@ foreach ($bills as $bill) {
     if (isset($hashes[$number]) && ($hash == $hashes[$number])) {
         continue;
     } else {
+        $is_new = !isset($hashes[$number]);
         $hashes[$number] = $hash;
-        if (!isset($hashes[$number])) {
+        if ($is_new) {
             $log->put('Adding ' . strtoupper($number) . '.', 4);
         } else {
             $log->put('Updating ' . strtoupper($number) . '.', 2);
