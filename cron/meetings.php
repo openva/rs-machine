@@ -270,6 +270,7 @@ foreach ($meetings['Schedules'] as $meeting) {
 
     // If we've already got a record of this meeting then ignore it
     if (!empty($upcoming)) {
+        $duplicate = false;
         foreach ($upcoming as $known) {
             if (
                     ($meeting['date'] == $known['date'])
