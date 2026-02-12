@@ -78,8 +78,7 @@ $result = $sql->execute();
 
 $sql = $dbh->prepare('UPDATE bills_status
                         SET translation="in committee"
-                        WHERE (status LIKE "House: Referred to Committee%"
-						OR status LIKE "Senate: Referred to Committee%")
+                        WHERE status LIKE "Referred to Committee%"
                         AND translation IS NULL
                         AND session_id = :session_id');
 $sql->bindParam(':session_id', $session_id);
