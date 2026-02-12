@@ -8,7 +8,7 @@ $log = new Log();
 /*
  * Get a list of some bills that lack tags
  */
-$sql = 'SELECT bills.id, bills.catch_line, bills.summary
+$sql = 'SELECT bills.id, bills.number, bills.catch_line, bills.summary
         FROM bills
         LEFT JOIN tags
         ON bills.id=tags.bill_id
