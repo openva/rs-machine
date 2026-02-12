@@ -155,7 +155,8 @@ foreach ($meetings['Schedules'] as $meeting) {
     $meeting['date'] = $meeting['ScheduleDate'];
     if (!empty($meeting['ScheduleTime'])) {
         $meeting['time'] = $meeting['ScheduleTime'];
-    } elseif (!empty($meeting['Description'])) {
+    }
+    if (!empty($meeting['Description'])) {
         $meeting['description_raw'] = $meeting['Description'];
     }
     if (!empty($meeting['CommitteeNumber'])) {
