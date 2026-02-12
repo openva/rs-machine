@@ -300,3 +300,19 @@ $sql = 'UPDATE votes
 			LIMIT 1)
 		WHERE date IS NULL';
 $db->exec($sql);
+
+// Set the bill ID for all votes that don't already have one. This is useful for bulk
+// exports and occcasional debugging.
+$sql = 'UPDATE votes                                                
+        SET bill_id = (
+            SELECT bills_status.bill_id
+            FROM bills_status
+            LEFT JOIN bills
+                ON bills_status.bill_id = bills.id
+            WHERE
+                bills_status.lis_vote_id = votes.lis_id AND
+                bills.session_id = votes.session_id
+            LIMIT 1
+        )
+        WHERE votes.bill_id IS NULL';
+$db->exec($sql);
