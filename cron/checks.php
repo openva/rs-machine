@@ -25,7 +25,7 @@ if (IN_SESSION == true) {
          * If the file hasn't been updated in the prescribed period, report that.
          */
         if (time() - filemtime(__DIR__ . '/' . $file) > $age * 3600) {
-            $file_age = (time() - filemtime($file)) / 3600;
+            $file_age = (time() - filemtime(__DIR__ . '/' . $file)) / 3600;
             $log->put('Error: The local copy of ' . $file . ' hasn’t been updated in ' . $file_age
                 . ' hours.', 7);
         }
