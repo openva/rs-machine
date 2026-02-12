@@ -787,8 +787,11 @@ if (mysqli_num_rows($result) > 0) {
         # If the vote was contested, then proceed to do the math to determine how contested that it
         # was.
         else {
-            # We need to eval() the tally in order to treat the string like an algorithm.
-            eval("\$vote[contested] = $vote[tally];");
+            $tally_parts = array_map('intval', explode('-', $vote['tally']));
+            $vote['contested'] = $tally_parts[0];
+            for ($j = 1; $j < count($tally_parts); $j++) {
+                $vote['contested'] -= $tally_parts[$j];
+            }
             $vote['contested'] = round((abs($vote['contested']) / $vote['total']), 2);
 
             # Reverse this number on the 0-1 scale.
