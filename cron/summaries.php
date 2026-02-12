@@ -23,13 +23,6 @@ if ($mc instanceof Memcached && $mc->get('summaries-csv-hash') == $summaries_has
 }
 
 /*
- * Save the new hash.
- */
-if ($mc instanceof Memcached) {
-    $mc->set('summaries-csv-hash', $summaries_hash);
-}
-
-/*
  * Open the file.
  */
 $fp = fopen(__DIR__ . '/summaries.csv', 'r');
@@ -207,3 +200,11 @@ fclose($fp);
 # Store our per-bill hashes array to a file, so that we can open it up next time and see which
 # bills have changed.
 file_put_contents($hash_path, serialize($hashes));
+
+/*
+ * Save the CSV hash now that processing is complete, so a partial failure forces a full reparse
+ * on the next run.
+ */
+if ($mc instanceof Memcached) {
+    $mc->set('summaries-csv-hash', $summaries_hash);
+}
