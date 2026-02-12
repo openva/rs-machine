@@ -28,7 +28,7 @@ $sql = 'SELECT vote_id AS id, vote, representatives.party, COUNT(*) AS count
 		FROM representatives_votes
 		LEFT JOIN representatives ON representatives_votes.representative_id = representatives.id
 		LEFT JOIN votes ON representatives_votes.vote_id = votes.id
-		WHERE votes.partisanship IS NULL AND votes.id=1345
+		WHERE votes.partisanship IS NULL
 		GROUP BY id, party, vote';
 $result = mysqli_query($GLOBALS['db'], $sql);
 $row_count = mysqli_num_rows($result);
