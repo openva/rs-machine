@@ -103,13 +103,10 @@ if ($row_count > 0) {
                 $this_vote['partisanship'] = round((($this_vote['R']['rating'] + $this_vote['D']['rating']) / 2), 4);
             }
 
-            /*
             # Create the SQL.
-            $sql = 'INSERT INTO votes
-                    SET partisanship = '.$this_vote['partisanship'].'
-                    WHERE id='.$vote_id;
-            echo '<p>'.$sql.'</p>';*/
-            // mysql_query
+            $sql = 'UPDATE votes SET partisanship = ' . $this_vote['partisanship']
+                . ' WHERE id = ' . (int)$vote_id;
+            mysqli_query($GLOBALS['db'], $sql);
             unset($this_vote);
         }
 
