@@ -105,6 +105,10 @@ function fetch_json(string $url, Log $log)
     return $decoded;
 }
 
+$db = $GLOBALS['db'] ?? null;
+
+if ($db !== null) {
+
 # Save a listing of the proposed changes to laws as JSON.
 $sql = 'SELECT UPPER(bills.number) AS bill_number, bills.catch_line AS bill_catch_line,
 		bills_section_numbers.section_number AS law
@@ -358,6 +362,8 @@ if (is_writeable($filename)) {
     fwrite($fp, ']');
     fclose($fp);
 }
+
+} // end if ($db !== null)
 
 # JSONL exports for bills (per year).
 $years = $export_all_years_jsonl ? range($start_year, $current_year) : array($current_year);
