@@ -63,6 +63,20 @@ if ($throttle_env !== false && $throttle_env !== '') {
 
 function fetch_json(string $url, Log $log)
 {
+    if (str_starts_with($url, 'file://')) {
+        $body = @file_get_contents(substr($url, 7));
+        if ($body === false) {
+            $log->put('Error reading ' . $url, 5);
+            return false;
+        }
+        $decoded = json_decode($body, true);
+        if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+            $log->put('Invalid JSON for ' . $url . ': ' . json_last_error_msg(), 5);
+            return false;
+        }
+        return $decoded;
+    }
+
     $curl = curl_init($url);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_TIMEOUT, 30);
