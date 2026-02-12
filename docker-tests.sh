@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+export PATH="/usr/local/bin:$PATH"
+
 CONTAINER_NAME="rs_machine"
 CONTAINER_WORKDIR="/home/ubuntu/rs-machine"
 
