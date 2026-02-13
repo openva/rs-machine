@@ -16,20 +16,7 @@ needs_includes_refresh=false
 if [ ! -d "includes" ]; then
     needs_includes_refresh=true
 else
-    newest_epoch=$(python - <<'PY'
-import os
-root = "includes"
-mtimes = []
-for dirpath, _, filenames in os.walk(root):
-    for name in filenames:
-        try:
-            mtimes.append(os.path.getmtime(os.path.join(dirpath, name)))
-        except OSError:
-            pass
-if mtimes:
-    print(int(max(mtimes)))
-PY
-)
+    newest_epoch=$(find includes -type f -exec stat -f %m {} + 2>/dev/null | sort -n | tail -1)
     if [ -z "$newest_epoch" ]; then
         needs_includes_refresh=true
     else
