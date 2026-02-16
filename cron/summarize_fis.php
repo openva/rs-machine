@@ -28,6 +28,9 @@ if (mysqli_num_rows($result) > 0) {
     $bills = mysqli_fetch_all($result, MYSQLI_ASSOC);
 }
 
+// Initalize variable for logging
+$fis_added = 0;
+
 foreach ($bills as $bill) {
     // Sometimes we're not getting bill numbers, unclear why
     if (!isset($bill['number']) || empty($bill['number'])) {
@@ -129,7 +132,8 @@ foreach ($bills as $bill) {
         $log->put('Error: Adding a fiscal impact summary-summary for ' . $bill['number'] . ' failed: '
             . mysqli_error($GLOBALS['db']), 4);
     } else {
-        $log->put('Added a fiscal impact summary for ' . $bill['number'] . '.', 3);
+        $fis_added++;
+        $log->put('Added a fiscal impact summary for ' . $bill['number'] . '.', 2);
     }
 
     /*
@@ -137,4 +141,8 @@ foreach ($bills as $bill) {
      */
     unlink($tmpPdfFile);
     unlink($tmpTxtFile);
+}
+
+if ($fis_added) {
+    $log->put('Added ' . $fis_added . ' fiscal impact statement summaries.', 3);
 }
