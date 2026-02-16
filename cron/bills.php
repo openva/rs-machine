@@ -112,7 +112,7 @@ foreach ($bills as $bill) {
         $is_new = !isset($hashes[$number]);
         $hashes[$number] = $hash;
         if ($is_new) {
-            $log->put('Adding ' . strtoupper($number) . '.', 4);
+            $log->put('Adding ' . strtoupper($number) . '.', 2);
         } else {
             $log->put('Updating ' . strtoupper($number) . '.', 2);
         }
