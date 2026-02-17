@@ -260,7 +260,7 @@ foreach ($known_legislators as &$known_legislator) {
     if ($known_legislator->chamber == 'senate') {
         if (!isset($senators[$id]) && empty($known_legislator->date_ended)) {
             try {
-                $legislator_still_listed = $import->legislator_in_lis($id);
+                $legislator_still_listed = $import->legislator_in_lis($id, $known_legislator->name);
             } catch (Exception $e) {
                 $log->put('Error: Could not verify that Sen. ' . pivot($known_legislator->name)
                     . ' is no longer in office. Error thrown: ' . $e->getMessage(), 5);
@@ -269,8 +269,8 @@ foreach ($known_legislators as &$known_legislator) {
 
             if ($legislator_still_listed === true) {
                 $log->put('Error: Sen. ' . pivot($known_legislator->name) . ' is missing from '
-                    . 'the website, but is still present in LIS’s API roster. They will be kept active '
-                    . 'until they are removed from the API.', 5);
+                    . 'the LIS API roster, but is still listed on the Senate website. They will be kept '
+                    . 'active until they are removed from the website.', 5);
                 continue;
             }
 
@@ -288,7 +288,7 @@ foreach ($known_legislators as &$known_legislator) {
     elseif ($known_legislator->chamber == 'house') {
         if (!isset($delegates[$id]) && empty($known_legislator->date_ended)) {
             try {
-                $legislator_still_listed = $import->legislator_in_lis($id);
+                $legislator_still_listed = $import->legislator_in_lis($id, $known_legislator->name);
             } catch (Exception $e) {
                 $log->put('Error: Could not verify that Del. ' . pivot($known_legislator->name)
                     . ' is no longer in office. Error thrown: ' . $e->getMessage(), 5);
@@ -297,8 +297,8 @@ foreach ($known_legislators as &$known_legislator) {
 
             if ($legislator_still_listed === true) {
                 $log->put('Error: Del. ' . pivot($known_legislator->name) . ' is missing from '
-                    . 'the website, but is still present in LIS’s API roster. They will be kept active '
-                    . 'until they are removed from the API.', 5);
+                    . 'the LIS API roster, but is still listed on the House website. They will be kept '
+                    . 'active until they are removed from the website.', 5);
                 continue;
             }
 
