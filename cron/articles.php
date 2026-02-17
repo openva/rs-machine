@@ -154,4 +154,6 @@ foreach ($feeds as $feed_url => $publication) {
     $log->put('Articles: ' . $publication . ': ' . $feed_inserted . ' new article-bill links.', $log_level);
 }
 
-$log->put('Articles: Total new article-bill links: ' . $total_inserted, 3);
+if ($total_inserted > 0) {
+    $log->put('Articles: Total new article-bill links: ' . $total_inserted, $log_level);
+}
