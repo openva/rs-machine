@@ -224,7 +224,7 @@ for ($offset = 0; $offset < $house_max_iterations; $offset++) {
     $chamber = 'house';
 
     if ($minutes_date > $today) {
-        $log->put('Skipping future House minutes dated ' . $minutes_date . '.', 3);
+        $log->put('Skipping future House minutes dated ' . $minutes_date . '.', 2);
         $max_house_id_seen = max($max_house_id_seen, $actual_house_id);
         continue;
     }
