@@ -392,8 +392,11 @@ foreach ($senators as $lis_id => $name) {
                 $photo_url = null;
             }
 
-            if ($import->add_legislator($data) == false) {
+            $result = $import->add_legislator($data);
+            if ($result === false) {
                 $log->put('Could not add ' . $data['name_formatted'] . ' to the system', 6);
+                continue;
+            } elseif ($result === null) {
                 continue;
             }
 
@@ -494,8 +497,11 @@ foreach ($delegates as $lis_id => $name) {
                 $photo_url = null;
             }
 
-            if ($import->add_legislator($data) == false) {
+            $result = $import->add_legislator($data);
+            if ($result === false) {
                 $log->put('Could not add ' . $data['name_formatted'] . ' to the system', 6);
+                continue;
+            } elseif ($result === null) {
                 continue;
             }
 
