@@ -9,6 +9,8 @@ on:
     secrets:
       LIS_KEY:
         required: false
+      OPENAI_KEY:
+        required: false
 
 jobs:
   test:
@@ -29,12 +31,15 @@ jobs:
     - name: Configure local settings overrides
       env:
         LIS_KEY_SECRET: ${{ secrets.LIS_KEY }}
+        OPENAI_KEY_SECRET: ${{ secrets.OPENAI_KEY }}
       run: |
-        if [ -n "$LIS_KEY_SECRET" ]; then
-          printf "%s\n" "<?php" "rs_define('LIS_KEY', '${LIS_KEY_SECRET}');" > settings.local.inc.php
-          docker cp settings.local.inc.php rs_machine:/home/ubuntu/rs-machine/includes/settings.local.inc.php
-          rm -f settings.local.inc.php
-        fi
+        {
+          printf "%s\n" "<?php"
+          [ -n "$LIS_KEY_SECRET" ] && printf "rs_define('LIS_KEY', '%s');\n" "${LIS_KEY_SECRET}"
+          [ -n "$OPENAI_KEY_SECRET" ] && printf "rs_define('OPENAI_KEY', '%s');\n" "${OPENAI_KEY_SECRET}"
+        } > settings.local.inc.php
+        docker cp settings.local.inc.php rs_machine:/home/ubuntu/rs-machine/includes/settings.local.inc.php
+        rm -f settings.local.inc.php
 
     - name: Run test suite
       run: |
