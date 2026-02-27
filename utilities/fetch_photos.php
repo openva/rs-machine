@@ -22,6 +22,9 @@ include_once(__DIR__ . '/../includes/class.Log.php');
 include_once(__DIR__ . '/../includes/class.Import.php');
 
 $log = new Log();
+
+chdir(getenv('HOME'));
+
 $database = new Database();
 $db = $database->connect();
 
