@@ -79,7 +79,8 @@ foreach ($shortnames as $shortname) {
     $lis_id = $row['lis_id'];
 
     if ($chamber === 'house') {
-        $photo_url = 'https://memdata.virginiageneralassembly.gov/images/display_image/' . $lis_id;
+        $member_number = 'H' . str_pad($lis_id, 4, '0', STR_PAD_LEFT);
+        $photo_url = 'https://memdata.virginiageneralassembly.gov/images/display_image/' . $member_number;
     } elseif ($chamber === 'senate') {
         $lastname = trim(explode(',', $row['name'], 2)[0]);
         $district_number = $row['district_number'] ?? '';
