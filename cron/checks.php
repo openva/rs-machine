@@ -34,14 +34,33 @@ if (IN_SESSION == true) {
     /*
      * Make sure that the number of bills in the database equals the number in the CSV.
      */
-    $csv_lines = count(file(__DIR__ . '/bills.csv')) - 1;
-    $sql = 'SELECT *
+    $csv_rows = array_map('str_getcsv', file(__DIR__ . '/bills.csv'));
+    $csv_header = array_shift($csv_rows);
+    $bill_id_col = array_search('Bill_id', $csv_header);
+    $csv_bill_numbers = array_map(function ($row) use ($bill_id_col) {
+        return strtolower(trim($row[$bill_id_col]));
+    }, $csv_rows);
+
+    $sql = 'SELECT number
             FROM bills
             WHERE session_id=' . SESSION_ID;
     $result = mysqli_query($GLOBALS['db'], $sql);
-    $difference = $csv_lines - mysqli_num_rows($result);
-    if ($difference != 0) {
+    $db_bill_numbers = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $db_bill_numbers[] = strtolower(trim($row['number']));
+    }
+
+    $only_in_csv = array_diff($csv_bill_numbers, $db_bill_numbers);
+    $only_in_db  = array_diff($db_bill_numbers, $csv_bill_numbers);
+    if (!empty($only_in_csv) || !empty($only_in_db)) {
+        $difference = count($csv_bill_numbers) - count($db_bill_numbers);
         $log->put('Error: bills.csv has ' . $difference . ' more records than the database.', 5);
+        if (!empty($only_in_csv)) {
+            $log->put('Bills in CSV but not database: ' . implode(', ', $only_in_csv), 5);
+        }
+        if (!empty($only_in_db)) {
+            $log->put('Bills in database but not CSV: ' . implode(', ', $only_in_db), 5);
+        }
     }
 
     /*
