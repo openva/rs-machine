@@ -24,6 +24,7 @@ variables=(
 	SLACK_WEBHOOK
 	AWS_SECRET_KEY
 	AWS_ACCESS_KEY
+	API_URL
 )
 
 # Iterate over the variables and make sure that they're all populated.
