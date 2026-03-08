@@ -188,7 +188,7 @@ foreach ($house_members as $member) {
     if (empty($member['lis_id'])) {
         continue;
     }
-    $lis_id = 'H' . str_pad($member['lis_id'], 4, '0', STR_PAD_LEFT);
+    $lis_id = build_legacy_lis_id('house', $member['lis_id']);
     $delegates[$lis_id] = $member['name_formal'] ?? $member['name'] ?? $member['name_formatted'] ?? $lis_id;
 }
 
