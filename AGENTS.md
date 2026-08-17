@@ -92,24 +92,41 @@ docker exec -it rs_machine_db mariadb -u ricsun -ppassword richmondsunlight
 
 ### Running Individual Cron Jobs
 
-All cron jobs can be run manually for testing. The main entry point is `cron/update.php`, which accepts different types:
+All cron jobs can be run manually for testing. The entry point is [cron/run.php](cron/run.php),
+which takes task names defined in [cron/tasks.php](cron/tasks.php):
 
 ```bash
-# Run specific update type
-docker exec rs_machine php cron/update.php bills
-docker exec rs_machine php cron/update.php history
-docker exec rs_machine php cron/update.php summaries
-docker exec rs_machine php cron/update.php full_text
-docker exec rs_machine php cron/update.php fiscal_impact
-docker exec rs_machine php cron/update.php legislators
-docker exec rs_machine php cron/update.php vote
-docker exec rs_machine php cron/update.php dockets
-docker exec rs_machine php cron/update.php meetings
-docker exec rs_machine php cron/update.php minutes
+# See every task, its schedule, and its timeout
+docker exec rs_machine php cron/run.php --list
 
-# Run all updates
-docker exec rs_machine php cron/update.php all
+# Run a specific task
+docker exec rs_machine php cron/run.php bills
+docker exec rs_machine php cron/run.php history
+docker exec rs_machine php cron/run.php summaries
+docker exec rs_machine php cron/run.php full_text
+docker exec rs_machine php cron/run.php fiscal_impact
+docker exec rs_machine php cron/run.php legislators
+docker exec rs_machine php cron/run.php vote
+docker exec rs_machine php cron/run.php dockets
+docker exec rs_machine php cron/run.php meetings
+docker exec rs_machine php cron/run.php minutes
+
+# Run several, in the order given
+docker exec rs_machine php cron/run.php bills summaries
+
+# Run the combined "all" pass
+docker exec rs_machine php cron/run.php all
+
+# Run whatever the manifest says is due this minute (what production's heartbeat does)
+docker exec rs_machine php cron/run.php --due
 ```
+
+An unknown task name exits 1 with the list of valid names, so a typo fails immediately rather than
+silently doing nothing.
+
+**Note:** `cron/update.php` is the previous entry point. It still works and is unchanged, but
+nothing schedules it — `deploy/crontab.txt` invokes `run.php --due` instead. Its
+`php cron/update.php <type>` invocations map directly to `php cron/run.php <type>`.
 
 ## Architecture Overview
 
@@ -124,7 +141,7 @@ The heart of this codebase is a collection of **29 PHP scripts** in `cron/` that
 - Sync data to S3 for public downloads
 
 The 29 cron scripts are:
-- Core update dispatcher: [update.php](cron/update.php)
+- Task runner: [run.php](cron/run.php) + [tasks.php](cron/tasks.php) (superseding [update.php](cron/update.php))
 - Bill processing: [bills.php](cron/bills.php), [history.php](cron/history.php), [summaries.php](cron/summaries.php), [full_text.php](cron/full_text.php)
 - Legislative activity: [vote.php](cron/vote.php), [meetings.php](cron/meetings.php), [dockets.php](cron/dockets.php), [minutes.php](cron/minutes.php)
 - Legislator data: [legislators.php](cron/legislators.php), [committee_members.php](cron/committee_members.php), [representatives_table.php](cron/representatives_table.php)
@@ -135,23 +152,50 @@ The 29 cron scripts are:
 - Media downloads: [download_pdfs.php](cron/download_pdfs.php), [poll_house_video.php](cron/poll_house_video.php), [poll_senate_video.php](cron/poll_senate_video.php)
 - Utilities: [update_places.php](cron/update_places.php), [update_contributions.php](cron/update_contributions.php), [search_index.php](cron/search_index.php), [ps_send_emails.php](cron/ps_send_emails.php)
 
-**2. Main Update Orchestrator ([cron/update.php](cron/update.php))**
-This is the central dispatcher that:
-- Accepts a "type" parameter (either via CLI argument `php update.php bills` or GET parameter `?type=bills`)
-- Includes the appropriate specialized PHP script via `require` based on the type
-- Manages database connections (both mysqli via `Database` class and PDO)
-- Sets a 20-minute execution time limit (`set_time_limit(1200)`)
-- Suppresses warnings with `error_reporting(E_ERROR)` - legacy decision
+**2. Task Runner ([cron/run.php](cron/run.php) + [cron/tasks.php](cron/tasks.php))**
 
-The update types are modular - each type requires a separate PHP file in `cron/`. Available types:
-- `all` (default) - Runs most update types sequentially
-- `bills`, `history`, `summaries`, `full_text` - Bill data updates
-- `legislators`, `copatrons`, `code_sections` - Legislator and bill metadata
-- `vote`, `dockets`, `meetings`, `minutes` - Legislative activity
-- `fiscal_impact`, `summarize_fis` - Fiscal impact statements
-- `cleanup`, `cache`, `export`, `download_pdfs` - Data maintenance
-- `tags`, `checks`, `partisanship`, `photosynthesis` - Analysis and categorization
-- `representatives_table` - Legacy table sync
+The current entry point. `cron/tasks.php` is a manifest declaring every task — its schedule, its
+timeout, whether it belongs to the combined "all" pass, and which CSVs to fetch beforehand.
+`cron/run.php` reads that manifest and executes what was asked for.
+
+The runner owns the concerns that were previously absent or scattered:
+- **Per-task locking**, keyed on the task name, so a task cannot overlap itself however it was invoked
+- **Per-task timeouts** from the manifest, rather than one global 20-minute ceiling
+- **Failure isolation** — one task throwing no longer aborts the rest of a pass
+- **Per-task timing and structured logging**, including a one-line summary of a whole pass
+- **CSV prefetch** declared on the task that consumes the file
+- `error_reporting(E_ALL)`, reversing update.php's `E_ERROR`, which hid the warnings worth seeing
+
+Tasks report their outcome as a `TaskResult` — `completed`, `skipped` (correctly had nothing to do)
+or `failed` — so "the source file was unchanged" is distinguishable from "the source file could not
+be read." Both previously looked identical in the logs.
+
+Available tasks are whatever `cron/tasks.php` declares; run `php cron/run.php --list` for the
+current set rather than relying on a list here. As of writing there are 25, of which 12 are in the
+"all" pass.
+
+**Task file formats.** The runner accepts two, so conversion can happen file by file:
+- **Converted:** the file returns a closure taking a `TaskContext` and returning a `TaskResult`.
+  These live in `cron/tasks/` and take precedence over a legacy file of the same name. See
+  [cron/tasks/photosynthesis.php](cron/tasks/photosynthesis.php) for the reference example.
+- **Legacy:** a bare procedural script in `cron/`, `require`d exactly as update.php did, with
+  `$log`, `$db`, `$dbh`, `$mc` and `$session_id` extracted into scope first. Most tasks are still
+  this form and need no changes to work.
+
+**3. Previous Orchestrator ([cron/update.php](cron/update.php))**
+
+Superseded by the runner, but still present and still functional. Nothing schedules it.
+
+It dispatched via a chain of `if ($type == 'all' || $type == 'foo')` statements, each doing
+`require 'foo.php'`. Two problems motivated the replacement:
+- The schedule lived in two places — this file and `deploy/crontab.txt` — with nothing enforcing
+  agreement. Seven types drifted into being both inside the "all" pass and separately scheduled,
+  so they could run twice concurrently.
+- A fatal in one task killed every task after it in an "all" pass, silently: the closing
+  `$log->put('Updated ' . $type)` never fired, so the absence of a success line was the only signal.
+
+It also accepted `?type=` over HTTP, meaning anything that could reach the web server could trigger
+an update. `run.php` is CLI-only.
 
 **Note:** LIS rate limiting (max 15 requests per 30 seconds) applies to scraping, not API calls.
 
@@ -161,7 +205,7 @@ The update types are modular - each type requires a separate PHP file in `cron/`
 - Only bills with changed statuses trigger LIS API calls for full history
 - This dramatically reduces API load and improves performance (see commit [79c3137](https://github.com/openva/rs-machine/commit/79c3137))
 
-**3. CSV Fetching and Parsing**
+**4. CSV Fetching and Parsing**
 - CSV files are downloaded from LIS via [cron/fetch_csv.sh](cron/fetch_csv.sh) shell scripts
 - Files are stored in `cron/` directory (e.g., `cron/bills.csv`, `cron/committees.csv`)
 - Each parser maintains MD5 hashes in `cron/hashes/` to avoid reprocessing unchanged records
@@ -172,13 +216,15 @@ The update types are modular - each type requires a separate PHP file in `cron/`
   - Builds `$bill_ids_map` array mapping lowercase bill numbers to LIS IDs
   - Uses this map to populate the `lis_id` column when inserting/updating bills
 
-**4. Data Flow**
+**5. Data Flow**
 ```
-LIS FTP Server
-    ↓ (fetch_csv.sh)
-CSV files in cron/
-    ↓ (cron/update.php)
-Specialized parsers (bills.php, history.php, etc.)
+crontab heartbeat (* * * * * run.php --due)
+    ↓ (consults cron/tasks.php for what is due)
+cron/run.php
+    ↓ (takes the task's lock, then fetches its declared CSVs via fetch_csv.sh)
+LIS FTP Server → CSV files in cron/
+    ↓
+Task file (bills.php, history.php, etc.)
     ↓
 MySQL Database
     ↓
@@ -187,7 +233,11 @@ Export scripts + S3 sync
 Public downloads (JSON, PDFs, etc.)
 ```
 
-**5. Shared Code (`includes/` directory)**
+Note that CSV fetching now happens *inside* the task, after it takes its lock, rather than as a
+separate crontab line scheduled a minute earlier. This closes a race where a fetch could overwrite
+a CSV that a concurrent run was mid-parse on.
+
+**6. Shared Code (`includes/` directory)**
 This directory is **NOT part of this repository**. It's pulled from the `deploy` branch of the [richmondsunlight.com](https://github.com/openva/richmondsunlight.com/tree/deploy/htdocs/includes) repository during builds and setup. It contains:
 - `settings.inc.php` - Production configuration constants (API keys, database credentials)
 - `functions.inc.php` - Shared utility functions
@@ -204,7 +254,47 @@ This directory is **NOT part of this repository**. It's pulled from the `deploy`
 
 **Important:** The `includes/vendor/` directory contains Composer dependencies from both this repository and richmondsunlight.com, because `composer.json` sets `"vendor-dir": "includes/vendor"`.
 
-**6. Test Architecture**
+**7. This Repository's Own Classes (`src/` directory)**
+
+⚠️ **Never add rs-machine's own classes to `includes/`. They will be silently deleted on the next deploy.**
+
+`includes/` is a drop zone for code owned by richmondsunlight.com, and it is destroyed and
+repopulated on every build. There is no merge step:
+
+- **CI** ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)) runs `mkdir includes/` then
+  `cp richmondsunlight.com/htdocs/includes/*.php includes/`. Note that the bare `mkdir` *fails if
+  the directory already exists*, so committing any file under `includes/` also breaks the build.
+- **Local Docker** ([deploy/docker-setup.sh](deploy/docker-setup.sh)) runs an explicit
+  `rm -Rf includes` before copying. It does preserve locally-modified `class.*.php` files, but via
+  a modification-time heuristic (files newer than the modal mtime) intended for hand-editing during
+  development. Do not rely on it to persist anything.
+
+Additionally, `.gitignore` ignores `includes/` wholesale, so files there are not tracked at all.
+
+Code that *this* repository owns goes in `src/`, which is tracked in git and deployed untouched:
+
+| | `includes/` | `src/` |
+|---|---|---|
+| Owned by | richmondsunlight.com | this repository |
+| Tracked in git | No | Yes |
+| Survives deploy | Replaced wholesale | Yes |
+| Namespace | Global | `RsMachine\` (PSR-4) |
+
+`composer.json` maps `"RsMachine\\": "src/"`. Classes there are namespaced, so they need `use`
+statements; the legacy `includes/` classes (`Log`, `Database`, `Import`, …) are global and do not:
+
+```php
+use RsMachine\TaskContext;   // src/TaskContext.php
+use RsMachine\TaskResult;    // src/TaskResult.php
+// Log and Database need no import — they are in the global namespace.
+```
+
+Current contents of `src/`: `TaskRunner.php`, `TaskContext.php`, `TaskResult.php` — the update task
+harness. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
+richmondsunlight.com repo; if no (which is usually the case for cron-related code), it goes in
+`src/`.
+
+**8. Test Architecture**
 Tests live in `deploy/tests/` and use two patterns:
 - PHPUnit test classes (extending `PHPUnit\Framework\TestCase`)
 - Standalone PHP scripts that exit with non-zero codes on failure
@@ -320,7 +410,9 @@ Configuration constants in `deploy/settings-docker.inc.php` define the current l
 - `SESSION_START` and `SESSION_END` - Date range (e.g., '2025-01-08' to '2025-12-31')
 - `SESSION_SUFFIX` - Empty for regular sessions, may be used for special sessions
 
-**Important:** `SESSION_LIS_API_ID` is referenced in [cron/update.php:40](cron/update.php#L40) but not defined in settings-docker.inc.php. This constant must come from the richmondsunlight.com includes/ directory or be defined in a local settings override.
+**Important:** `SESSION_LIS_API_ID` is not defined in settings-docker.inc.php. It must come from the richmondsunlight.com includes/ directory or be defined in a local settings override.
+
+It reaches task files as `$session_api_id`, and [cron/bills.php](cron/bills.php#L18) uses it to call the LIS `GetLegislationIdsListAsync` endpoint. **When it is empty, bills.php skips that lookup silently** — no error, but `bills.lis_id` goes unpopulated. [cron/run.php](cron/run.php) passes it through as `TaskContext::$lisApiSessionId`, guarded with `defined()` so a missing constant does not fatal.
 
 These must be updated annually before each new legislative session.
 
@@ -377,31 +469,45 @@ Virginia's LIS server blacklists IPs that exceed **15 requests within a 30-secon
 When blacklisted, the server blocks connections for several minutes. Be cautious when adding new scrapers or increasing request frequency.
 
 ### Cron Job Timing
-Jobs are carefully scheduled (see [deploy/crontab.txt](deploy/crontab.txt)) to align with when LIS publishes data:
-- **Bills:** LIS updates at 6:51 AM, RS fetches at 6:55 AM (55 minutes past, hourly from 6-23)
-- **Summaries:** LIS updates at 11:53 AM, RS fetches at 11:59 AM (daily)
-- **History:** Every 10 minutes during session hours (02,12,22,32,42,52 past the hour, 6-23)
-- **Votes:** Four times daily (10:00, 13:00, 16:00, 21:00)
-- **Meetings/Dockets:** Hourly during session (6-15)
-- **Full text:** Every 10 minutes (11,21,31,41,51 past the hour)
-- **Export to S3:** Hourly at :05 (syncs downloads directory)
+Jobs are scheduled to align with when LIS publishes data. **The authoritative source is
+[cron/tasks.php](cron/tasks.php)** — run `php cron/run.php --list` for the current table rather than
+trusting a copy in prose. As of writing:
+
+- **The "all" pass:** hourly at :01, hours 6-23 (the manifest's `@all` key)
+- **Summaries:** :02, hours 6-23
+- **History:** every 10 minutes at :03,:13,:23,:33,:43,:53, hours 6-23
+- **Meetings:** :03 and :33, hours 6-23
+- **Full text:** :11, :31, :51, hours 6-23
+- **Votes:** four times daily at 10:04, 13:04, 16:04, 21:04
+- **Dockets:** :09, hours 6-15
+- **Export to S3:** hourly at :05 (a plain crontab line; not a runner task)
+
+Each task also declares a `timeout` that must fit inside its own scheduling interval —
+`TaskManifestTest` fails the build otherwise. This prevents the situation that existed under
+`update.php`, where a single global `set_time_limit(1200)` exceeded `history`'s 10-minute interval,
+so one slow run would silently eat the next two ticks.
 
 The historical data parser has built-in safeguards requiring 18+ hours between refreshes unless explicitly overridden.
 
 ### Autoloading
 The PSR-4 autoloader maps:
-- `RsMachine\` → `includes/`
+- `RsMachine\` → `src/`
 - `RsMachine\Tests\` → `deploy/tests/`
 
-However, most of the legacy code in `cron/` uses `include`/`require` rather than namespaced classes.
+The `RsMachine\` mapping previously pointed at `includes/`, where it did nothing: every class in
+that directory is in the global namespace, so none of them were ever autoloaded. It now points at
+`src/`, which holds this repository's own namespaced classes — see "This Repository's Own Classes"
+above for why they cannot live in `includes/`.
+
+Most of the legacy code in `cron/` still uses `include`/`require` rather than namespaced classes.
 
 ### Code Age and Style
 Some code dates back to 2005-2008 and predates modern PHP practices. The codebase intentionally uses:
-- **Mix of mysqli and PDO**: `$GLOBALS['db']` for mysqli, `$dbh` for PDO (both initialized in update.php)
+- **Mix of mysqli and PDO**: `$GLOBALS['db']` for mysqli, `$dbh` for PDO (both initialized by the entry point — [cron/run.php](cron/run.php), or [cron/update.php](cron/update.php) for the legacy path)
 - **Global variables**: `$GLOBALS['db']`, `$GLOBALS['banned_words']`
 - **Procedural code alongside classes**: Most cron scripts are procedural, shared code uses classes
-- **`error_reporting(E_ERROR)`** in [cron/update.php](cron/update.php#L22) - suppresses warnings
-- **No namespaces in legacy code**: cron scripts use `include`/`require`, not autoloading
+- **`error_reporting(E_ERROR)`** in [cron/update.php](cron/update.php#L22) - suppresses warnings. Note that [cron/run.php](cron/run.php) deliberately uses `E_ALL` instead; expect new warnings to surface when running tasks through the runner, since they were previously hidden rather than absent.
+- **No namespaces in legacy code**: cron scripts use `include`/`require`, not autoloading. New code in `src/` is namespaced under `RsMachine\` and autoloaded.
 - **Direct database access**: No ORM, raw SQL with string concatenation and escaping
 
 **Modernization Approach:**
@@ -417,9 +523,9 @@ When adding new code, prefer modern PHP patterns (typed properties, constructor 
 - **Always populate `includes/` first**: Use `./docker-run.sh` to handle this automatically. The application will fail without these shared files.
 - **Testing individual cron jobs**: Ensure you have necessary CSV files in `cron/` and database records populated. Example:
   ```bash
-  docker exec rs_machine php cron/update.php bills
+  docker exec rs_machine php cron/run.php bills
   ```
-- **Understanding production schedule**: Check [deploy/crontab.txt](deploy/crontab.txt) to see when jobs run and their data dependencies.
+- **Understanding production schedule**: Check [cron/tasks.php](cron/tasks.php), not the crontab — `deploy/crontab.txt` is now just a one-line heartbeat plus the handful of jobs the runner doesn't manage. `php cron/run.php --list` prints the schedule as a table.
 - **LIS credentials required**: The codebase assumes access to LIS's FTP server and API. For local development, `settings-docker.inc.php` stubs out most API keys as empty strings, so some functionality won't work without real credentials.
 - **Local overrides**: Create `settings.local.inc.php` (gitignored) to override configuration constants without modifying tracked files.
 - **Memcached dependency**: Some scripts expect Memcached running on localhost:11211. Docker Compose handles this automatically.
