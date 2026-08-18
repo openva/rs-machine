@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: 0 4 * * * # Redeploy at 4 AM every day
 
+# Least privilege by default. Individual jobs widen this only where they need to; nothing here
+# writes to the repository, so read access to contents is sufficient throughout.
+permissions:
+  contents: read
+
 jobs:
   test:
     uses: ./.github/workflows/tests.yml
@@ -17,6 +22,8 @@ jobs:
 
   build:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     steps:
       - uses: Firenza/secrets-to-env@v1.2.0
         with:
