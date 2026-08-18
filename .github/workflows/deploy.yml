@@ -30,11 +30,11 @@ jobs:
       - run: >-
           sudo apt-get update &&
           sudo apt-get install -y awscli php-cli php-curl php-memcached php-mysql yarn zip
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - run: sudo apt-get update -qq
       - run: git clone -b deploy https://github.com/openva/richmondsunlight.com.git
       - name: Cache Composer (richmondsunlight.com)
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: ~/.composer/cache/files
           key: composer-${{ runner.os }}-rsincludes-${{ hashFiles('richmondsunlight.com/composer.lock') }}
@@ -45,7 +45,7 @@ jobs:
       - run: cp richmondsunlight.com/htdocs/includes/*.php includes/
       - run: rm -Rf richmondsunlight.com
       - name: Cache Composer (rs-machine)
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: ~/.composer/cache/files
           key: composer-${{ runner.os }}-machine-${{ hashFiles('composer.lock') }}
@@ -78,7 +78,7 @@ jobs:
         with:
           name: codebase
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
