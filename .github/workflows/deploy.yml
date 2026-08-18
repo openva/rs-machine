@@ -25,9 +25,6 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: Firenza/secrets-to-env@v1.2.0
-        with:
-          secrets: ${{ toJSON(secrets) }}
       - name: Specify PHP version
         uses: shivammathur/setup-php@v2
         with:
@@ -70,6 +67,13 @@ jobs:
       - run: cd deploy/tests/ && php bills.php && php committee_members.php && cd ../..
       - name: Save secret-populated code for a subsequent deploy step
         uses: actions/upload-artifact@v4
+      # The artifact deliberately contains NO credentials. settings.inc.php is populated in the
+      # deploy job instead, immediately before the bundle is pushed to CodeDeploy. Previously
+      # this step ran after config_variables.sh and uploaded `path: .`, so every artifact was a
+      # ~32MB bundle containing production database passwords and AWS keys, downloadable by
+      # anyone with repository read access for the full 90-day retention window.
+      - name: Save built code for the deploy step
+        uses: actions/upload-artifact@v7
         with:
           name: codebase
           path: .
@@ -84,6 +88,37 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: codebase
+      # Secrets are scoped to this single step rather than dumped into the job environment via
+      # toJSON(secrets). Only the 19 variables config_variables.sh actually substitutes are
+      # exposed, and only for as long as this step runs -- so composer, apt and the test scripts
+      # in the build job never see them. This is what CodeQL's actions/excessive-secrets-exposure
+      # rule was flagging.
+      - name: Populate credentials
+        env:
+          LIS_FTP_USERNAME: ${{ secrets.LIS_FTP_USERNAME }}
+          LIS_FTP_PASSWORD: ${{ secrets.LIS_FTP_PASSWORD }}
+          PDO_DSN: ${{ secrets.PDO_DSN }}
+          PDO_SERVER: ${{ secrets.PDO_SERVER }}
+          PDO_USERNAME: ${{ secrets.PDO_USERNAME }}
+          PDO_PASSWORD: ${{ secrets.PDO_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          GMAPS_KEY: ${{ secrets.GMAPS_KEY }}
+          OPENSTATES_KEY: ${{ secrets.OPENSTATES_KEY }}
+          OPENVA_KEY: ${{ secrets.OPENVA_KEY }}
+          VA_DECODED_KEY: ${{ secrets.VA_DECODED_KEY }}
+          LIS_KEY: ${{ secrets.LIS_KEY }}
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          MEMCACHED_SERVER: ${{ secrets.MEMCACHED_SERVER }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          API_URL: ${{ secrets.API_URL }}
+        run: |
+          chmod +x deploy/config_variables.sh deploy/aws_credentials.sh deploy/sftp_credentials.sh
+          ./deploy/config_variables.sh
+          ./deploy/aws_credentials.sh
+          ./deploy/sftp_credentials.sh
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
