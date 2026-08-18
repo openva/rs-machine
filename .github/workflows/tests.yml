@@ -12,9 +12,15 @@ on:
       OPENAI_KEY:
         required: false
 
+# Least privilege: this workflow only reads the repository and runs tests in Docker.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Check out repo
