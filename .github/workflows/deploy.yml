@@ -56,17 +56,22 @@ jobs:
           restore-keys: |
             composer-${{ runner.os }}-machine-
       - run: composer install --no-interaction --no-progress --prefer-dist
-      - run: find cron/*.php -print0 |xargs -0 -n1 -P8 php -l
-      - run: >-
-          ./deploy/config_variables.sh
-          && ./deploy/aws_credentials.sh
-          && ./deploy/sftp_credentials.sh
-          && zip -qr latest.zip rs-machine . --exclude *.git* *.scannerwork*
-          && mkdir -p upload
-          && mv latest.zip upload/latest.zip
-      - run: cd deploy/tests/ && php bills.php && php committee_members.php && cd ../..
-      - name: Save secret-populated code for a subsequent deploy step
-        uses: actions/upload-artifact@v4
+      # Lint every PHP file this repository owns. `includes/` is excluded because it is
+      # populated from the richmondsunlight.com repo and is not ours to gate on. The previous
+      # pattern (`find cron/*.php`) was non-recursive, so it silently skipped cron/tasks/ and
+      # src/ -- a syntax error in the task runner would have deployed clean.
+      - name: Lint PHP
+        run: |
+          find . -path ./includes -prune -o -path ./richmondsunlight.com -prune \
+               -o -name '*.php' -type f -print0 \
+            | xargs -0 -n1 -P8 php -l
+      # These tests run against settings-default.inc.php, which has empty placeholder values.
+      # They parse CSV fixtures and do not touch the network or the database, so they do not
+      # need real credentials.
+      - name: Run build-time tests
+        run: |
+          cp includes/settings-default.inc.php includes/settings.inc.php
+          cd deploy/tests/ && php bills.php && php committee_members.php
       # The artifact deliberately contains NO credentials. settings.inc.php is populated in the
       # deploy job instead, immediately before the bundle is pushed to CodeDeploy. Previously
       # this step ran after config_variables.sh and uploaded `path: .`, so every artifact was a
@@ -77,8 +82,7 @@ jobs:
         with:
           name: codebase
           path: .
-    outputs:
-      github_branch: ${{ steps.get_branch.outputs.github_branch }}
+          retention-days: 1
 
   deploy:
     runs-on: ubuntu-22.04
