@@ -83,6 +83,11 @@ jobs:
   deploy:
     runs-on: ubuntu-22.04
     needs: [build, test] # Don't deploy unless both build and tests succeed
+    # Only deploy from master. Without this, a pull_request event would attempt a production
+    # deploy, and secrets would be requested for a build of untrusted code.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
     steps:
       - name: Get the built code
         uses: actions/download-artifact@v8
