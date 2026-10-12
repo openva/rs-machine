@@ -6,7 +6,7 @@
  *
  * Checks whether new House or Senate videos are available by comparing the
  * latest scraped lists against cached copies on disk. If new videos are found,
- * starts the rs-video-processor EC2 instance.
+ * or the processor has pending work, starts the rs-video-processor EC2 instance.
  *
  * Scrapers:
  * - House (Granicus)
@@ -22,6 +22,7 @@
 use Aws\Ec2\Ec2Client;
 use Aws\Exception\AwsException;
 use GuzzleHttp\Client;
+use RichmondSunlight\VideoProcessor\Jobs\PendingWork;
 use RichmondSunlight\VideoProcessor\Scraper\House\HouseScraper;
 use RichmondSunlight\VideoProcessor\Scraper\Http\GuzzleHttpClient;
 use RichmondSunlight\VideoProcessor\Scraper\Http\RateLimitedHttpClient;
@@ -197,21 +198,62 @@ $cached_senate_youtube = load_scraper_snapshot($senate_youtube_snapshot);
 $has_new_house = has_new_records($house_records, $cached_house);
 $has_new_senate = has_new_records($senate_records, $cached_senate);
 $has_new_senate_youtube = has_new_records($senate_youtube_records, $cached_senate_youtube);
+$has_new = $has_new_house || $has_new_senate || $has_new_senate_youtube;
 
-save_scraper_snapshot($house_snapshot, $house_records);
-save_scraper_snapshot($senate_snapshot, $senate_records);
-save_scraper_snapshot($senate_youtube_snapshot, $senate_youtube_records);
+// Remember what has been seen only once the instance is known to be up. Saving
+// earlier meant a failed start lost the trigger: the video was no longer "new".
+$save_snapshots = static function () use (
+    $house_snapshot,
+    $house_records,
+    $senate_snapshot,
+    $senate_records,
+    $senate_youtube_snapshot,
+    $senate_youtube_records
+): void {
+    save_scraper_snapshot($house_snapshot, $house_records);
+    save_scraper_snapshot($senate_snapshot, $senate_records);
+    save_scraper_snapshot($senate_youtube_snapshot, $senate_youtube_records);
+};
 
-if (!$has_new_house && !$has_new_senate && !$has_new_senate_youtube) {
-    $log->put('No new House or Senate videos detected.', 1);
+// A backlog is work too. Count what the processor could do right now, using
+// the same queue definitions its workers use.
+$pending_total = 0;
+$last_activity = null;
+try {
+    $pdo = (new Database())->connect();
+    if ($pdo instanceof PDO && class_exists(PendingWork::class)) {
+        $pending = new PendingWork($pdo);
+        $pending_total = $pending->total();
+        $last_activity = $pending->lastActivity();
+    }
+} catch (Throwable $e) {
+    $log->put('Could not count pending video work: ' . $e->getMessage(), 5);
+}
+
+// Once a day, say so if work is waiting and nothing has touched it for days.
+if ($pending_total > 0 && (int) date('G') === 12) {
+    $idle_days = $last_activity === null ? null : (int) floor((time() - $last_activity) / 86400);
+    if ($idle_days === null || $idle_days >= 3) {
+        $log->put(sprintf(
+            'Video pipeline is not making progress: %d item(s) pending, %s.',
+            $pending_total,
+            $idle_days === null ? 'and no job has ever been recorded' : "no job touched for {$idle_days} days"
+        ), 6);
+    }
+}
+
+if (!$has_new && $pending_total === 0) {
+    $save_snapshots();
+    $log->put('No new House or Senate videos and no pending video work.', 1);
     exit(0);
 }
 
 $log->put(sprintf(
-    'New videos detected: house=%s, senate=%s, senate-youtube=%s',
+    'Video work found: new house=%s, new senate=%s, new senate-youtube=%s, pending=%d',
     $has_new_house ? 'yes' : 'no',
     $has_new_senate ? 'yes' : 'no',
-    $has_new_senate_youtube ? 'yes' : 'no'
+    $has_new_senate_youtube ? 'yes' : 'no',
+    $pending_total
 ), 3);
 
 // Initialize EC2 client
@@ -237,24 +279,22 @@ if ($state === null) {
     exit(1);
 }
 
-if ($state === 'running') {
-    $log->put('Video processor instance already running.', 2);
-    exit(0);
-}
-
-if ($state === 'pending') {
-    $log->put('Video processor instance is starting.', 2);
+if ($state === 'running' || $state === 'pending') {
+    $save_snapshots();
+    $log->put('Video processor instance is already ' . $state . '.', 2);
     exit(0);
 }
 
 if ($state === 'stopping') {
+    // Snapshots are deliberately not saved: the next run must try again.
     $log->put('Video processor instance is stopping; will check again later.', 3);
     exit(0);
 }
 
 // Instance is stopped (or in another non-running state) - start it
 if (start_instance($ec2, VIDEO_PROCESSOR_INSTANCE_ID, $log)) {
-    $log->put('Started video processor instance (new videos detected).', 4);
+    $save_snapshots();
+    $log->put('Started video processor instance.', 4);
 } else {
     exit(1);
 }
