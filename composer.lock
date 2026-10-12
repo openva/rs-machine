@@ -752,12 +752,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/openva/rs-video-processor.git",
-                "reference": "419db7b5adcfc1c243ce0490de16614bf0753d12"
+                "reference": "ab8c2f4db90860755b837cf1f36707b83b90842e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/openva/rs-video-processor/zipball/419db7b5adcfc1c243ce0490de16614bf0753d12",
-                "reference": "419db7b5adcfc1c243ce0490de16614bf0753d12",
+                "url": "https://api.github.com/repos/openva/rs-video-processor/zipball/ab8c2f4db90860755b837cf1f36707b83b90842e",
+                "reference": "ab8c2f4db90860755b837cf1f36707b83b90842e",
                 "shasum": ""
             },
             "require": {
@@ -796,7 +796,7 @@
                 "source": "https://github.com/openva/rs-video-processor/tree/master",
                 "issues": "https://github.com/openva/rs-video-processor/issues"
             },
-            "time": "2026-10-04T02:41:32+00:00"
+            "time": "2026-10-12T16:25:22+00:00"
         },
         {
             "name": "phpmailer/phpmailer",
