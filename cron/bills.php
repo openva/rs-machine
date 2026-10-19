@@ -1,5 +1,7 @@
 <?php
 
+use RsMachine\CatchLineRepair;
+
 /*
  * Instantiate the logging class
  */
@@ -102,9 +104,14 @@ foreach ($bills as $bill) {
     $bill = str_getcsv($bill, ',', '"');
 
     // Before we proceed any farther, see if this record is either new or different than last time
-    // that we examined it.
-    $hash = md5(serialize($bill));
+    // that we examined it. Rows whose catch line needs repair from the LIS API (see below) get a
+    // distinct hash, so that rows stored before that repair existed are processed once more.
+    $hash = $unrepaired_hash = md5(serialize($bill));
     $number = strtolower(trim($bill[0]));
+    $catch_line_damaged = isset($bill[1]) && CatchLineRepair::isDamaged($bill[1]);
+    if ($catch_line_damaged) {
+        $hash = md5($unrepaired_hash . ':catch-line-repair');
+    }
 
     if (isset($hashes[$number]) && ($hash == $hashes[$number])) {
         continue;
@@ -123,6 +130,37 @@ foreach ($bills as $bill) {
      */
     $import = new Import($log);
     $bill = $import->prepare_bill($bill);
+
+    // LIS's CSV replaces every non-ASCII character in the catch line with "?" (e.g. "Damaré"
+    // becomes "Damar?"). Recover the original from the LIS API, which has it intact.
+    if ($catch_line_damaged) {
+        try {
+            if (!isset($bill_ids_map[$bill['number']]) || LIS_KEY == '') {
+                throw new RuntimeException('no LIS legislation ID or API key available');
+            }
+
+            $repaired = CatchLineRepair::fetch(
+                $bill_ids_map[$bill['number']],
+                trim($bill[1]),
+                LIS_KEY
+            );
+
+            if ($repaired !== null) {
+                $purifier = new HTMLPurifier();
+                $bill['catch_line'] = trim($purifier->purify($repaired));
+            } else {
+                $log->put('The LIS API has no title matching the catch line of '
+                    . strtoupper($bill['number']) . ' (“' . $bill['catch_line'] . '”), so the '
+                    . 'characters LIS’s CSV replaced with “?” could not be recovered.', 4);
+            }
+        } catch (RuntimeException $e) {
+            $log->put('Could not retrieve the title of ' . strtoupper($bill['number'])
+                . ' from the LIS API (' . $e->getMessage() . '); will retry next time.', 3);
+
+            // Store the unmarked hash, so that this row is processed again on the next run.
+            $hashes[$number] = $unrepaired_hash;
+        }
+    }
 
     // Check to see if the bill is already in the database.
     $sql = 'SELECT id

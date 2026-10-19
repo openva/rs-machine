@@ -215,6 +215,12 @@ an update. `run.php` is CLI-only.
   - Calls `GetLegislationIdsListAsync` endpoint with session API ID
   - Builds `$bill_ids_map` array mapping lowercase bill numbers to LIS IDs
   - Uses this map to populate the `lis_id` column when inserting/updating bills
+- **LIS's `BILLS.CSV` is ASCII-only.** LIS replaces every non-ASCII character with a literal `?`
+  when generating it ("Damaré" → "Damar?", "Glory’s" → "Glory?s", "REALTORS®" → "REALTORS?"), so
+  the original is unrecoverable from the file and re-encoding cannot help. When a catch line
+  contains `?`, [cron/bills.php](cron/bills.php) retrieves the intact title from the LIS API via
+  `RsMachine\CatchLineRepair`, accepting it only if it equals the CSV's title with its non-ASCII
+  characters masked as `?`.
 
 **5. Data Flow**
 ```
@@ -290,7 +296,8 @@ use RsMachine\TaskResult;    // src/TaskResult.php
 ```
 
 Current contents of `src/`: `TaskRunner.php`, `TaskContext.php`, `TaskResult.php` — the update task
-harness. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
+harness — and `CatchLineRepair.php`, which restores characters that LIS's CSV export destroys (see
+"CSV Fetching and Parsing"). When adding a class, ask whether the *website* needs it. If yes, it belongs in the
 richmondsunlight.com repo; if no (which is usually the case for cron-related code), it goes in
 `src/`.
 
