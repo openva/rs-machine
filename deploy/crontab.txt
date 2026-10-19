@@ -52,6 +52,11 @@
 # Nightly DB backup (keep last 3).
 00 04 * * * /bin/bash rs-machine/deploy/db_backup.sh
 
+# Export the sample of the database that richmondsunlight.com's local tests run against, to S3:
+# nightly during the session (January through March), and on Sundays otherwise.
+00 05 * 1-3 * /usr/bin/flock -n -E 0 /run/lock/rs-test-data.lock /bin/bash rs-machine/deploy/export_test_data.sh
+00 05 * 4-12 0 /usr/bin/flock -n -E 0 /run/lock/rs-test-data.lock /bin/bash rs-machine/deploy/export_test_data.sh
+
 # Re-zip the current year's downloadable bill full-text HTML. The year is substituted at run time,
 # so this does not need updating annually. Note that `%` must be escaped as `\%` in a crontab.
 0 3 * * * /usr/bin/zip -rj rs-machine/downloads/bills/$(date +\%Y) rs-machine/downloads/bills/$(date +\%Y)

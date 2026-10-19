@@ -47,6 +47,8 @@ jobs:
       - run: cd richmondsunlight.com && composer install --no-interaction --no-progress --prefer-dist && cd ..
       - run: mkdir includes/
       - run: cp richmondsunlight.com/htdocs/includes/*.php includes/
+      # For deploy/export_test_data.sh
+      - run: cp richmondsunlight.com/deploy/database_export.sh deploy/database_export.sh
       - run: rm -Rf richmondsunlight.com
       - name: Cache Composer (rs-machine)
         uses: actions/cache@v6
