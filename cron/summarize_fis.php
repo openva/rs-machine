@@ -1,31 +1,43 @@
 <?php
 
+use RsMachine\ImpactStatements;
+
 /*
- * Select bills from this session that have fiscal impact statements, but no bill notes, and a
- * last-week view count that's above 2. Limit it to 10 at a go.
+ * Select up to 10 fiscal impact statements to summarize, from this session's bills with a
+ * last-week view count of at least 2. Only a bill's newest statement from each agency is shown on
+ * the website, so only those are summarized. That takes all of a bill's statements, not just the
+ * unsummarized ones, so the query gets every statement for each bill that has any unsummarized.
  */
 $sql = 'SELECT
-            bills.id,
+            bills.id AS bill_id,
             bills.number,
+            fiscal_impact_statements.id,
+            fiscal_impact_statements.lis_id,
             fiscal_impact_statements.pdf_url,
-            fiscal_impact_statements.id AS fis_id,
+            fiscal_impact_statements.summary,
                 (SELECT COUNT(*)
                 FROM bills_views
                 WHERE bill_id=bills.id AND
                 date >= CURDATE() - INTERVAL 7 DAY) AS views
         FROM bills
-        LEFT JOIN fiscal_impact_statements
+        JOIN fiscal_impact_statements
             ON bills.id = fiscal_impact_statements.bill_id
         WHERE
             bills.session_id = ' . SESSION_ID . ' AND
-            fiscal_impact_statements.pdf_url IS NOT NULL AND
-            fiscal_impact_statements.summary IS NULL
-        HAVING views >= 2
-        ORDER BY views DESC
-        LIMIT 10';
+            EXISTS (
+                SELECT 1
+                FROM fiscal_impact_statements AS unsummarized
+                WHERE
+                    unsummarized.bill_id = bills.id AND
+                    unsummarized.pdf_url IS NOT NULL AND
+                    unsummarized.summary IS NULL
+            )
+        HAVING views >= 2';
 $result = mysqli_query($GLOBALS['db'], $sql);
-if (mysqli_num_rows($result) > 0) {
-    $bills = mysqli_fetch_all($result, MYSQLI_ASSOC);
+$bills = [];
+foreach (ImpactStatements::toSummarize(mysqli_fetch_all($result, MYSQLI_ASSOC), 10) as $statement) {
+    $statement['fis_id'] = $statement['id'];
+    $bills[] = $statement;
 }
 
 // Initalize variable for logging

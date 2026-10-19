@@ -1,63 +1,82 @@
 <?php
 
+use RsMachine\ImpactStatements;
+
 /*
-How to tell the difference between what's an updated FIS vs. an additional one? That is,
-what replaces and what supplements?
-*/
+ * Each row of FiscalImpactStatements.csv is one agency's statement on one version of a bill. A
+ * new version gets a new reference ID, so it's added alongside the old statement; the website
+ * shows only the newest from each agency. A reissued statement has the same reference ID and a
+ * new PDF, so it replaces the stored one. See RsMachine\ImpactStatements for the rules.
+ */
 
 // Get the CSV
 $filename = __DIR__ . '/FiscalImpactStatements.csv';
 if (!file_exists($filename) || !is_readable($filename)) {
     exit($filename . ' not found or is not readable');
 }
-$csv = file($filename);
+$csv = file_get_contents($filename);
 
 // See if it's CSV, or log an error message when there's no docket file (in the off season)
-if (stripos(implode("\n", $csv), 'does not exist') != 0) {
+if (stripos($csv, 'does not exist') !== false) {
     $log->put('Error: FiscalImpactStatements.csv does not contain CSV.', 3);
     return;
 }
 
-// Remove the header row
-unset($csv[0]);
+// LIS sometimes lists a reissued statement more than once, not in publication order, so keep
+// only the newest PDF for each.
+$statements = ImpactStatements::dedupe(ImpactStatements::parseCsv($csv));
 
-$fis_data = array_map('str_getcsv', $csv);
+// Look up this session's bill IDs.
+$stmt = $dbh->prepare('SELECT number, id FROM bills WHERE session_id = :session_id');
+$stmt->execute([':session_id' => SESSION_ID]);
+$bill_ids = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-// Initialize the array that will store our finished data
-$fis = [];
+$upsert = $dbh->prepare(ImpactStatements::UPSERT_SQL);
 
-foreach ($fis_data as $statement) {
-    $bill_number = strtolower($statement[0]);
-    $lis_id = $statement[1];
-    $pdf_url = $statement[2];
+$added = 0;
+$updated = 0;
+$missing_bills = [];
 
-    $fis[] = array('bill_number' => $bill_number, 'lis_id' => $lis_id, 'pdf_url' => $pdf_url);
+foreach ($statements as $statement) {
+    if (!isset($bill_ids[$statement['bill_number']])) {
+        $missing_bills[$statement['bill_number']] = true;
+        continue;
+    }
+
+    $pdf_number = ImpactStatements::pdfNumber($statement['pdf_url']);
+
+    try {
+        $upsert->execute([
+            ':lis_id'                 => $statement['lis_id'],
+            ':bill_id'                => $bill_ids[$statement['bill_number']],
+            ':pdf_url'                => $statement['pdf_url'],
+            ':pdf_number_for_summary' => $pdf_number,
+            ':pdf_number_for_url'     => $pdf_number,
+            ':new_pdf_url'            => $statement['pdf_url'],
+        ]);
+    } catch (PDOException $e) {
+        $log->put('Error: Adding fiscal impact statement ' . $statement['lis_id'] . ' for '
+            . $statement['bill_number'] . ' failed: ' . $e->getMessage(), 4);
+        continue;
+    }
+
+    // MySQL reports 1 for an insert, 2 for an update, and 0 when nothing changed.
+    if ($upsert->rowCount() == 1) {
+        $added++;
+        $log->put('Added fiscal impact statement ' . $statement['lis_id'] . ' for '
+            . $statement['bill_number'] . '.', 2);
+    } elseif ($upsert->rowCount() == 2) {
+        $updated++;
+        $log->put('Updated fiscal impact statement ' . $statement['lis_id'] . ' for '
+            . $statement['bill_number'] . ' to ' . $statement['pdf_url'] . '.', 2);
+    }
 }
 
-// Insert the records
-foreach ($fis as $statement) {
-    $sql = 'INSERT INTO fiscal_impact_statements (lis_id, bill_id, pdf_url, date_created)
-            VALUES (
-                "' . $statement['lis_id'] . '",
-                (
-                    SELECT id
-                    FROM bills
-                    WHERE number = "' . $statement['bill_number'] . '"
-                    AND session_id=' . SESSION_ID . '
-                ),
-                "' . $statement['pdf_url'] . '",
-                NOW()
-            )
-            ON DUPLICATE KEY UPDATE
-                bill_id = VALUES(bill_id),
-                pdf_url = "' . $statement['pdf_url'] . '",
-                date_created = VALUES(date_created)';
-    $result = mysqli_query($GLOBALS['db'], $sql);
-    if ($result === false) {
-        $log->put('Error: Adding a fiscal impact statement for ' . $statement['bill_number']
-            . ' failed: ' . mysqli_error($GLOBALS['db']), 4);
-    } else {
-        $log->put('Added or updated a fiscal impact statement for ' . $statement['bill_number']
-            . '.', 2);
-    }
+if (count($missing_bills) > 0) {
+    $log->put('Fiscal impact statements were not added for ' . count($missing_bills) . ' bills '
+        . 'that aren’t in the database: ' . implode(', ', array_keys($missing_bills)) . '.', 3);
+}
+
+if ($added || $updated) {
+    $log->put('Added ' . $added . ' and updated ' . $updated . ' fiscal impact statements.', 3);
 }

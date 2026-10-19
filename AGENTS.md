@@ -297,7 +297,8 @@ use RsMachine\TaskResult;    // src/TaskResult.php
 
 Current contents of `src/`: `TaskRunner.php`, `TaskContext.php`, `TaskResult.php` — the update task
 harness — and `CatchLineRepair.php`, which restores characters that LIS's CSV export destroys (see
-"CSV Fetching and Parsing"). When adding a class, ask whether the *website* needs it. If yes, it belongs in the
+"CSV Fetching and Parsing") — and `ImpactStatements.php`, the rules for which fiscal impact statement
+is current (see "Fiscal Impact Statements"). When adding a class, ask whether the *website* needs it. If yes, it belongs in the
 richmondsunlight.com repo; if no (which is usually the case for cron-related code), it goes in
 `src/`.
 
@@ -310,6 +311,18 @@ The test suite is configured via `phpunit.xml` with:
 - Bootstrap: `includes/vendor/autoload.php`
 - Test directory: `deploy/tests/`
 - Test environment variables for `APP_ENV` and `DB_CONNECTION`
+
+**9. Fiscal Impact Statements**
+[cron/fiscal_impact.php](cron/fiscal_impact.php) stores `FiscalImpactStatements.csv` in
+`fiscal_impact_statements`, one row per bill and reference ID. A reference ID names the bill
+version and the agency (`SB738S1F122`: agency 122 on substitute S1; before 2025, `FS1122`). LIS
+numbers PDFs in publication order, so the highest-numbered PDF is the newest; the CSV is *not* in
+publication order, and lists a reissued statement once per PDF. So the cron keeps the newest PDF
+per reference ID, never replaces a stored PDF with a lower-numbered one, and clears `summary` when
+the PDF changes. The website shows only the newest statement from each agency, and
+[cron/summarize_fis.php](cron/summarize_fis.php) summarizes only those. The rules are in
+`RsMachine\ImpactStatements`, which must agree with richmondsunlight.com's
+`Bill2::latest_impact_statements()`.
 
 ### Key Design Patterns
 
