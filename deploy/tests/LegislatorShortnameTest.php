@@ -14,7 +14,7 @@ if (!class_exists('NullLog', false)) {
      */
     class NullLog extends Log
     {
-        public function put($message, $level)
+        public function put($message, $level = 3)
         {
             return true;
         }
@@ -185,6 +185,34 @@ class LegislatorShortnameTest extends TestCase
                 "John M. O'Bannon",
                 "O'Bannon, John",
                 'jmobannon',
+            ],
+            'initials as first name, then preferred name, and suffix' => [
+                'H0285',
+                'house',
+                'C.E. Cliff Hayes, Jr.',
+                'Hayes, C.E. Cliff, Jr.',
+                'cehayes',
+            ],
+            'initials as first name' => [
+                'H0337',
+                'house',
+                'A.C. Cordoza',
+                'Cordoza, A.C.',
+                'accordoza',
+            ],
+            'middle initial only in list display' => [
+                'H0389',
+                'house',
+                'Nicole Cole',
+                'Cole, Nicole T.',
+                'ntcole',
+            ],
+            'suffix only in list display' => [
+                'H0393',
+                'house',
+                'Bob Smith',
+                'Smith, Bob, III',
+                'bsmith',
             ],
         ];
     }
