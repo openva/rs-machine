@@ -49,6 +49,9 @@
 # ---- Shell and third-party tooling -------------------------------------------------------------
 # Not PHP, so outside the runner's scope entirely.
 
+# Copy the production database to the staging site's (rs-staging), on Sundays.
+00 01 * * 0 /usr/bin/flock -n -E 0 /run/lock/rs-staging-db.lock /bin/bash rs-machine/deploy/sync_staging_db.sh
+
 # Nightly DB backup (keep last 3).
 00 04 * * * /bin/bash rs-machine/deploy/db_backup.sh
 

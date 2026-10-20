@@ -17,7 +17,7 @@ export_script="$script_dir/database_export.sh"
 destination="s3://deploy.richmondsunlight.com/test-data/local-test-records.sql.gz"
 
 for file in "$settings_file" "$export_script"; do
-    if [ ! -f "$file" ]; then
+    if [[ ! -f "$file" ]]; then
         echo "Missing $file" >&2
         exit 1
     fi
