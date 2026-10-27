@@ -146,7 +146,6 @@ return [
         'schedule' => '41 12 * * *',
         'in_all'   => false,
         'timeout'  => 900,
-        'prefetch' => ['Members.csv' => 'members.csv'],
         'comment'  => 'Checks for missing/excess legislators. Deliberately not in "all" — it '
                     . 'deactivates records, so it should run on a predictable daily cadence.',
     ],
