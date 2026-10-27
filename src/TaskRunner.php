@@ -326,10 +326,16 @@ class TaskRunner
 
         /*
          * Legacy path: the file ran for its side effects. `require` yields int 1 on a plain
-         * fall-through and the file's value on a file-scope `return`, so `false` is the one
-         * signal old task files gave us for "bailed out" — several use `return false;` for an
-         * unreadable input file. Everything else is indistinguishable from success.
+         * fall-through and the file's value on a file-scope `return`. A legacy file can return a
+         * TaskResult directly, which is how one says "nothing to do" without being reported as a
+         * failure. Otherwise `false` is the one signal old task files gave us for "bailed out" —
+         * several use `return false;` for an unreadable input file. Everything else is
+         * indistinguishable from success.
          */
+        if ($returned instanceof TaskResult) {
+            return $returned;
+        }
+
         if ($returned === false) {
             return TaskResult::failed('task returned false');
         }

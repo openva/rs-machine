@@ -31,7 +31,7 @@ $result = mysqli_query($GLOBALS['db'], $sql);
 
 if (mysqli_num_rows($result) == 0) {
     $log->put('Found no bills lacking their full text.', 1);
-    return false;
+    return \RsMachine\TaskResult::skipped('no bills lack their full text');
 }
 
 /*

@@ -2,7 +2,7 @@
 
 // Don't bother to run this if the General Assembly isn't in session.
 if (IN_SESSION == false) {
-    return false;
+    return \RsMachine\TaskResult::skipped('the General Assembly is not in session');
 }
 
 /*

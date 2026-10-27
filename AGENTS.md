@@ -180,7 +180,8 @@ current set rather than relying on a list here. As of writing there are 25, of w
   [cron/tasks/photosynthesis.php](cron/tasks/photosynthesis.php) for the reference example.
 - **Legacy:** a bare procedural script in `cron/`, `require`d exactly as update.php did, with
   `$log`, `$db`, `$dbh`, `$mc` and `$session_id` extracted into scope first. Most tasks are still
-  this form and need no changes to work.
+  this form and need no changes to work. A file-scope `return false;` is reported as a failure, so
+  a legacy file with nothing to do should `return \RsMachine\TaskResult::skipped('why');` instead.
 
 **3. Previous Orchestrator ([cron/update.php](cron/update.php))**
 
