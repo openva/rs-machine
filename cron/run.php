@@ -182,7 +182,7 @@ try {
 $memcached = null;
 if (defined('MEMCACHED_SERVER') && MEMCACHED_SERVER !== '' && class_exists('Memcached')) {
     $memcached = new Memcached();
-    $memcached->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+    $memcached->addServer(MEMCACHED_SERVER, (int) MEMCACHED_PORT);
 }
 
 $context = new TaskContext(
