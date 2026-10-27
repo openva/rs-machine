@@ -15,7 +15,6 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
  */
 $database = new Database();
 $db = $database->connect();
-global $db;
 $GLOBALS['dbh'] = $db;
 
 /*

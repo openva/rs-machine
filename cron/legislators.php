@@ -5,7 +5,6 @@
  */
 $database = new Database();
 $db = $database->connect();
-global $db;
 $GLOBALS['dbh'] = $db;
 
 /*
