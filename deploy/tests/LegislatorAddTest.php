@@ -28,6 +28,20 @@ if (!class_exists('NullLog', false)) {
 }
 
 /**
+ * Logger that writes to the database on the same connection, as the real one does, so that a log
+ * call between an insert and lastInsertId() changes the ID.
+ */
+class DatabaseWritingLog extends NullLog
+{
+    public function put($message, $level = 3)
+    {
+        $GLOBALS['dbh']->exec('CREATE TEMPORARY TABLE IF NOT EXISTS zz_test_log (id INT AUTO_INCREMENT PRIMARY KEY)');
+        $GLOBALS['dbh']->exec('INSERT INTO zz_test_log () VALUES (), (), ()');
+        return true;
+    }
+}
+
+/**
  * Import stub whose term inserts fail, to show that a person isn't left behind without a term.
  */
 class ImportFailingTermStub extends Import
@@ -210,6 +224,22 @@ class LegislatorAddTest extends TestCase
         $this->assertSame(1, $this->countTermsForLisId(self::LIS_ID));
     }
 
+    /**
+     * Logging the new person must not change which ID their term is attached to.
+     */
+    public function testNewLegislatorsTermBelongsToThemDespiteLogging(): void
+    {
+        $import = new Import(new DatabaseWritingLog());
+        $this->assertTrue($import->add_legislator($this->legislator('zztestnew', self::LIS_ID)));
+
+        $stmt = $this->pdo->prepare(
+            'SELECT p.shortname FROM terms t INNER JOIN people p ON p.id = t.person_id
+            WHERE t.lis_id = :lis_id'
+        );
+        $stmt->execute([':lis_id' => self::LIS_ID]);
+        $this->assertSame('zztestnew', $stmt->fetchColumn());
+    }
+
     private function legislator(string $shortname, int $lis_id): array
     {
         return [
@@ -280,5 +310,10 @@ class LegislatorAddTest extends TestCase
         $placeholders = implode(',', array_fill(0, count(self::SHORTNAMES), '?'));
         $this->pdo->prepare('DELETE FROM people WHERE shortname IN (' . $placeholders . ')')
             ->execute(self::SHORTNAMES);
+
+        // The fixtures' high IDs advance the counters, and the ID columns top out at 65535.
+        // Setting AUTO_INCREMENT to 1 resets it to just past the highest remaining ID.
+        $this->pdo->exec('ALTER TABLE people AUTO_INCREMENT = 1');
+        $this->pdo->exec('ALTER TABLE terms AUTO_INCREMENT = 1');
     }
 }
