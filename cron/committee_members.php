@@ -41,7 +41,7 @@ foreach (['H', 'S'] as $chamber_code) {
     $query_params = [
         'sessionID' => SESSION_ID,
         'chamberCode' => $chamber_code,
-        'includeSubCommittees' => false
+        'includeSubCommittees' => 'false'
     ];
 
     $ch = curl_init();
