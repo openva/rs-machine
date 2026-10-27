@@ -31,6 +31,15 @@ $import = new Import($log);
 $session_code = '20' . SESSION_LIS_ID;
 
 /*
+ * The LIS API numbers sessions differently than we do, and returns rosters from long-past sessions
+ * if given our session ID.
+ */
+if (!defined('SESSION_LIS_API_ID') || SESSION_LIS_API_ID === '') {
+    $log->put('Error: SESSION_LIS_API_ID is not defined, so committee members can\'t be fetched.', 8);
+    die('Error: SESSION_LIS_API_ID is not defined.');
+}
+
+/*
  * Step 1: Fetch all committees from the Committee API to get the CommitteeID mapping
  */
 $log->put('Fetching committee list from Committee API...', 3);
@@ -39,7 +48,7 @@ $api_committees = [];
 foreach (['H', 'S'] as $chamber_code) {
     $url = 'https://lis.virginia.gov/Committee/api/getcommitteelistasync';
     $query_params = [
-        'sessionID' => SESSION_ID,
+        'sessionID' => SESSION_LIS_API_ID,
         'chamberCode' => $chamber_code,
         'includeSubCommittees' => 'false'
     ];
@@ -79,8 +88,8 @@ foreach (['H', 'S'] as $chamber_code) {
         die('Error: Committee API reported failure.');
     }
 
-    if (!empty($data['ListItems'])) {
-        foreach ($data['ListItems'] as $committee) {
+    if (!empty($data['Committees'])) {
+        foreach ($data['Committees'] as $committee) {
             // Store mapping of CommitteeNumber to CommitteeID
             if (!empty($committee['CommitteeNumber']) && isset($committee['CommitteeID'])) {
                 $api_committees[$committee['CommitteeNumber']] = $committee['CommitteeID'];
@@ -107,9 +116,21 @@ if (empty($committees)) {
 }
 
 /*
- * Generate a list of legislators as a lookup table
+ * Map each current legislator's LIS ID to their person ID, which is what
+ * committee_members.representative_id holds. (Import::create_legislator_list() returns term IDs,
+ * which differ from person IDs for anybody who's taken office recently.)
  */
-$legislators = $import->create_legislator_list();
+$legislators = [];
+$stmt = $GLOBALS['dbh']->query(
+    'SELECT person_id, lis_id, chamber
+    FROM terms
+    WHERE date_started <= CURDATE() AND (date_ended IS NULL OR date_ended >= CURDATE())
+    ORDER BY date_started ASC'
+);
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $term) {
+    $prefix = $term['chamber'] === 'house' ? 'H' : 'S';
+    $legislators[$prefix . (int)$term['lis_id']] = (int)$term['person_id'];
+}
 
 if (empty($legislators)) {
     $log->put('Error: No legislators found in database.', 8);
@@ -142,7 +163,7 @@ foreach ($committees as $committee) {
     $query_params = [
         'committeeID' => (int)$committee_api_id,
         'sessionCode' => (int)$session_code,
-        'sessionID' => SESSION_ID
+        'sessionID' => SESSION_LIS_API_ID
     ];
 
     $ch = curl_init();
@@ -179,20 +200,27 @@ foreach ($committees as $committee) {
         continue;
     }
 
-    if (empty($data['ListItems'])) {
+    if (empty($data['MemberList'])) {
         $log->put('No members found for committee ' . $committee_number, 3);
         continue;
     }
 
     // Process each member
-    foreach ($data['ListItems'] as $member_data) {
+    foreach ($data['MemberList'] as $member_data) {
+        // The API includes members who have since been removed from the committee
+        if (!empty($member_data['RemoveDate']) && strtotime($member_data['RemoveDate']) <= time()) {
+            continue;
+        }
+
         if (empty($member_data['MemberNumber'])) {
             $log->put('Warning: Member found without MemberNumber for committee ' . $committee_number, 4);
             continue;
         }
 
-        // Look up the representative ID from the member number
-        $representative_id = $import->lookup_legislator_id($legislators, $member_data['MemberNumber']);
+        // Look up the person ID from the member number (e.g. "H0389")
+        $member_number = $member_data['MemberNumber'];
+        $lookup_key = $member_number[0] . (int)substr($member_number, 1);
+        $representative_id = $legislators[$lookup_key] ?? false;
 
         if ($representative_id === false) {
             $log->put('Warning: Could not find representative for member number ' . $member_data['MemberNumber'], 4);
@@ -225,13 +253,13 @@ foreach ($committees as $committee) {
             'position' => $position,
             'date_started' => $date_started,
             'member_number' => $member_data['MemberNumber'],
-            'member_name' => $member_data['MemberDisplayName'] ?? ''
+            'member_name' => trim($member_data['MemberDisplayName'] ?? '')
         ];
 
         $total_members++;
     }
 
-    $log->put('Found ' . count($data['ListItems']) . ' members for committee ' . $committee_number, 2);
+    $log->put('Found ' . count($data['MemberList']) . ' members for committee ' . $committee_number, 2);
 }
 
 /*
