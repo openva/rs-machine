@@ -9,3 +9,4 @@ cron/bills.csv
 settings.local.inc.php
 richmondsunlight.com/
 deploy/database_export.sh
+cron/votes.json

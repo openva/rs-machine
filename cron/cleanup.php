@@ -818,6 +818,12 @@ if (mysqli_num_rows($result) > 0) {
 # When a bill has advanced further, then any status narrative that has been built for it should
 # be assumed to be out of date. Here we disable any status narrative for a bill when the bill's
 # status has substantially change since the narrative was created.
+#
+# This compares when we recorded each status (date_created), not the date of the action (date).
+# Action dates have no time of day, so a status recorded later on the day a narrative was written
+# looked older than the narrative and never retired it, and neither did a status that LIS posted
+# after a delay. Recording times also can't be in the future, so they can't retire a narrative
+# on every run.
 ###
 $sql = 'UPDATE bills_status_narratives
         SET current="n"
@@ -825,14 +831,10 @@ $sql = 'UPDATE bills_status_narratives
             session_id = ' . SESSION_ID . ' AND
             current="y" AND
             date_created < (
-                SELECT date
+                SELECT MAX(date_created)
                 FROM bills_status
                 WHERE
                     bill_id = bills_status_narratives.bill_id AND
                     translation IS NOT NULL
-                ORDER BY
-                    date DESC,
-                    id DESC
-                LIMIT 1
             )';
 mysqli_query($GLOBALS['db'], $sql);

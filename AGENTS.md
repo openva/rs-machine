@@ -299,7 +299,10 @@ use RsMachine\TaskResult;    // src/TaskResult.php
 Current contents of `src/`: `TaskRunner.php`, `TaskContext.php`, `TaskResult.php` — the update task
 harness — and `CatchLineRepair.php`, which restores characters that LIS's CSV export destroys (see
 "CSV Fetching and Parsing") — and `ImpactStatements.php`, the rules for which fiscal impact statement
-is current (see "Fiscal Impact Statements"). When adding a class, ask whether the *website* needs it. If yes, it belongs in the
+is current (see "Fiscal Impact Statements") — and `SessionPhase.php`, which says whether a session
+is underway, adjourned with the governor's actions pending, or final, so that
+[cron/bills_status_narratives.php](cron/bills_status_narratives.php) describes bills' outcomes
+correctly and rewrites each narrative once as the session's phase changes. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
 richmondsunlight.com repo; if no (which is usually the case for cron-related code), it goes in
 `src/`.
 
