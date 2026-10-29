@@ -5,6 +5,12 @@ declare(strict_types=1);
 /**
  * Populate the legacy representatives table from the new people + terms tables.
  *
+ * representatives has one row per person (shortname is unique), but a person can have several
+ * terms, each of which updates that row. So terms are written oldest first, with any current term
+ * last, leaving each row with the person's current term. (In order of term ID, a term added for
+ * past service would overwrite the current one, and with it the LIS ID that vote.php and
+ * copatrons.php look legislators up by.)
+ *
  * When invoked via cron/update.php, the surrounding framework will already have loaded the
  * necessary includes and configured logging. The fallbacks below allow the script to be executed
  * directly from the CLI for one-off migrations.
@@ -49,8 +55,6 @@ $sql = <<<SQL
         t.url,
         t.rss_url,
         t.place,
-        t.longitude,
-        t.latitude,
         t.phone_district,
         t.phone_richmond,
         t.address_district,
@@ -68,7 +72,10 @@ $sql = <<<SQL
         p.date_modified AS person_date_modified
     FROM terms t
     INNER JOIN people p ON p.id = t.person_id
-    ORDER BY t.id
+    ORDER BY
+        (t.date_ended IS NULL OR t.date_ended = '0000-00-00') ASC,
+        t.date_started ASC,
+        t.id ASC
 SQL;
 
 $rows = $pdo->query($sql)->fetchAll();
@@ -83,14 +90,14 @@ $insert = $pdo->prepare(
         (`id`,`name_formal`,`name`,`name_formatted`,`shortname`,`lis_shortname`,`chamber`,`district_id`,
          `date_started`,`date_ended`,`party`,`bio`,`birthday`,`race`,`sex`,`notes`,
          `phone_district`,`phone_richmond`,`address_district`,`address_richmond`,
-         `email`,`url`,`rss_url`,`twitter`,`sbe_id`,`lis_id`,`place`,`longitude`,
-         `latitude`,`contributions`,`partisanship`,`date_modified`,`date_created`)
+         `email`,`url`,`rss_url`,`twitter`,`sbe_id`,`lis_id`,`place`,
+         `contributions`,`partisanship`,`date_modified`,`date_created`)
      VALUES
         (:id,:name_formal,:name,:name_formatted,:shortname,:lis_shortname,:chamber,:district_id,
          :date_started,:date_ended,:party,:bio,:birthday,:race,:sex,:notes,
          :phone_district,:phone_richmond,:address_district,:address_richmond,
-         :email,:url,:rss_url,:twitter,:sbe_id,:lis_id,:place,:longitude,
-         :latitude,:contributions,:partisanship,:date_modified,:date_created)
+         :email,:url,:rss_url,:twitter,:sbe_id,:lis_id,:place,
+         :contributions,:partisanship,:date_modified,:date_created)
      ON DUPLICATE KEY UPDATE
          `name_formal` = VALUES(`name_formal`),
          `name` = VALUES(`name`),
@@ -111,8 +118,6 @@ $insert = $pdo->prepare(
          `sbe_id` = VALUES(`sbe_id`),
          `lis_id` = VALUES(`lis_id`),
          `place` = VALUES(`place`),
-         `longitude` = VALUES(`longitude`),
-         `latitude` = VALUES(`latitude`),
          `date_modified` = VALUES(`date_modified`),
          `date_created` = VALUES(`date_created`)'
 );
@@ -155,8 +160,6 @@ try {
             ':sbe_id' => normalizeNullable($row['sbe_id']),
             ':lis_id' => (int)($row['lis_id'] ?? 0),
             ':place' => normalizeNullable($row['place']),
-            ':longitude' => normalizeFloat($row['longitude']),
-            ':latitude' => normalizeFloat($row['latitude']),
             ':contributions' => null,
             ':partisanship' => null,
             ':date_modified' => normalizeTimestamp($row['term_date_modified'] ?? $row['person_date_modified']),
@@ -206,14 +209,6 @@ function normalizeEnum($value, string $default): string
         return $default;
     }
     return $value;
-}
-
-function normalizeFloat($value): ?float
-{
-    if ($value === null || $value === '') {
-        return null;
-    }
-    return (float)$value;
 }
 
 function normalizeTimestamp($value): string

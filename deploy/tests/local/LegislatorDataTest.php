@@ -91,6 +91,33 @@ class LegislatorDataTest extends LocalTestCase
     }
 
     /**
+     * The legacy representatives table, which vote.php and copatrons.php look legislators up in by
+     * LIS ID, must match each legislator's current term (representatives_table.php syncs it daily).
+     */
+    public function testRepresentativesMatchCurrentTerms(): void
+    {
+        $this->assertNone(
+            self::rows(
+                'SELECT people.shortname, terms.chamber, terms.lis_id,
+                    representatives.chamber AS listed_chamber, representatives.lis_id AS listed_lis_id
+                FROM terms
+                JOIN people ON people.id = terms.person_id
+                LEFT JOIN representatives ON representatives.shortname = people.shortname
+                WHERE
+                    terms.date_started <= CURDATE() AND
+                    (terms.date_ended IS NULL OR terms.date_ended >= CURDATE()) AND
+                    (
+                        representatives.id IS NULL OR
+                        representatives.chamber <> terms.chamber OR
+                        representatives.lis_id <> terms.lis_id
+                    )
+                ORDER BY people.shortname'
+            ),
+            'current legislators are missing from the representatives table, or listed with an old term'
+        );
+    }
+
+    /**
      * A bill's chief patron must have been serving when its session began. (Bills are prefiled
      * before the session, and so can predate their patron's term by a few days.)
      */

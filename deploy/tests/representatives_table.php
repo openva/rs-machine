@@ -45,15 +45,15 @@ $term = [
     'chamber' => 'house',
     'party' => 'D',
     'district_id' => 320,
-    'date_started' => '',
+    // A missing start date, which the script replaces with the date the term was created.
+    'date_started' => '0000-00-00',
     'date_ended' => '0000-00-00 00:00:00',
     'sbe_id' => 'SBE-XYZ',
     'email' => 'jane@example.com',
     'url' => 'https://example.com/profile',
     'rss_url' => 'https://example.com/rss',
     'place' => 'Midlothian',
-    'longitude' => '-77.5',
-    'latitude' => '37.5',
+    'partisanship' => 50,
     'phone_district' => ' 8045552222 ',
     'phone_richmond' => '8045559999',
     'address_district' => '123 Main Street, Midlothian, VA 55555',
@@ -61,6 +61,18 @@ $term = [
     'date_created' => '2024-01-02 03:04:05',
     'date_modified' => '2024-01-05 06:07:08',
 ];
+
+// The same person's earlier term in the other chamber, with a higher ID than the current term, as
+// when past service is added after the fact. The representatives row must still show the current
+// term.
+$pastTerm = array_merge($term, [
+    'id' => $testId + 1,
+    'name_formatted' => 'Sen. Jane Doe',
+    'lis_id' => 99,
+    'chamber' => 'senate',
+    'date_started' => '2010-01-13',
+    'date_ended' => '2012-01-11',
+]);
 
 cleanupFixtureRows($pdo, $testId);
 
@@ -70,6 +82,7 @@ $message = "All representatives_table tests passed\n";
 try {
     insertPerson($pdo, $person);
     insertTerm($pdo, $term);
+    insertTerm($pdo, $pastTerm);
 
     $projectRoot = realpath(__DIR__ . '/../../');
     $previousCwd = getcwd();
@@ -85,12 +98,12 @@ try {
         return;
     }
 
-    $stmt = $pdo->prepare('SELECT * FROM representatives WHERE id = :id');
-    $stmt->execute([':id' => $testId]);
+    $stmt = $pdo->prepare('SELECT * FROM representatives WHERE shortname = :shortname');
+    $stmt->execute([':shortname' => $person['shortname']]);
     $record = $stmt->fetch();
 
     if (!$record) {
-        $message = "Failure: Expected representatives record with ID {$testId}.\n";
+        $message = "Failure: Expected a representatives record for {$person['shortname']}.\n";
         $exitStatus = 1;
         return;
     }
@@ -122,8 +135,6 @@ try {
         'sbe_id' => $term['sbe_id'],
         'lis_id' => (string)$term['lis_id'],
         'place' => $term['place'],
-        'longitude' => (float)$term['longitude'],
-        'latitude' => (float)$term['latitude'],
         'contributions' => null,
         'partisanship' => null,
         'date_modified' => $term['date_modified'],
@@ -156,7 +167,7 @@ try {
     $pdo->prepare('UPDATE representatives SET name_formal = :value WHERE id = :id')
         ->execute([
             ':value' => 'Changed Name',
-            ':id' => $testId,
+            ':id' => $record['id'],
         ]);
 
     chdir($projectRoot);
@@ -170,13 +181,16 @@ try {
         return;
     }
 
-    $stmt->execute([':id' => $testId]);
+    $stmt->execute([':shortname' => $person['shortname']]);
     $refreshedRecord = $stmt->fetch();
     if (!$refreshedRecord || $refreshedRecord['name_formal'] !== $expected['name_formal']) {
         $message = "Failure: representatives_table did not refresh existing name_formal value.\n";
         $exitStatus = 1;
         return;
     }
+} catch (Throwable $e) {
+    $message = 'Failure: ' . get_class($e) . ': ' . $e->getMessage() . "\n";
+    $exitStatus = 1;
 } finally {
     cleanupFixtureRows($pdo, $testId);
     echo $message;
@@ -229,8 +243,6 @@ function ensureTermsTable(PDO $pdo): void
             url VARCHAR(255) NULL,
             rss_url VARCHAR(255) NULL,
             place VARCHAR(255) NULL,
-            longitude VARCHAR(32) NULL,
-            latitude VARCHAR(32) NULL,
             phone_district VARCHAR(32) NULL,
             phone_richmond VARCHAR(32) NULL,
             address_district VARCHAR(255) NULL,
@@ -261,8 +273,12 @@ function cleanupFixtureRows(PDO $pdo, int $id): void
         if (!tableExists($pdo, $table)) {
             continue;
         }
-        $stmt = $pdo->prepare("DELETE FROM {$table} WHERE {$column} = :id");
-        $stmt->execute([':id' => $id]);
+        $stmt = $pdo->prepare("DELETE FROM {$table} WHERE {$column} IN (:id, :next_id)");
+        $stmt->execute([':id' => $id, ':next_id' => $id + 1]);
+    }
+    if (tableExists($pdo, 'representatives')) {
+        $pdo->prepare('DELETE FROM representatives WHERE shortname = :shortname')
+            ->execute([':shortname' => 'jdoe']);
     }
 }
 
@@ -293,11 +309,11 @@ function insertTerm(PDO $pdo, array $term): void
     $stmt = $pdo->prepare(
         'INSERT INTO terms
             (id, person_id, name_formatted, lis_shortname, lis_id, chamber, party, district_id,
-             date_started, date_ended, sbe_id, email, url, rss_url, place, longitude, latitude,
+             date_started, date_ended, sbe_id, email, url, rss_url, place, partisanship,
              phone_district, phone_richmond, address_district, address_richmond, date_created, date_modified)
          VALUES
             (:id, :person_id, :name_formatted, :lis_shortname, :lis_id, :chamber, :party, :district_id,
-             :date_started, :date_ended, :sbe_id, :email, :url, :rss_url, :place, :longitude, :latitude,
+             :date_started, :date_ended, :sbe_id, :email, :url, :rss_url, :place, :partisanship,
              :phone_district, :phone_richmond, :address_district, :address_richmond, :date_created, :date_modified)'
     );
     $stmt->execute([
@@ -316,8 +332,7 @@ function insertTerm(PDO $pdo, array $term): void
         ':url' => $term['url'],
         ':rss_url' => $term['rss_url'],
         ':place' => $term['place'],
-        ':longitude' => $term['longitude'],
-        ':latitude' => $term['latitude'],
+        ':partisanship' => $term['partisanship'],
         ':phone_district' => $term['phone_district'],
         ':phone_richmond' => $term['phone_richmond'],
         ':address_district' => $term['address_district'],
