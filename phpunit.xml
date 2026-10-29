@@ -4,10 +4,16 @@
          bootstrap="includes/vendor/autoload.php"
          colors="true"
          stopOnFailure="false"
-         cacheDirectory=".phpunit.cache">
+         cacheDirectory=".phpunit.cache"
+         defaultTestSuite="RS Machine Test Suite">
     <testsuites>
         <testsuite name="RS Machine Test Suite">
             <directory>deploy/tests</directory>
+            <exclude>deploy/tests/local</exclude>
+        </testsuite>
+        <!-- Checks of the data in the local sample of production's database (see LocalTestCase). -->
+        <testsuite name="local">
+            <directory>deploy/tests/local</directory>
         </testsuite>
     </testsuites>
     <php>

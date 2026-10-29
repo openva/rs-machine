@@ -26,6 +26,8 @@ jobs:
     - name: Check out repo
       uses: actions/checkout@v7
 
+    - name: Build the test database
+      run: ./deploy/build_database.sh
     - name: Start Docker services
       run: |
         docker compose up -d --build

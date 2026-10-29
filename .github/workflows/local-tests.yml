@@ -1,0 +1,79 @@
+name: Local Tests
+
+# Check the data that rs-machine writes (deploy/tests/local/), using the sample of production's
+# database that rs-machine's export_test_data.sh uploads to S3, which richmondsunlight.com's local
+# tests use, too. These find problems in the data, rather than regressions in the code, so they
+# don't gate deployment. They run daily during the session, when the data changes most, and weekly
+# otherwise, the morning after the sample is exported.
+#
+# This repository is public, so the sample must never be uploaded as an artifact, or printed.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 11 * 1-3 *'  # Daily, January through March
+    - cron: '0 11 * 4-12 1' # Mondays, otherwise
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  local_tests:
+    name: Local Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@v7
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+        aws-region: us-east-1
+
+    # Fail if the sample has stopped being exported (it should be no more than a week old).
+    - name: Download the local test data
+      run: |
+        modified=$(aws s3api head-object --bucket deploy.richmondsunlight.com \
+          --key test-data/local-test-records.sql.gz --query LastModified --output text)
+        age_days=$(( ( $(date +%s) - $(date -d "$modified" +%s) ) / 86400 ))
+        echo "The local test data was exported $age_days days ago ($modified)."
+        if [ "$age_days" -gt 15 ]; then
+          echo "::error::The local test data is $age_days days old; is export_test_data.sh running?"
+          exit 1
+        fi
+        aws s3 cp s3://deploy.richmondsunlight.com/test-data/local-test-records.sql.gz - \
+          --only-show-errors | gunzip > deploy/local-test-records.sql
+
+    - name: Build the test database
+      run: ./deploy/build_database.sh
+
+    - name: Start Docker services
+      run: docker compose up -d --build
+
+    # MariaDB answers pings while it's still loading the database, which the sample makes slow.
+    - name: Wait for the database to load
+      run: |
+        for i in $(seq 1 120); do
+          docker logs rs_machine_db 2>&1 | grep -q "init process done" && exit 0
+          sleep 5
+        done
+        echo "::error::The database didn't finish loading."
+        exit 1
+
+    - name: Initialize application inside container
+      run: docker exec rs_machine /home/ubuntu/rs-machine/deploy/docker-setup.sh
+
+    - name: Run local tests
+      run: |
+        docker exec rs_machine /home/ubuntu/rs-machine/includes/vendor/bin/phpunit \
+          --configuration /home/ubuntu/rs-machine/phpunit.xml --testsuite local --testdox
+
+    - name: Shut down Docker services
+      if: always()
+      run: docker compose down -v

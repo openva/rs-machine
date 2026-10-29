@@ -28,22 +28,9 @@ else
     fi
 fi
 
-# If the database.sql doesn't exist, create it
-if [ ! -f "deploy/database.sql" ]; then
-
-    # Clone or update the repo instead of deleting it
-    if [ ! -d "richmondsunlight.com" ]; then
-        git clone -b deploy https://github.com/openva/richmondsunlight.com.git
-    else
-        cd richmondsunlight.com && git pull && cd ..
-    fi
-
-    # Concatenate the database dumps into a single file, for MariaDB to load
-    cd richmondsunlight.com/deploy/
-    cat mysql/structure.sql mysql/basic-contents.sql mysql/test-records.sql > ../../deploy/database.sql
-    cd ../..
-
-fi
+# Build the test database from richmondsunlight.com's current deploy branch. (An existing MariaDB
+# volume keeps its data; see deploy/build_database.sh for how to reload it.)
+./deploy/build_database.sh
 
 # Stand it up (build only if needed, then start)
 docker compose up -d --build

@@ -18,7 +18,8 @@ The codebase scrapes data from Virginia's Legislative Information System (LIS), 
 ```
 
 This script:
-- Clones the `richmondsunlight.com` repository's deploy branch if `deploy/database.sql` doesn't exist
+- Builds `deploy/database.sql` from the `richmondsunlight.com` repository's deploy branch, via
+  [deploy/build_database.sh](deploy/build_database.sh) (see "Test Database" below)
 - Builds and starts Docker containers (application + MariaDB)
 - Waits for MariaDB to be healthy
 - Runs `deploy/docker-setup.sh` inside the container to populate the `includes/` directory, or refreshes it if it's older than 12 hours
@@ -302,7 +303,12 @@ harness — and `CatchLineRepair.php`, which restores characters that LIS's CSV 
 is current (see "Fiscal Impact Statements") — and `SessionPhase.php`, which says whether a session
 is underway, adjourned with the governor's actions pending, or final, so that
 [cron/bills_status_narratives.php](cron/bills_status_narratives.php) describes bills' outcomes
-correctly and rewrites each narrative once as the session's phase changes. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
+correctly and rewrites each narrative once as the session's phase changes — and
+`StatusTranslation.php`, the rules by which [cron/cleanup.php](cron/cleanup.php) turns LIS's history
+entries ("Left in Finance") into bills' statuses ("failed committee"). LIS's CSV history prefixed
+entries with their chamber ("House: Left in Finance") and the API's doesn't, so rules must accept
+both. [utilities/translate_statuses.php](utilities/translate_statuses.php) applies them to past
+sessions, which cleanup.php doesn't revisit. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
 richmondsunlight.com repo; if no (which is usually the case for cron-related code), it goes in
 `src/`.
 
@@ -315,6 +321,24 @@ The test suite is configured via `phpunit.xml` with:
 - Bootstrap: `includes/vendor/autoload.php`
 - Test directory: `deploy/tests/`
 - Test environment variables for `APP_ENV` and `DB_CONNECTION`
+
+**Local tests (data checks).** `deploy/tests/local/` is a separate PHPUnit suite, `local`, that
+checks the data rs-machine writes (e.g., every person has a term; current committee members serve
+in that chamber; bills from finished sessions have a final status; narratives aren't stale). It
+runs against the local-only sample of production's database, which `deploy/export_test_data.sh`
+uploads to S3 weekly (daily in session), and which isn't in Git because this repository is public.
+To run it locally:
+```bash
+aws s3 cp s3://deploy.richmondsunlight.com/test-data/local-test-records.sql.gz - | gunzip \
+    > deploy/local-test-records.sql
+docker compose down -v && ./docker-run.sh
+docker exec rs_machine includes/vendor/bin/phpunit --testsuite local --testdox
+```
+The default suite excludes it, and its tests skip when the sample isn't loaded.
+[.github/workflows/local-tests.yml](.github/workflows/local-tests.yml) runs it on a schedule; it
+doesn't gate deployment, since a failure means something in the data needs fixing, not the code.
+Tests in it must state things true of any data, never expect particular records, and never print
+anything from the sample but public identifiers (bill numbers, shortnames, record IDs).
 
 **9. Fiscal Impact Statements**
 [cron/fiscal_impact.php](cron/fiscal_impact.php) stores `FiscalImpactStatements.csv` in
@@ -380,49 +404,33 @@ The database structure includes (key tables):
 - Session-based partitioning (most queries filter by `session_id`)
 - Subquery-based foreign key lookups in INSERT/UPDATE statements
 
-### Database Schema Modifications
+### Test Database
 
-**CRITICAL: Never use text-based edit tools on SQL dump files containing binary data.**
+`deploy/database.sql` is not tracked in Git. [deploy/build_database.sh](deploy/build_database.sh)
+assembles it from richmondsunlight.com's deploy branch (cloned to `richmondsunlight.com/`):
+`structure.sql`, `basic-contents.sql`, `test-records.sql`, and `fiscal-impact-fixtures.sql`, from
+that repository's `deploy/mysql/`. Both `docker-run.sh` and CI ([.github/workflows/tests.yml](.github/workflows/tests.yml))
+run it, so tests here run against the same schema and test data as the website's.
 
-The `deploy/database.sql` file contains INSERT statements with binary data (e.g., BLOB, GEOMETRY, POINT types) in tables like `bills_places`. The `coordinates` column contains binary-encoded geographic data that appears as escape sequences like `'\0\0\0\0\0\0\0\0\0\0@3�S�\0\0\0���B@'`.
+**To change the schema or the test data, change them in richmondsunlight.com**, whose
+`deploy/database_export.sh` regenerates the dumps from production and whose `*-fixtures.sql` files
+are maintained by hand. A test here that needs a record the dumps lack should insert it itself,
+and clean it up afterward (see [deploy/tests/LegislatorAddTest.php](deploy/tests/LegislatorAddTest.php)).
 
-**Problem:** When text-based editing tools (Edit, Write, sed, awk) read and write SQL dump files, they can corrupt binary data by:
-- Re-encoding bytes with different character encodings
-- Transforming escape sequences
-- Altering byte values during text processing
-
-**Solution:** When modifying database schema:
-
-1. **Preferred approach:** Use ALTER TABLE statements directly on the database instead of editing dump files:
-   ```bash
-   docker exec -it rs_machine_db mariadb -u ricsun -ppassword richmondsunlight -e \
-     "ALTER TABLE bills_status ADD COLUMN chamber ENUM('house','senate') DEFAULT NULL AFTER status"
-   ```
-
-2. **If you must edit the dump file:** Use binary-safe tools:
-   - Python with binary file mode (`open('file', 'rb')` and `open('file', 'wb')`)
-   - Only replace the specific CREATE TABLE definition, avoiding INSERT statements with binary data
-   - Never use tools that perform text encoding/decoding transformations
-
-3. **After editing:** Verify no unintended changes occurred:
-   ```bash
-   git diff deploy/database.sql | grep -v "CREATE TABLE.*bills_status"
-   ```
-   Check that only your intended table definition changed, not INSERT statements in other tables.
-
-**Example of proper binary-safe editing:**
-```python
-with open('deploy/database.sql', 'rb') as f:
-    content = f.read()
-
-# Replace only the specific table definition
-old_def = b'CREATE TABLE `bills_status` (...)'
-new_def = b'CREATE TABLE `bills_status` (...with new column...)'
-content = content.replace(old_def, new_def, 1)
-
-with open('deploy/database.sql', 'wb') as f:
-    f.write(content)
+MariaDB loads `database.sql` only when its volume is first created. To reload it:
+```bash
+docker compose down -v && ./docker-run.sh
 ```
+
+For a quick local experiment, alter the running database directly:
+```bash
+docker exec -it rs_machine_db mariadb -u ricsun -ppassword richmondsunlight -e \
+  "ALTER TABLE bills_status ADD COLUMN chamber ENUM('house','senate') DEFAULT NULL AFTER status"
+```
+
+Never edit a SQL dump with text tools (Edit, Write, sed, awk). Dumps contain binary data, such as
+`bills_places.coordinates`, which re-encoding corrupts. If a dump must be edited, read and write it
+in binary mode (e.g. Python's `open(path, 'rb')`), and check the diff for unintended changes.
 
 ### Configuration
 

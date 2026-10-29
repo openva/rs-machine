@@ -52,18 +52,12 @@ wc -l downloads/bills-YYYY.jsonl
 ```
 
 ### Refreshing the Database
-If you've updated `deploy/database.sql` and need to reload it into the MariaDB container:
+The test database, `deploy/database.sql`, is built from [richmondsunlight.com](https://github.com/openva/richmondsunlight.com)'s
+deploy branch by `deploy/build_database.sh`, which `./docker-run.sh` runs. MariaDB loads it only
+when its volume is first created, so to reload it with the latest data:
 
 ```bash
-docker exec -i rs_machine_db mariadb -u ricsun -ppassword richmondsunlight < deploy/database.sql
-```
-
-Alternatively, for a complete refresh (removes all data and reloads from scratch):
-
-```bash
-./docker-stop.sh
-docker compose down
-docker volume rm rs-machine_db_data
+docker compose down -v
 ./docker-run.sh
 ```
 

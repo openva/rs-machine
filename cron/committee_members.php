@@ -1,9 +1,9 @@
 <?php
 
-////
-//// READ THROUGH THIS CODE BEFORE RUNNING IT
-//// You will need to manually mark all the existing committee memberships as ended.
-////
+/*
+ * Bring committee memberships up to date with LIS: add new members, and end the memberships of
+ * anybody LIS no longer lists as a member.
+ */
 
 include_once(__DIR__ . '/../includes/settings.inc.php');
 include_once(__DIR__ . '/../includes/functions.inc.php');
@@ -142,6 +142,12 @@ if (empty($legislators)) {
 $all_members = [];
 $total_members = 0;
 
+/*
+ * The people that LIS lists as each committee's members, by committee ID and then person ID. Only
+ * committees whose list was retrieved, and matched our legislators, appear here.
+ */
+$current_members = [];
+
 foreach ($committees as $committee) {
     // Build the committee number from chamber and lis_id
     $chamber_prefix = strtoupper($committee['chamber']) === 'HOUSE' ? 'H' : 'S';
@@ -246,6 +252,8 @@ foreach ($committees as $committee) {
             }
         }
 
+        $current_members[$committee['id']][$representative_id] = true;
+
         $all_members[] = [
             'committee_id' => $committee['id'],
             'representative_id' => $representative_id,
@@ -322,4 +330,40 @@ foreach ($all_members as $member) {
     }
 }
 
-$log->put('Committee member import complete: ' . $inserted . ' inserted, ' . $skipped . ' skipped (already exist).', 4);
+/*
+ * End the memberships of anybody that LIS no longer lists, on committees whose member lists we
+ * retrieved. (A committee whose list couldn't be retrieved keeps its members, rather than losing
+ * them all over an API error.)
+ */
+$ended = 0;
+foreach ($current_members as $committee_id => $people) {
+    $person_ids = array_keys($people);
+    $placeholders = implode(',', array_fill(0, count($person_ids), '?'));
+    $stmt = $GLOBALS['dbh']->prepare(
+        'UPDATE committee_members
+        SET date_ended = CURDATE()
+        WHERE
+            committee_id = ? AND
+            date_ended IS NULL AND
+            representative_id NOT IN (' . $placeholders . ')'
+    );
+    $stmt->execute(array_merge([$committee_id], $person_ids));
+    $ended += $stmt->rowCount();
+}
+
+/*
+ * A committee that has been disbanded or replaced has no members, so end any memberships that
+ * outlived it, as of the committee's end.
+ */
+$ended += $GLOBALS['dbh']->exec(
+    'UPDATE committee_members
+    JOIN committees ON committees.id = committee_members.committee_id
+    SET committee_members.date_ended = committees.date_ended
+    WHERE
+        committee_members.date_ended IS NULL AND
+        committees.date_ended IS NOT NULL AND
+        committees.date_ended <= CURDATE()'
+);
+
+$log->put('Committee member import complete: ' . $inserted . ' inserted, ' . $skipped
+    . ' skipped (already exist), ' . $ended . ' ended (no longer listed).', 4);
