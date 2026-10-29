@@ -32,7 +32,14 @@ fi
 if [ ! -d "richmondsunlight.com" ]; then
     git clone -b deploy https://github.com/openva/richmondsunlight.com.git
 else
-    cd richmondsunlight.com && git pull && cd ..
+    # The checkout may belong to another user (e.g. cloned on the CI runner by
+    # build_database.sh, outside this container), which git otherwise refuses to touch.
+    git config --global --add safe.directory "$PWD/richmondsunlight.com"
+    # In a subshell, so that a failure can't leave us in the wrong directory. Keep going with the
+    # copy we have, rather than failing over a network blip.
+    if ! (cd richmondsunlight.com && git pull --ff-only --quiet); then
+        echo "Could not update richmondsunlight.com; using the copy already here." >&2
+    fi
 fi
 
 rm -Rf includes
