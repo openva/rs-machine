@@ -255,6 +255,15 @@ return [
                           . 'hardcoded this exception; it is now declared here.',
     ],
 
+    'archive_websites' => [
+        'schedule' => '7,22,37,52 * * * *',
+        'in_all'   => false,
+        'timeout'  => 300,
+        'comment'  => 'Submits at most one legislator\'s website to the Wayback Machine per run, '
+                    . 'to spare it; each site is due monthly, or weekly in election season. '
+                    . 'Unrelated to LIS, so it runs around the clock.',
+    ],
+
     'log_prune' => [
         'schedule' => null,
         'in_all'   => true,

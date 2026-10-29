@@ -308,7 +308,12 @@ correctly and rewrites each narrative once as the session's phase changes — an
 entries ("Left in Finance") into bills' statuses ("failed committee"). LIS's CSV history prefixed
 entries with their chamber ("House: Left in Finance") and the API's doesn't, so rules must accept
 both. [utilities/translate_statuses.php](utilities/translate_statuses.php) applies them to past
-sessions, which cleanup.php doesn't revisit. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
+sessions, which cleanup.php doesn't revisit. `WebsiteArchiving` and `WaybackMachine` are
+how [cron/tasks/archive_websites.php](cron/tasks/archive_websites.php) has the Wayback Machine archive
+legislators' websites (`terms.url`), using Save Page Now 2 with `IA_ACCESS_KEY` and `IA_SECRET_KEY`:
+monthly, or weekly from May through November of their chamber's election years, one site per run.
+When each was last submitted is in `cron/website-archives.json`; the website gets the date of the
+latest capture from the Wayback Machine's CDX API instead. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
 richmondsunlight.com repo; if no (which is usually the case for cron-related code), it goes in
 `src/`.
 
@@ -512,6 +517,7 @@ trusting a copy in prose. As of writing:
 - **Full text:** :11, :31, :51, hours 6-23
 - **Votes:** four times daily at 10:04, 13:04, 16:04, 21:04
 - **Dockets:** :09, hours 6-15
+- **Archive websites:** :07, :22, :37, :52, around the clock (one legislator's site per run)
 - **Export to S3:** hourly at :05 (a plain crontab line; not a runner task)
 
 Each task also declares a `timeout` that must fit inside its own scheduling interval —

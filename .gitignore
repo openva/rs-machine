@@ -12,3 +12,4 @@ deploy/database_export.sh
 cron/votes.json
 deploy/database.sql
 deploy/local-test-records.sql
+cron/website-archives.json

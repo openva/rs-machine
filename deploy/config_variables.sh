@@ -25,6 +25,8 @@ variables=(
 	AWS_SECRET_KEY
 	AWS_ACCESS_KEY
 	API_URL
+	IA_ACCESS_KEY
+	IA_SECRET_KEY
 )
 
 # Iterate over the variables and make sure that they're all populated.
