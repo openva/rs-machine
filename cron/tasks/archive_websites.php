@@ -19,6 +19,7 @@ declare(strict_types=1);
 
 use RsMachine\TaskContext;
 use RsMachine\TaskResult;
+use RsMachine\WaybackAuthenticationException;
 use RsMachine\WaybackMachine;
 use RsMachine\WebsiteArchiving;
 
@@ -26,8 +27,9 @@ return function (TaskContext $ctx): TaskResult {
 
     $sites_per_run = 1;
 
-    $access_key = defined('IA_ACCESS_KEY') ? (string) IA_ACCESS_KEY : '';
-    $secret_key = defined('IA_SECRET_KEY') ? (string) IA_SECRET_KEY : '';
+    // Whitespace around a key makes SPN2 treat the request as anonymous.
+    $access_key = defined('IA_ACCESS_KEY') ? trim((string) IA_ACCESS_KEY) : '';
+    $secret_key = defined('IA_SECRET_KEY') ? trim((string) IA_SECRET_KEY) : '';
     if ($access_key === '' || $secret_key === '') {
         return TaskResult::failed('IA_ACCESS_KEY and IA_SECRET_KEY must be set');
     }
@@ -82,6 +84,8 @@ return function (TaskContext $ctx): TaskResult {
     $wayback = new WaybackMachine($access_key, $secret_key);
     try {
         $available = $wayback->availableSessions();
+    } catch (WaybackAuthenticationException $e) {
+        return TaskResult::failed($e->getMessage());
     } catch (RuntimeException $e) {
         // The Wayback Machine is sometimes down for days; that isn't worth an alert every run.
         return TaskResult::skipped('the Wayback Machine is unavailable: ' . $e->getMessage());
@@ -97,6 +101,13 @@ return function (TaskContext $ctx): TaskResult {
             $job_id = $wayback->saveWithOutlinks($url);
             $submitted++;
             $ctx->log->put('Submitted ' . $url . ' to the Wayback Machine (job ' . $job_id . ').', 2);
+        } catch (WaybackAuthenticationException $e) {
+            // SPN2 occasionally says "You need to be logged in" to a capture request just after
+            // accepting the same keys for availableSessions(). Not the site's fault, so it isn't
+            // recorded as tried, and it's tried again on the next run.
+            $ctx->log->put('The Wayback Machine refused our keys while submitting ' . $url . ': '
+                . $e->getMessage(), 4);
+            break;
         } catch (UnexpectedValueException $e) {
             // Refused, like a failed capture: tried again when next due, so that a site that's
             // always refused can't hold up the rest.

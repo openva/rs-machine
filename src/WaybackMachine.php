@@ -44,6 +44,7 @@ class WaybackMachine
      * the capture's job ID. The capture runs afterward; this doesn't wait for it, or report
      * whether it succeeded.
      *
+     * @throws WaybackAuthenticationException when SPN2 rejects the keys
      * @throws UnexpectedValueException when SPN2 refuses the request
      * @throws RuntimeException when SPN2 can't be reached
      */
@@ -89,6 +90,15 @@ class WaybackMachine
 
         if ($body === false) {
             throw new RuntimeException('Could not reach SPN2: ' . $error);
+        }
+
+        // SPN2 says "You need to be logged in" when a key is missing or the header is malformed,
+        // and returns an HTML error page when the keys are wrong.
+        if ($status === 401 || $status === 403) {
+            $decoded = json_decode((string) $body, true);
+            throw new WaybackAuthenticationException('SPN2 rejected IA_ACCESS_KEY and IA_SECRET_KEY '
+                . '(HTTP ' . $status . '): '
+                . ($decoded['message'] ?? substr(trim(strip_tags((string) $body)), 0, 200)));
         }
 
         $decoded = json_decode((string) $body, true);
