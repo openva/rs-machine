@@ -33,9 +33,9 @@ class TaskRunnerReconnectTest extends TestCase
 
     public function testADeadConnectionIsReplacedBeforeTheTaskRuns(): void
     {
-        $fresh = new PDO('sqlite::memory:');
+        $fresh = $this->livePdo();
         $reconnects = 0;
-        $runner = $this->runner(self::deadPdo(), function () use ($fresh, &$reconnects): array {
+        $runner = $this->runner($this->deadPdo(), function () use ($fresh, &$reconnects): array {
             $reconnects++;
             return [null, $fresh];
         });
@@ -51,7 +51,7 @@ class TaskRunnerReconnectTest extends TestCase
 
     public function testALiveConnectionIsKept(): void
     {
-        $live = new PDO('sqlite::memory:');
+        $live = $this->livePdo();
         $runner = $this->runner($live, function (): array {
             $this->fail('A live connection must not be replaced.');
         });
@@ -60,15 +60,27 @@ class TaskRunnerReconnectTest extends TestCase
         $this->assertSame($live, $GLOBALS['seen']);
     }
 
-    /** A connection that has been closed by the server, as PDO reports it. */
-    private static function deadPdo(): PDO
+    /*
+     * Stand-ins for PDO connections, so the test needs no PDO driver (the Docker container's PHP
+     * has none but MySQL's). The runner checks a connection only by running "SELECT 1" on it.
+     */
+
+    /** A connection that answers queries. */
+    private function livePdo(): PDO
     {
-        return new class ('sqlite::memory:') extends PDO {
-            public function query(string $query, ?int $fetchMode = null, mixed ...$fetchModeArgs): PDOStatement|false
-            {
-                throw new PDOException('SQLSTATE[HY000]: General error: 2006 MySQL server has gone away');
-            }
-        };
+        $pdo = $this->createStub(PDO::class);
+        $pdo->method('query')->willReturn($this->createStub(PDOStatement::class));
+        return $pdo;
+    }
+
+    /** A connection that has been closed by the server, as PDO reports it. */
+    private function deadPdo(): PDO
+    {
+        $pdo = $this->createStub(PDO::class);
+        $pdo->method('query')->willThrowException(
+            new PDOException('SQLSTATE[HY000]: General error: 2006 MySQL server has gone away')
+        );
+        return $pdo;
     }
 
     private function runner(PDO $dbh, Closure $reconnect): TaskRunner
