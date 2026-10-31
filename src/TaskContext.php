@@ -64,6 +64,24 @@ class TaskContext
     }
 
     /**
+     * This context with new database connections, after MySQL closed the old ones.
+     */
+    public function withConnections(?mysqli $db, ?PDO $dbh): self
+    {
+        return new self(
+            $this->log,
+            $db,
+            $dbh,
+            $this->memcached,
+            $this->sessionId,
+            $this->sessionYear,
+            $this->lisSessionId,
+            $this->lisApiSessionId,
+            $this->cronDir
+        );
+    }
+
+    /**
      * Absolute path to a file in cron/, e.g. $ctx->cronPath('summaries.csv').
      */
     public function cronPath(string $filename): string

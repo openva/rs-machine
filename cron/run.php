@@ -153,31 +153,53 @@ if ($argv[0] === '--due') {
  * includes/ repository, the connection is probed here first so this runner can report the failure
  * itself and let TaskRunner decide per task whether the database was required.
  */
-$db = null;
+/**
+ * Open the mysqli and PDO connections, either of which may be null when it cannot be had. It
+ * runs at the start, and again by TaskRunner whenever MySQL has closed them partway through a
+ * pass (see TaskRunner::reconnectIfClosed).
+ *
+ * @return array{0: ?mysqli, 1: ?PDO}
+ */
+$connect = static function () use ($log): array {
+    // Database reuses whatever handles are in these globals, which are dead on a reconnect.
+    $hadLogConnection = isset($GLOBALS['db_pdo']);
+    unset($GLOBALS['db'], $GLOBALS['db_pdo']);
 
-$probe = @mysqli_connect(PDO_SERVER, PDO_USERNAME, PDO_PASSWORD);
-if ($probe instanceof mysqli) {
-    mysqli_close($probe);
+    $db = null;
 
-    $database = new Database();
-    $database->connect_mysqli();
-    $db = $GLOBALS['db'] ?? null;
-} else {
-    $log->put('Could not connect to the database via mysqli: ' . mysqli_connect_error(), 8);
-}
+    $probe = @mysqli_connect(PDO_SERVER, PDO_USERNAME, PDO_PASSWORD);
+    if ($probe instanceof mysqli) {
+        mysqli_close($probe);
 
-try {
-    $dbh = new PDO(PDO_DSN, PDO_USERNAME, PDO_PASSWORD);
-    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    /*
-     * Unlike update.php, a dead PDO connection is not fatal here. The runner decides per task
-     * whether the database is required (see TaskRunner::needsDatabase), so `export` still runs
-     * and everything else fails loudly with a clear reason rather than the whole process dying.
-     */
-    $dbh = null;
-    $log->put('Could not connect to the database via PDO: ' . $e->getMessage(), 8);
-}
+        $database = new Database();
+        $database->connect_mysqli();
+        $db = $GLOBALS['db'] ?? null;
+    } else {
+        $log->put('Could not connect to the database via mysqli: ' . mysqli_connect_error(), 8);
+    }
+
+    try {
+        $dbh = new PDO(PDO_DSN, PDO_USERNAME, PDO_PASSWORD);
+        $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $e) {
+        /*
+         * Unlike update.php, a dead PDO connection is not fatal here. The runner decides per task
+         * whether the database is required (see TaskRunner::needsDatabase), so `export` still runs
+         * and everything else fails loudly with a clear reason rather than the whole process dying.
+         */
+        $dbh = null;
+        $log->put('Could not connect to the database via PDO: ' . $e->getMessage(), 8);
+    }
+
+    // Log writes to the database through this global, when a task has set it.
+    if ($hadLogConnection && $dbh !== null) {
+        $GLOBALS['db_pdo'] = $dbh;
+    }
+
+    return [$db, $dbh];
+};
+
+[$db, $dbh] = $connect();
 
 $memcached = null;
 if (defined('MEMCACHED_SERVER') && MEMCACHED_SERVER !== '' && class_exists('Memcached')) {
@@ -202,7 +224,7 @@ $context = new TaskContext(
     cronDir: __DIR__
 );
 
-$runner = new TaskRunner($manifest, $context, __DIR__);
+$runner = new TaskRunner($manifest, $context, __DIR__, $connect);
 
 /*
  * ---- Run -----------------------------------------------------------------------------------

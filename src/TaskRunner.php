@@ -48,11 +48,14 @@ class TaskRunner
 
     /**
      * @param array<string, mixed> $manifest Contents of cron/tasks.php, tasks and config together.
+     * @param (Closure(): array{0: ?\mysqli, 1: ?\PDO})|null $reconnect Opens new database
+     *        connections, for when MySQL has closed the ones a pass started with.
      */
     public function __construct(
         array $manifest,
         private TaskContext $context,
-        private string $cronDir
+        private string $cronDir,
+        private ?Closure $reconnect = null
     ) {
         [$this->manifest, $config] = self::partitionManifest($manifest);
 
@@ -245,6 +248,8 @@ class TaskRunner
         $started = hrtime(true);
 
         try {
+            $this->reconnectIfClosed($name);
+
             if ($this->needsDatabase($name) && $this->context->db === null) {
                 throw new RuntimeException('no database connection');
             }
@@ -281,6 +286,52 @@ class TaskRunner
             return false;
         } finally {
             $this->releaseLock($lock);
+        }
+    }
+
+    /**
+     * Replace the database connections if MySQL has closed them.
+     *
+     * An "all" pass runs every task on the connections run.php opened at the start. A task that
+     * spends longer than MySQL's wait_timeout without touching the database (summarize_fis and
+     * bills_status_narratives wait on outside services for up to 15 minutes) lets MySQL close
+     * them, and every later task then failed within milliseconds: "MySQL server has gone away".
+     */
+    private function reconnectIfClosed(string $name): void
+    {
+        if ($this->reconnect === null) {
+            return;
+        }
+        $db = $this->context->db;
+        $dbh = $this->context->dbh;
+        if (($db === null || self::mysqliIsOpen($db)) && ($dbh === null || self::pdoIsOpen($dbh))) {
+            return;
+        }
+
+        [$db, $dbh] = ($this->reconnect)();
+        $this->context = $this->context->withConnections($db, $dbh);
+        $this->context->log->put(
+            'The database connection had closed before task "' . $name . '"; '
+            . ($db !== null || $dbh !== null ? 'reconnected.' : 'could not reconnect.'),
+            $db !== null || $dbh !== null ? 2 : 7
+        );
+    }
+
+    private static function pdoIsOpen(\PDO $dbh): bool
+    {
+        try {
+            return $dbh->query('SELECT 1') !== false;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private static function mysqliIsOpen(\mysqli $db): bool
+    {
+        try {
+            return @$db->query('SELECT 1') !== false;
+        } catch (Throwable) {
+            return false;
         }
     }
 
