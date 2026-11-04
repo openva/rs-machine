@@ -40,6 +40,14 @@ class ImportDeactivationStub extends Import
         $this->memberPayload = $memberPayload;
     }
 
+    /**
+     * The chambers' websites are unreachable, so legislator_in_lis() consults the API.
+     */
+    protected function http_get($url)
+    {
+        return false;
+    }
+
     protected function lis_api_request($path, array $query = [])
     {
         if ($path === '/Member/api/getmembersasync') {

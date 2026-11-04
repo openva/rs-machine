@@ -140,7 +140,11 @@ $stmt = $db->prepare($sql);
 $stmt->execute();
 $known_legislators = array_merge($known_legislators, $stmt->fetchAll(PDO::FETCH_OBJ));
 
-foreach ($known_legislators as &$known_legislator) {
+/*
+ * These loops are by value, not by reference: the rows are objects, so they can be changed this
+ * way, and a reference left behind by one loop has a later loop overwrite the array's elements.
+ */
+foreach ($known_legislators as $known_legislator) {
     $digits = preg_replace('/[^0-9]/', '', (string)$known_legislator->lis_id);
     if ($digits === '') {
         continue;
@@ -174,8 +178,8 @@ foreach ($senate_members as $member) {
 $log->put('Retrieved ' . count($senators) . ' senators from LIS API.', 1);
 
 if (count($senators) < 35) {
-    $log->put('Too few senators were found to be plausible. Abandoning efforts.', 5);
-    return;
+    return \RsMachine\TaskResult::failed('only ' . count($senators) . ' senators were found in the '
+        . 'LIS API, too few to be plausible');
 }
 
 /*
@@ -194,8 +198,8 @@ foreach ($house_members as $member) {
 $log->put('Retrieved ' . count($delegates) . ' delegates from LIS API.', 1);
 
 if (count($delegates) < 90) {
-    $log->put('Since too few delegates were found to be plausible, abandoning efforts.', 5);
-    return;
+    return \RsMachine\TaskResult::failed('only ' . count($delegates) . ' delegates were found in the '
+        . 'LIS API, too few to be plausible');
 }
 
 /*
@@ -220,10 +224,18 @@ $stmt = $db->prepare($sql);
 $stmt->execute();
 $legislators = $stmt->fetchAll(PDO::FETCH_OBJ);
 
-foreach ($legislators as &$legislator) {
+/*
+ * Legislators are refreshed in order of when their record was last modified. So when one can't be
+ * refreshed, mark it modified anyway, or the same ones would be tried first every day, and enough
+ * of them would stop all refreshes.
+ */
+$touch = $db->prepare('UPDATE terms SET date_modified = NOW() WHERE id = :id');
+
+foreach ($legislators as $legislator) {
     $api_data = $import->fetch_legislator_data_api($legislator->chamber, $legislator->lis_id);
     if ($api_data === false) {
         $log->put('Error: Could not refresh API data for ' . $legislator->name . '.', 5);
+        $touch->execute([':id' => $legislator->id]);
         continue;
     }
 
@@ -237,7 +249,9 @@ foreach ($legislators as &$legislator) {
     $api_data['name_formatted'] = rebuild_name_formatted($api_data);
 
     $api_data['id'] = $legislator->id;
-    $import->update_legislator($api_data);
+    if ($import->update_legislator($api_data) !== true) {
+        $touch->execute([':id' => $legislator->id]);
+    }
 
     /*
      * Remove this legislator's cached record
@@ -250,7 +264,7 @@ foreach ($legislators as &$legislator) {
 /*
  * First see if we have records of any legislators who are no longer in office.
  */
-foreach ($known_legislators as &$known_legislator) {
+foreach ($known_legislators as $known_legislator) {
     $id = $known_legislator->lis_id;
 
     /*
@@ -333,7 +347,7 @@ $required_fields = array(
 foreach ($senators as $lis_id => $name) {
     $match = false;
 
-    foreach ($known_legislators as &$known_legislator) {
+    foreach ($known_legislators as $known_legislator) {
         if ($known_legislator->lis_id == $lis_id) {
             $match = true;
             continue(2);

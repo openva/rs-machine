@@ -47,6 +47,14 @@ class ImportFixtureStub extends Import
     }
 
     /**
+     * The House's and Senate's websites aren't consulted: as far as this test knows, they're down.
+     */
+    protected function http_get($url)
+    {
+        return false;
+    }
+
+    /**
      * Provide fixture responses keyed by member number and path.
      */
     protected function lis_api_request($path, array $query = [])

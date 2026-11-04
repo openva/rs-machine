@@ -72,31 +72,30 @@ class LegislatorWebsiteCheckTest extends TestCase
     private const SENATE_URL = 'https://apps.senate.virginia.gov/Senator/index.php';
 
     /**
-     * Sample HTML representative of the House member page.
-     * Includes names that appear in recent log warnings so the tests reflect
-     * the real scenario that motivated this change.
+     * Excerpts of https://house.vga.virginia.gov/members, which links to each member by their ID.
+     * Two members share a surname.
      */
     private const HOUSE_HTML = '<html><body>
         <h1>Members of the House of Delegates</h1>
         <ul class="member-list">
-            <li><a href="/members/knight">Knight, Barry D.</a></li>
-            <li><a href="/members/mcquinn">McQuinn, Delores L.</a></li>
-            <li><a href="/members/morefield">Morefield, James W. (Will)</a></li>
-            <li><a href="/members/watts">Watts, Vivian E.</a></li>
-            <li><a href="/members/wright">Wright, Thomas C.</a></li>
+            <li><a href="/members/H0206">Knight, Barry D.</a></li>
+            <li><a href="/members/H0207">McQuinn, Delores L.</a></li>
+            <li><a href="/members/H0108">Watts, Vivian E.</a></li>
+            <li><a href="/members/H0342">Scott, Phillip A.</a></li>
+            <li><a href="/members/H0136">Wright, Thomas C.</a></li>
         </ul>
     </body></html>';
 
     /**
-     * Sample HTML representative of the Senate member page.
+     * Excerpts of https://apps.senate.virginia.gov/Senator/index.php, which links to each member
+     * by their ID (with trailing spaces).
      */
     private const SENATE_HTML = '<html><body>
         <h1>Members of the Senate</h1>
         <table>
-            <tr><td><a href="/Senator/aird">Lashrecse D. Aird</a></td></tr>
-            <tr><td><a href="/Senator/boysko">Jennifer B. Boysko</a></td></tr>
-            <tr><td><a href="/Senator/ebbin">Adam P. Ebbin</a></td></tr>
-            <tr><td><a href="/Senator/pillion">Todd E. Pillion</a></td></tr>
+            <tr><td><a href="//apps.senate.virginia.gov/Senator/memberpage.php?id=S113 ">Lashrecse D. Aird</a></td></tr>
+            <tr><td><a href="//apps.senate.virginia.gov/Senator/memberpage.php?id=S85  ">Adam P. Ebbin</a></td></tr>
+            <tr><td><a href="//apps.senate.virginia.gov/Senator/memberpage.php?id=S100 ">Todd E. Pillion</a></td></tr>
         </table>
     </body></html>';
 
@@ -108,7 +107,7 @@ class LegislatorWebsiteCheckTest extends TestCase
     {
         $import = new GaWebsiteStub(new NullLog(), [self::HOUSE_URL => self::HOUSE_HTML]);
 
-        $this->assertTrue($import->legislator_in_lis('H0100', 'Watts, Vivian'));
+        $this->assertTrue($import->legislator_in_lis('H0108', 'Watts, Vivian'));
     }
 
     public function testHouseMemberNotOnWebsiteReturnsFalse(): void
@@ -126,7 +125,7 @@ class LegislatorWebsiteCheckTest extends TestCase
     {
         $import = new GaWebsiteStub(new NullLog(), [self::SENATE_URL => self::SENATE_HTML]);
 
-        $this->assertTrue($import->legislator_in_lis('S0050', 'Pillion, Todd'));
+        $this->assertTrue($import->legislator_in_lis('S0100', 'Pillion, Todd'));
     }
 
     public function testSenateMemberNotOnWebsiteReturnsFalse(): void
@@ -147,7 +146,7 @@ class LegislatorWebsiteCheckTest extends TestCase
             self::SENATE_URL => self::SENATE_HTML,
         ]);
 
-        $import->legislator_in_lis('H0100', 'Watts, Vivian');
+        $import->legislator_in_lis('H0108', 'Watts, Vivian');
 
         $this->assertArrayHasKey(self::HOUSE_URL, $import->fetch_counts);
         $this->assertArrayNotHasKey(self::SENATE_URL, $import->fetch_counts);
@@ -160,7 +159,7 @@ class LegislatorWebsiteCheckTest extends TestCase
             self::SENATE_URL => self::SENATE_HTML,
         ]);
 
-        $import->legislator_in_lis('S0050', 'Pillion, Todd');
+        $import->legislator_in_lis('S0100', 'Pillion, Todd');
 
         $this->assertArrayHasKey(self::SENATE_URL, $import->fetch_counts);
         $this->assertArrayNotHasKey(self::HOUSE_URL, $import->fetch_counts);
@@ -174,9 +173,9 @@ class LegislatorWebsiteCheckTest extends TestCase
     {
         $import = new GaWebsiteStub(new NullLog(), [self::HOUSE_URL => self::HOUSE_HTML]);
 
-        $import->legislator_in_lis('H0100', 'Watts, Vivian');
-        $import->legislator_in_lis('H0200', 'Wright, Thomas');
-        $import->legislator_in_lis('H0300', 'Knight, Barry');
+        $import->legislator_in_lis('H0108', 'Watts, Vivian');
+        $import->legislator_in_lis('H0136', 'Wright, Thomas');
+        $import->legislator_in_lis('H0206', 'Knight, Barry');
 
         $this->assertSame(
             1,
@@ -189,7 +188,7 @@ class LegislatorWebsiteCheckTest extends TestCase
     {
         $import = new GaWebsiteStub(new NullLog(), [self::SENATE_URL => self::SENATE_HTML]);
 
-        $import->legislator_in_lis('S0050', 'Pillion, Todd');
+        $import->legislator_in_lis('S0100', 'Pillion, Todd');
         $import->legislator_in_lis('S0085', 'Ebbin, Adam');
 
         $this->assertSame(
@@ -207,7 +206,7 @@ class LegislatorWebsiteCheckTest extends TestCase
     {
         $api_payload = [
             'Members' => [[
-                'MemberNumber'   => 'H0100',
+                'MemberNumber'   => 'H0108',
                 'MemberStatus'   => 'Active',
                 'ServiceEndDate' => null,
             ]],
@@ -215,33 +214,66 @@ class LegislatorWebsiteCheckTest extends TestCase
         ];
         $import = new GaWebsiteStub(new NullLog(), [self::HOUSE_URL => false], $api_payload);
 
-        $this->assertTrue($import->legislator_in_lis('H0100', 'Watts, Vivian'));
+        $this->assertTrue($import->legislator_in_lis('H0108', 'Watts, Vivian'));
     }
 
     public function testWebsiteFailureFallsBackToApiAndReturnsFalse(): void
     {
         $import = new GaWebsiteStub(new NullLog(), [self::HOUSE_URL => false], []);
 
-        $this->assertFalse($import->legislator_in_lis('H0100', 'Watts, Vivian'));
+        $this->assertFalse($import->legislator_in_lis('H0108', 'Watts, Vivian'));
     }
 
     // -------------------------------------------------------------------------
-    // Backward compatibility: no name provided skips website and uses API
+    // Members are found by their ID, not their name
     // -------------------------------------------------------------------------
 
-    public function testNoNameSkipsWebsiteAndUsesApi(): void
+    /**
+     * A departed delegate who shares a surname with one still serving is not still listed.
+     */
+    public function testADepartedMemberWhoSharesASurnameIsntListed(): void
+    {
+        $import = new GaWebsiteStub(new NullLog(), [self::HOUSE_URL => self::HOUSE_HTML]);
+
+        $this->assertFalse($import->legislator_in_lis('H0155', 'Scott, Donald'));
+    }
+
+    /**
+     * A member's ID doesn't match one that merely begins with it (S10 vs. S100).
+     */
+    public function testAnIdIsntMatchedByALongerOne(): void
+    {
+        $import = new GaWebsiteStub(new NullLog(), [self::SENATE_URL => self::SENATE_HTML]);
+
+        $this->assertFalse($import->legislator_in_lis('S0010', 'Departed, Jane'));
+        $this->assertTrue($import->legislator_in_lis('S0085', 'Ebbin, Adam'));
+    }
+
+    public function testTheWebsiteIsCheckedWithoutAName(): void
+    {
+        $import = new GaWebsiteStub(new NullLog(), [self::HOUSE_URL => self::HOUSE_HTML]);
+
+        $this->assertTrue($import->legislator_in_lis('H0108'));
+        $this->assertSame(1, $import->fetch_counts[self::HOUSE_URL] ?? 0);
+    }
+
+    /**
+     * A page that links to nobody by ID has changed its layout; it isn't evidence that everybody
+     * has left office.
+     */
+    public function testAPageWithoutMemberLinksFallsBackToTheApi(): void
     {
         $api_payload = [
             'Members' => [[
-                'MemberNumber'   => 'H0100',
+                'MemberNumber'   => 'H0108',
                 'MemberStatus'   => 'Active',
                 'ServiceEndDate' => null,
             ]],
             'Success' => true,
         ];
-        $import = new GaWebsiteStub(new NullLog(), [self::HOUSE_URL => self::HOUSE_HTML], $api_payload);
+        $page = '<html><body><p>Watts, Vivian E.</p></body></html>';
+        $import = new GaWebsiteStub(new NullLog(), [self::HOUSE_URL => $page], $api_payload);
 
-        $this->assertTrue($import->legislator_in_lis('H0100'));
-        $this->assertEmpty($import->fetch_counts, 'Website should not be queried when no name is provided');
+        $this->assertTrue($import->legislator_in_lis('H0108', 'Watts, Vivian'));
     }
 }

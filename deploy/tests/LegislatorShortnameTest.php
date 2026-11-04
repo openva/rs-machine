@@ -43,6 +43,14 @@ class ImportShortnameStub extends Import
         $this->member = $member;
     }
 
+    /**
+     * The House's and Senate's websites aren't consulted: as far as this test knows, they're down.
+     */
+    protected function http_get($url)
+    {
+        return false;
+    }
+
     protected function lis_api_request($path, array $query = [])
     {
         if ($path === '/Member/api/getmembersasync') {
