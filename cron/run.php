@@ -8,16 +8,19 @@
  *   php cron/run.php all              Run every task with in_all => true.
  *   php cron/run.php summaries        Run one task by name.
  *   php cron/run.php bills summaries  Run several, in the order given.
- *   php cron/run.php --due            Run whatever the manifest says is due this minute.
+ *   php cron/run.php --due            Start whatever the manifest says is due this minute.
  *   php cron/run.php --list           Print the manifest as a table and exit.
  *   php cron/run.php --crontab        Print the crontab lines this manifest replaces.
  *
  * --due is the mode that lets deploy/crontab.txt collapse to a single heartbeat line:
  *
- *   * * * * * /usr/bin/flock -n -E 0 /run/lock/rs-tick.lock /usr/bin/php rs-machine/cron/run.php --due
+ *   * * * * * /usr/bin/php rs-machine/cron/run.php --due
  *
- * Exits 0 when every task completed or skipped, 1 when any failed. Cron mails on non-zero output,
- * so a failing task becomes visible without needing to watch the logs.
+ * It starts each due job ("all", or a task) as a separate `run.php <job>` process and exits at
+ * once, so a long-running job never delays another. Don't wrap it in flock: the jobs it starts
+ * would inherit the lock, and hold it as long as they run.
+ *
+ * Otherwise, exits 0 when every task completed or skipped, 1 when any failed.
  */
 
 declare(strict_types=1);
@@ -128,8 +131,44 @@ if ($argv[0] === '--list' || $argv[0] === '--crontab') {
  */
 
 if ($argv[0] === '--due') {
-    $mode = 'due';
-} elseif ($argv[0] === 'all') {
+    /*
+     * Start each due job as its own process, and exit. Running them here, one after another,
+     * meant a long "all" pass kept later minutes' tasks from starting at all (see
+     * TaskRunner::jobsDueAt). Their output goes to logs/run-<job>.out, overwritten by each run,
+     * which keeps anything PHP prints outside the log, such as a fatal error.
+     */
+    $dispatcher = new TaskRunner(
+        $manifest,
+        new TaskContext($log, null, null, null, (int) SESSION_ID, (int) SESSION_YEAR, (string) SESSION_LIS_ID, '', __DIR__),
+        __DIR__
+    );
+
+    $log_dir = __DIR__ . '/../logs';
+    if (!is_dir($log_dir)) {
+        @mkdir($log_dir, 0775, true);
+    }
+
+    /*
+     * `now` uses the server's configured timezone, matching how cron itself interprets the
+     * schedules these expressions were copied from. Most minutes nothing is due, and this exits
+     * without logging, to avoid burying real messages.
+     */
+    $ok = true;
+    foreach ($dispatcher->jobsDueAt(new DateTimeImmutable('now')) as $job) {
+        $output = is_dir($log_dir) ? $log_dir . '/run-' . $job . '.out' : '/dev/null';
+        $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' '
+            . escapeshellarg($job) . ' > ' . escapeshellarg($output) . ' 2>&1 &';
+        exec($command, $ignored, $status);
+        if ($status !== 0) {
+            $log->put('Could not start "' . $job . '" (exit status ' . $status . ').', 7);
+            $ok = false;
+        }
+    }
+
+    exit($ok ? 0 : 1);
+}
+
+if ($argv[0] === 'all') {
     $mode = 'all';
 } else {
     $mode = 'named';
@@ -230,30 +269,8 @@ $runner = new TaskRunner($manifest, $context, __DIR__, $connect);
  * ---- Run -----------------------------------------------------------------------------------
  */
 
-$names = match ($mode) {
-    /*
-     * `now` uses the server's configured timezone, matching how cron itself interprets the
-     * schedules these expressions were copied from.
-     */
-    'due'   => $runner->tasksDueAt(new DateTimeImmutable('now')),
-    'all'   => $runner->tasksInAll(),
-    'named' => $argv,
-};
+$ok = $mode === 'all' ? $runner->runAll() : $runner->runMany($argv);
 
-/*
- * A tick with nothing scheduled is the common case — 50-odd of every 60 minutes — so it exits
- * silently rather than logging, to avoid burying real messages.
- */
-if ($names === []) {
-    exit(0);
-}
-
-$ok = $runner->runMany($names);
-
-$log->put(
-    ($mode === 'due' ? 'Scheduled tick' : 'Run ' . implode(',', $names)) . ': '
-    . $runner->summary(),
-    2
-);
+$log->put('Run ' . ($mode === 'all' ? 'all' : implode(',', $argv)) . ': ' . $runner->summary(), 2);
 
 exit($ok ? 0 : 1);

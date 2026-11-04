@@ -18,7 +18,7 @@ php cron/run.php --list        # every task, its schedule, and its timeout
 php cron/run.php summaries     # run one task
 php cron/run.php bills vote    # run several, in the order given
 php cron/run.php all           # run the combined "all" pass
-php cron/run.php --due         # run whatever is scheduled for this minute
+php cron/run.php --due         # start whatever is scheduled for this minute
 ```
 
 In production, `deploy/crontab.txt` contains a single per-minute `--due` heartbeat rather than one

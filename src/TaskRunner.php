@@ -134,6 +134,41 @@ class TaskRunner
      */
     public function tasksDueAt(DateTimeInterface $now): array
     {
+        $due = [];
+        foreach ($this->jobsDueAt($now) as $job) {
+            if ($job === 'all') {
+                array_push($due, ...$this->tasksInAll());
+            } else {
+                $due[] = $job;
+            }
+        }
+
+        /*
+         * Deduplicate and restore manifest order. A task cannot legitimately arrive twice — the
+         * manifest invariant forbids being both scheduled and in "all" — but ordering still
+         * matters, because "all" expands to a list that must keep log_prune last.
+         */
+        $due = array_unique($due);
+
+        return array_values(array_filter(
+            array_keys($this->manifest),
+            static fn(string $name): bool => in_array($name, $due, true)
+        ));
+    }
+
+    /**
+     * What `--due` starts at the given time, each as its own process: "all" when the combined
+     * pass is due, then each task whose own schedule is due, in manifest order.
+     *
+     * Separate processes are the point. When one process ran a minute's tasks in turn, behind a
+     * lock on the whole tick, a pass that ran past the minute made the next minutes' ticks exit
+     * without running anything: an "all" pass longer than a minute meant summaries (:02) never
+     * ran. Overlap is prevented by the per-task locks, and by the lock that runAll() takes.
+     *
+     * @return array<int, string> "all", and task names.
+     */
+    public function jobsDueAt(DateTimeInterface $now): array
+    {
         if (!class_exists(CronExpression::class)) {
             $this->context->log->put(
                 'dragonmantank/cron-expression is not installed, so --due cannot determine what '
@@ -146,7 +181,7 @@ class TaskRunner
         $due = [];
 
         if ($this->allSchedule !== null && $this->isDue($this->allSchedule, '@all', $now)) {
-            $due = $this->tasksInAll();
+            $due[] = 'all';
         }
 
         foreach ($this->manifest as $name => $task) {
@@ -172,17 +207,7 @@ class TaskRunner
             }
         }
 
-        /*
-         * Deduplicate and restore manifest order. A task cannot legitimately arrive twice — the
-         * manifest invariant forbids being both scheduled and in "all" — but ordering still
-         * matters, because "all" expands to a list that must keep log_prune last.
-         */
-        $due = array_unique($due);
-
-        return array_values(array_filter(
-            array_keys($this->manifest),
-            static fn(string $name): bool => in_array($name, $due, true)
-        ));
+        return $due;
     }
 
     /**
@@ -217,6 +242,32 @@ class TaskRunner
         }
 
         return $ok;
+    }
+
+    /**
+     * Run the "all" pass, unless an earlier one is still running.
+     *
+     * Each task's own lock would stop it from overlapping itself, but two passes at once would
+     * run their tasks out of order, each skipping whatever the other held.
+     *
+     * @return bool True when every task completed or skipped, or an earlier pass is still running.
+     */
+    public function runAll(): bool
+    {
+        $lock = $this->acquireLock('all');
+        if ($lock === null) {
+            $this->context->log->put(
+                'The "all" pass was skipped, because the previous one is still running.',
+                5
+            );
+            return true;
+        }
+
+        try {
+            return $this->runMany($this->tasksInAll());
+        } finally {
+            $this->releaseLock($lock);
+        }
     }
 
     /**

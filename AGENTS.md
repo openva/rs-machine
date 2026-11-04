@@ -118,7 +118,8 @@ docker exec rs_machine php cron/run.php bills summaries
 # Run the combined "all" pass
 docker exec rs_machine php cron/run.php all
 
-# Run whatever the manifest says is due this minute (what production's heartbeat does)
+# Start whatever the manifest says is due this minute, each job as its own background process,
+# with its output in logs/run-<job>.out (what production's heartbeat does)
 docker exec rs_machine php cron/run.php --due
 ```
 
@@ -160,7 +161,11 @@ timeout, whether it belongs to the combined "all" pass, and which CSVs to fetch 
 `cron/run.php` reads that manifest and executes what was asked for.
 
 The runner owns the concerns that were previously absent or scattered:
-- **Per-task locking**, keyed on the task name, so a task cannot overlap itself however it was invoked
+- **Per-task locking**, keyed on the task name, so a task cannot overlap itself however it was invoked,
+  plus a lock on the "all" pass, so two passes can't overlap
+- **Separate processes per job**: `--due` starts "all" and each scheduled task as its own process,
+  so a long pass can't keep later tasks from starting. The heartbeat must not be wrapped in
+  `flock`, since the jobs it starts would inherit the lock
 - **Per-task timeouts** from the manifest, rather than one global 20-minute ceiling
 - **Failure isolation** — one task throwing no longer aborts the rest of a pass
 - **Per-task timing and structured logging**, including a one-line summary of a whole pass
@@ -227,8 +232,8 @@ an update. `run.php` is CLI-only.
 **5. Data Flow**
 ```
 crontab heartbeat (* * * * * run.php --due)
-    ↓ (consults cron/tasks.php for what is due)
-cron/run.php
+    ↓ (consults cron/tasks.php for what is due, and starts each due job as its own process)
+cron/run.php <job>
     ↓ (takes the task's lock, then fetches its declared CSVs via fetch_csv.sh)
 LIS FTP Server → CSV files in cron/
     ↓
