@@ -11,14 +11,9 @@
 
 
 ###
-# UPDATE BILLS' INTRODUCTION DATE
-# Perform a single query to provide the introduction date for each bill, based
-# on the date field within each bill' legislative history.  This only works if
-# HISTORY.CSV has been republished since this bill appeared.  So we do something
-# really inefficient, which is that we update not just where date_introduced
-# is null, but we update *all* bills.  That way we compensate for the
-# possibility of having previously made incorrect assumptions about the date
-# introduced (see next query) and correct them.
+# FILL IN BILLS' INTRODUCTION DATE
+# bills.php stores the date that LIS's BILLS.CSV gives. For a bill that it gives none, use the
+# date of the bill's earliest history entry.
 ###
 $sql = $dbh->prepare('UPDATE bills
 						SET date_introduced =
@@ -33,15 +28,9 @@ $sql->bindParam(':session_id', $session_id);
 $result = $sql->execute();
 
 ###
-# MAKE ANOTHER ATTEMPT TO UPDATE BILLS' INTRODUCTION DATE
-# During session, new bills are filed and syndicated via BILLS.CSV prior to
-# the availability of detailed information via the daily-published HISTORY.CSV.
-# To compensate for this, we simply set null introduction dates to equal today's
-# date. The hope is that, for any of these that are inaccurate, they'll be
-# overridden by the HISTORY.CSV data down the line. The reason that we do this
-# is that much of the site depends on having an introduction date.  We can't
-# make people wait 24 hours to see what's been introduced, so it makes more
-# sense to meet that minimum data level and move on.
+# AS A LAST RESORT, USE THE DATE THE BILL WAS ADDED
+# Much of the site depends on having an introduction date, so a bill with neither a date from LIS
+# nor any history yet gets the date we first saw it.
 ###
 $sql = $dbh->prepare('UPDATE bills
 						SET date_introduced = DATE_FORMAT( date_created, "%Y-%m-%d" )

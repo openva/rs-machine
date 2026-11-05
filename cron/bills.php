@@ -1,5 +1,6 @@
 <?php
 
+use RsMachine\BillsCsv;
 use RsMachine\CatchLineRepair;
 
 /*
@@ -129,6 +130,7 @@ foreach ($bills as $bill) {
      * Clean up the bill CSV
      */
     $import = new Import($log);
+    $introduced = BillsCsv::introductionDate($bill);
     $bill = $import->prepare_bill($bill);
 
     // LIS's CSV replaces every non-ASCII character in the catch line with "?" (e.g. "Damaré"
@@ -225,6 +227,11 @@ foreach ($bills as $bill) {
                 ),
 			status="' . $bill['status'] . '",
             lis_id=' . $bill_ids_map[$bill['number']];
+
+    // LIS's date of introduction is better than any we can infer: see cleanup.php's fallbacks.
+    if ($introduced !== null) {
+        $sql .= ', date_introduced="' . $introduced . '"';
+    }
     if (isset($sql_suffix)) {
         $sql = $sql . $sql_suffix;
     }
