@@ -9,6 +9,40 @@
 #
 ###
 
+/*
+ * mysqli reports an error by returning false, without throwing, so each of this file's mysqli
+ * statements goes through $query, which logs any error with the start of the statement. A failed
+ * statement doesn't stop the rest of the cleanup, but the task reports that it failed.
+ *
+ * MySQL closes a connection that's been idle for wait_timeout (300 seconds in production), and
+ * this file's first steps use PDO, so the mysqli connection can be closed by the time it's used.
+ * When it has been (errors 2006 and 2013), $query reconnects and tries the statement again.
+ */
+$failed_statements = 0;
+$query = static function (string $sql) use ($log, &$failed_statements) {
+    $result = mysqli_query($GLOBALS['db'], $sql);
+    if ($result === false && in_array(mysqli_errno($GLOBALS['db']), [2006, 2013], true)) {
+        try {
+            $db = @mysqli_connect(PDO_SERVER, PDO_USERNAME, PDO_PASSWORD, MYSQL_DATABASE);
+        } catch (mysqli_sql_exception $e) {
+            $db = false;
+        }
+        if ($db instanceof mysqli) {
+            mysqli_query($db, 'SET NAMES "utf8"');
+            $GLOBALS['db'] = $db;
+            $log->put('Cleanup reconnected to the database via mysqli.', 3);
+            $result = mysqli_query($db, $sql);
+        }
+    }
+    if ($result === false) {
+        $failed_statements++;
+        $log->put('Cleanup statement failed: ' . mysqli_error($GLOBALS['db']) . ' ('
+            . mysqli_errno($GLOBALS['db']) . '), in: '
+            . mb_substr(preg_replace('/\s+/', ' ', trim($sql)), 0, 150), 5);
+    }
+    return $result;
+};
+
 
 ###
 # FILL IN BILLS' INTRODUCTION DATE
@@ -61,7 +95,7 @@ $sql = 'UPDATE bills
 		WHERE
 			(status IS NULL OR status="") AND
 			session_id=' . $session_id;
-$result = mysqli_query($GLOBALS['db'], $sql);
+$result = $query($sql);
 
 ###
 # UPDATE BILLS' OUTCOME FLAG
@@ -73,14 +107,14 @@ $sql = 'UPDATE bills
 		WHERE (status="failed committee" OR status="failed" OR status="failed house"
 			OR status="failed senate" OR status="vetoed by governor" OR status="stricken")
 		AND (outcome IS NULL OR outcome="passed") AND session_id=' . $session_id;
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 $sql = 'UPDATE bills
 		SET outcome="passed"
 		WHERE (status="signed by governor" OR status="enacted") AND
         (outcome IS NULL OR outcome="failed") AND
         session_id=' . $session_id;
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 $sql = 'UPDATE bills
 		SET outcome = NULL
@@ -95,14 +129,14 @@ $sql = 'UPDATE bills
             status != "signed by governor" AND
             status != "enacted" AND
             session_id=' . $session_id;
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 // Mark bills as failed if their status is still "introduced" after the session is over.
 if (IN_SESSION == false && time() > strtotime(SESSION_END)) {
     $sql = 'UPDATE bills
             SET outcome="failed"
             WHERE status="introduced" AND session_id = ' . ($session_id - 1);
-    mysqli_query($GLOBALS['db'], $sql);
+    $query($sql);
 }
 
 ###
@@ -120,7 +154,7 @@ $sql = 'UPDATE bills
 			ORDER BY date_introduced DESC
 			LIMIT 1)
 		WHERE session_id=' . $session_id . ' AND full_text IS NULL';
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 ###
 # PERIODICALLY SYNCHRONIZE BILLS' FULL TEXT
@@ -139,7 +173,7 @@ $sql = 'UPDATE bills
 		WHERE session_id=' . $session_id . '
 		ORDER BY RAND()
 		LIMIT 50';
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 ###
 # DEAL WITH MISSING FULL TEXT RECORDS
@@ -155,7 +189,7 @@ $sql = 'INSERT INTO
         WHERE
             bills_full_text.bill_id IS NULL AND
             bills.date_introduced IS NOT NULL';
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 ###
 # CLEAN UP STRAY CONTROL CHARACTERS
@@ -165,7 +199,7 @@ mysqli_query($GLOBALS['db'], $sql);
 $sql = 'UPDATE bills
 		SET summary = REPLACE(summary, "Â", "")
 		WHERE session_id=' . $session_id;
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 ###
 # UPDATE BILLS' SUMMARY HASHES
@@ -179,7 +213,7 @@ $sql = 'UPDATE bills
 		WHERE
 			NOT (summary_hash <=> CONVERT(MD5(summary) USING latin1)) AND
 			session_id = ' . $session_id;
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 ###
 # MARK BILLS AS INCORPORATED INTO ANOTHER BILL
@@ -199,10 +233,10 @@ $sql = 'SELECT id, session_id, (
 			incorporated_into IS NULL AND
 			session_id = ' . $session_id . '
 		HAVING incorporated IS NOT NULL';
-$result = mysqli_query($GLOBALS['db'], $sql);
+$result = $query($sql);
 $find_target = $dbh->prepare('SELECT id FROM bills WHERE number = :number AND session_id = :session_id');
 $record_target = $dbh->prepare('UPDATE bills SET incorporated_into = :target WHERE id = :id');
-while ($bill = mysqli_fetch_array($result)) {
+while ($result !== false && ($bill = mysqli_fetch_array($result))) {
     # The bill that this one was incorporated into, named in the history entry, e.g.
     # "Incorporated by Finance (HB979-Watts)".
     $target_number = \RsMachine\StatusTranslation::incorporatedInto((string) $bill['incorporated']);
@@ -235,8 +269,8 @@ $sql = 'SELECT bills.summary_hash AS hash, bills.id,
 			AND bills.session_id = ' . $session_id . '
 		GROUP BY bills.id
 		ORDER BY bills.summary_hash';
-$result = mysqli_query($GLOBALS['db'], $sql);
-if (mysqli_num_rows($result) > 0) {
+$result = $query($sql);
+if ($result !== false && mysqli_num_rows($result) > 0) {
     # Initialize the array.
     $hash = array();
 
@@ -349,7 +383,7 @@ if (mysqli_num_rows($result) > 0) {
                         $sql = 'INSERT INTO tags
 								SET bill_id=' . $bill_id . ', tag="' . $tag . '",
 								user_id=0, date_created=now()';
-                        mysqli_query($GLOBALS['db'], $sql);
+                        $query($sql);
                     }
                 }
             }
@@ -361,7 +395,7 @@ if (mysqli_num_rows($result) > 0) {
 $sql = 'DELETE
         FROM tags
         WHERE tag="virginia"';
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 ###
 # UPDATE BILLS' HOTNESS RANKING
@@ -399,7 +433,7 @@ $sql = 'UPDATE bills
 				WHERE bill_id=bills.id AND (DATEDIFF(now(), date_created) <= ' . $days . ')) * 2
 			)
 		WHERE session_id=' . $session_id;
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 ###
 # UPDATE BILLS' INTRESTINGNESS RANKING
@@ -432,7 +466,7 @@ $sql = 'UPDATE bills
 				WHERE bill_id=bills.id) * 2
 			)
 		WHERE session_id=' . $session_id;
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 
 ###
@@ -447,7 +481,7 @@ $sql = 'UPDATE bills
 			FROM bills_copatrons
 			WHERE bill_id=bills.id)
 		WHERE session_id = ' . $session_id;
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 
 ###
@@ -461,7 +495,7 @@ $sql = 'DELETE FROM bills_full_text
 			FROM bills
 			WHERE
 				id=bills_full_text.bill_id) = 0';
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
 
 ###
 # UPDATE VOTES CONTENTION RANKING
@@ -473,8 +507,8 @@ mysqli_query($GLOBALS['db'], $sql);
 $sql = 'SELECT id, tally
 		FROM votes
 		WHERE contested IS NULL';
-$result = mysqli_query($GLOBALS['db'], $sql);
-if (mysqli_num_rows($result) > 0) {
+$result = $query($sql);
+if ($result !== false && mysqli_num_rows($result) > 0) {
     while ($vote = mysqli_fetch_array($result)) {
         # If the vote is more than XX-YY (such as XX-YY-ZZ, or XX-YY-ZZ-AA), then we hack off
         # everything after XX-YY.
@@ -526,7 +560,7 @@ if (mysqli_num_rows($result) > 0) {
             $sql .= ', partisanship=0';
         }
         $sql .= ' WHERE id=' . $vote['id'];
-        mysqli_query($GLOBALS['db'], $sql);
+        $query($sql);
     }
 }
 
@@ -554,4 +588,8 @@ $sql = 'UPDATE bills_status_narratives
                     bill_id = bills_status_narratives.bill_id AND
                     translation IS NOT NULL
             )';
-mysqli_query($GLOBALS['db'], $sql);
+$query($sql);
+
+if ($failed_statements > 0) {
+    return \RsMachine\TaskResult::failed($failed_statements . ' statements failed; see the log');
+}
