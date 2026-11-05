@@ -2,6 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 use RsMachine\HistoryRefresh;
+use RsMachine\StateFile;
 
 /**
  * Which bills' histories history.php fetches again, though their status hasn't changed.
@@ -50,8 +51,8 @@ class HistoryRefreshTest extends TestCase
         $path = sys_get_temp_dir() . '/rs-history-fetched-' . bin2hex(random_bytes(4)) . '.json';
 
         try {
-            $this->assertTrue(HistoryRefresh::save($path, [7 => 100, 8 => 200, 9 => 300], [8, 9]));
-            $this->assertSame([8 => 200, 9 => 300], HistoryRefresh::load($path));
+            $this->assertTrue(StateFile::save($path, [7 => 100, 8 => 200, 9 => 300], [8, 9]));
+            $this->assertSame([8 => 200, 9 => 300], StateFile::load($path));
         } finally {
             @unlink($path);
         }
@@ -60,11 +61,11 @@ class HistoryRefreshTest extends TestCase
     public function testAMissingOrDamagedFileMeansNothingWasFetched(): void
     {
         $path = sys_get_temp_dir() . '/rs-history-fetched-' . bin2hex(random_bytes(4)) . '.json';
-        $this->assertSame([], HistoryRefresh::load($path));
+        $this->assertSame([], StateFile::load($path));
 
         file_put_contents($path, '{"8": 2');
         try {
-            $this->assertSame([], HistoryRefresh::load($path));
+            $this->assertSame([], StateFile::load($path));
         } finally {
             unlink($path);
         }

@@ -50,48 +50,4 @@ final class HistoryRefresh
 
         return array_slice(array_keys($due), 0, max(0, $limit));
     }
-
-    /**
-     * @return array<int,int> LIS legislation ID => when its history was last fetched.
-     */
-    public static function load(string $path): array
-    {
-        if (!is_readable($path)) {
-            return [];
-        }
-        $decoded = json_decode((string) file_get_contents($path), true);
-        if (!is_array($decoded)) {
-            return [];
-        }
-
-        $lastFetched = [];
-        foreach ($decoded as $id => $time) {
-            if (is_numeric($id) && is_int($time)) {
-                $lastFetched[(int) $id] = $time;
-            }
-        }
-
-        return $lastFetched;
-    }
-
-    /**
-     * Save when bills' histories were last fetched, keeping only the given bills, so that the
-     * file holds only the current session's.
-     *
-     * @param array<int,int> $lastFetched
-     * @param int[]          $keep LIS legislation IDs to keep.
-     */
-    public static function save(string $path, array $lastFetched, array $keep): bool
-    {
-        $lastFetched = array_intersect_key($lastFetched, array_flip($keep));
-        ksort($lastFetched);
-
-        // Write to a temporary file and rename it, so a failed write never leaves half a file.
-        $temporary = $path . '.' . bin2hex(random_bytes(4));
-        if (file_put_contents($temporary, json_encode($lastFetched, JSON_PRETTY_PRINT | JSON_FORCE_OBJECT)) === false) {
-            return false;
-        }
-
-        return rename($temporary, $path);
-    }
 }

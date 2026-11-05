@@ -9,6 +9,7 @@
  */
 
 use RsMachine\HistoryRefresh;
+use RsMachine\StateFile;
 
 $log = new Log();
 $import = new Import($log);
@@ -75,7 +76,7 @@ $changedLisIds = array_values(array_intersect($changedLisIds, array_keys($billsB
 
 // Also refetch a few bills whose status hasn't changed, those fetched longest ago.
 $fetchedFile = __DIR__ . '/bill-history-fetched.json';
-$lastFetched = HistoryRefresh::load($fetchedFile);
+$lastFetched = StateFile::load($fetchedFile);
 $refreshLisIds = HistoryRefresh::due(
     $lastFetched,
     array_diff(array_keys($billsByLisId), $changedLisIds),
@@ -133,7 +134,7 @@ foreach ($failedLisIds as $failedId) {
 }
 
 $import->write_status_cache($currentById, $cacheFile);
-if (!HistoryRefresh::save($fetchedFile, $lastFetched, array_keys($billsByLisId))) {
+if (!StateFile::save($fetchedFile, $lastFetched, array_keys($billsByLisId))) {
     $log->put('Unable to write ' . $fetchedFile, 5);
 }
 

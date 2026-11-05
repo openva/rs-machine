@@ -323,7 +323,7 @@ how [cron/tasks/archive_websites.php](cron/tasks/archive_websites.php) has the W
 legislators' websites (`terms.url`), using Save Page Now 2 with `IA_ACCESS_KEY` and `IA_SECRET_KEY`:
 monthly, or weekly from May through November of their chamber's election years, one site per run.
 When each was last submitted is in `cron/website-archives.json`; the website gets the date of the
-latest capture from the Wayback Machine's CDX API instead. `HistoryRefresh` picks which bills [cron/history.php](cron/history.php) refetches though their status hasn't changed. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
+latest capture from the Wayback Machine's CDX API instead. `CodeSections` reads which sections of the Code of Virginia a bill amends, adds or repeals from its latest text's enactment clauses, for [cron/code_sections.php](cron/code_sections.php); [utilities/parse_code_sections.php](utilities/parse_code_sections.php) applies it to past sessions. `StateFile` is the JSON files in `cron/` that tasks keep between runs. `HistoryRefresh` picks which bills [cron/history.php](cron/history.php) refetches though their status hasn't changed. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
 richmondsunlight.com repo; if no (which is usually the case for cron-related code), it goes in
 `src/`.
 
