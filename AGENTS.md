@@ -211,6 +211,11 @@ an update. `run.php` is CLI-only.
 - Instead of polling every bill's history, it now caches bill statuses in `cron/bill-statuses.json`
 - Only bills with changed statuses trigger LIS API calls for full history
 - This dramatically reduces API load and improves performance (see commit [79c3137](https://github.com/openva/rs-machine/commit/79c3137))
+- Many events don't change a bill's status (a subcommittee's recommendation, say), so each run also
+  refetches the 40 bills fetched longest ago, covering every bill about once a day. When each was
+  last fetched is in `cron/bill-history-fetched.json`; the rules are in `RsMachine\HistoryRefresh`
+- A changed bill that isn't in the database yet (LIS's API lists bills hours before BILLS.CSV does)
+  is left out of `bill-statuses.json`, so its history is fetched once bills.php adds it
 
 **4. CSV Fetching and Parsing**
 - CSV files are downloaded from LIS via [cron/fetch_csv.sh](cron/fetch_csv.sh) shell scripts
@@ -318,7 +323,7 @@ how [cron/tasks/archive_websites.php](cron/tasks/archive_websites.php) has the W
 legislators' websites (`terms.url`), using Save Page Now 2 with `IA_ACCESS_KEY` and `IA_SECRET_KEY`:
 monthly, or weekly from May through November of their chamber's election years, one site per run.
 When each was last submitted is in `cron/website-archives.json`; the website gets the date of the
-latest capture from the Wayback Machine's CDX API instead. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
+latest capture from the Wayback Machine's CDX API instead. `HistoryRefresh` picks which bills [cron/history.php](cron/history.php) refetches though their status hasn't changed. When adding a class, ask whether the *website* needs it. If yes, it belongs in the
 richmondsunlight.com repo; if no (which is usually the case for cron-related code), it goes in
 `src/`.
 

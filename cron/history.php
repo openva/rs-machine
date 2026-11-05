@@ -3,7 +3,12 @@
 /**
  * Fetch bill status history from the LIS API and persist it to bills_status for the current
  * session.
+ *
+ * A bill's history is fetched when LIS's status for it changes, and also, about once a day, when
+ * it hasn't, because many events don't change the status (see RsMachine\HistoryRefresh).
  */
+
+use RsMachine\HistoryRefresh;
 
 $log = new Log();
 $import = new Import($log);
@@ -42,40 +47,51 @@ foreach ($remoteStatuses as $remote) {
 $cacheFile = __DIR__ . '/bill-statuses.json';
 $changedLisIds = $import->detect_changed_legislation_statuses($currentById, $cacheFile);
 
-if (empty($changedLisIds)) {
-    $log->put('No bills with changed statuses detected via LIS API; nothing to update.', 2);
-    return;
-}
-
-// Fetch matching bills from the database for the changed LIS IDs.
 $pdo = (new Database())->connect();
 if (!$pdo instanceof PDO) {
     $log->put('Unable to connect to database; aborting history update.', 8);
     return false;
 }
 
-$placeholders = implode(',', array_fill(0, count($changedLisIds), '?'));
-$stmt = $pdo->prepare(
-    'SELECT id, number, lis_id
-     FROM bills
-     WHERE session_id = ? AND lis_id IN (' . $placeholders . ')'
-);
-$params = array_merge([SESSION_ID], $changedLisIds);
-$stmt->execute($params);
-$bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-if (empty($bills)) {
-    $log->put('Found ' . count($changedLisIds) . ' changed LIS IDs ('
-        . implode(', ', $changedLisIds) . ') that couldn’t be matched to bills in the database; '
-        . 'aborting history update.', 2);
-    return;
+// This session's bills, keyed by LIS legislation ID.
+$stmt = $pdo->prepare('SELECT id, number, lis_id FROM bills WHERE session_id = ? AND lis_id IS NOT NULL');
+$stmt->execute([SESSION_ID]);
+$billsByLisId = [];
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $bill) {
+    $billsByLisId[(int) $bill['lis_id']] = $bill;
 }
+
+// LIS lists a new bill hours before BILLS.CSV does, so a changed bill may not be in the database
+// yet. Leave its status out of the cache, so that it still counts as changed once it's added.
+$unmatched = array_diff($changedLisIds, array_keys($billsByLisId));
+foreach ($unmatched as $lisId) {
+    unset($currentById[$lisId]);
+}
+if ($unmatched !== []) {
+    $log->put(count($unmatched) . ' bills whose status changed aren’t in the database yet, so their '
+        . 'history will be fetched once they are.', 2);
+}
+$changedLisIds = array_values(array_intersect($changedLisIds, array_keys($billsByLisId)));
+
+// Also refetch a few bills whose status hasn't changed, those fetched longest ago.
+$fetchedFile = __DIR__ . '/bill-history-fetched.json';
+$lastFetched = HistoryRefresh::load($fetchedFile);
+$refreshLisIds = HistoryRefresh::due(
+    $lastFetched,
+    array_diff(array_keys($billsByLisId), $changedLisIds),
+    time()
+);
+
+$count = $pdo->prepare('SELECT COUNT(*) FROM bills_status WHERE bill_id = ?');
 
 $updated = 0;
 $failedLisIds = [];
 
-// Iterate through the bills and get the status history for each.
-foreach ($bills as $bill) {
+// Get each bill's status history.
+$changed = array_flip($changedLisIds);
+foreach (array_merge($changedLisIds, $refreshLisIds) as $lisId) {
+    $bill = $billsByLisId[$lisId];
+
     // Get this bill's status history from the LIS API.
     $raw_history = $import->get_bill_status_history($bill['lis_id']);
     if (empty($raw_history)) {
@@ -93,11 +109,17 @@ foreach ($bills as $bill) {
     }
 
     // Store the status history in the database.
+    $count->execute([$bill['id']]);
+    $before = (int) $count->fetchColumn();
     $persisted = $import->store_status_history($bill['id'], $normalized_history, SESSION_ID);
     if ($persisted > 0) {
-        $updated++;
-        if ($mc instanceof Memcached) {
-            $mc->delete('bill-' . $bill['id']);
+        $lastFetched[$lisId] = time();
+        $count->execute([$bill['id']]);
+        if (isset($changed[$lisId]) || (int) $count->fetchColumn() !== $before) {
+            $updated++;
+            if ($mc instanceof Memcached) {
+                $mc->delete('bill-' . $bill['id']);
+            }
         }
     } else {
         $log->put('Failed to store status history for ' . strtoupper($bill['number']), 4);
@@ -111,5 +133,9 @@ foreach ($failedLisIds as $failedId) {
 }
 
 $import->write_status_cache($currentById, $cacheFile);
+if (!HistoryRefresh::save($fetchedFile, $lastFetched, array_keys($billsByLisId))) {
+    $log->put('Unable to write ' . $fetchedFile, 5);
+}
 
-$log->put('Updated status history for ' . $updated . ' bills via LIS API.', 2);
+$log->put('Fetched the history of ' . count($changedLisIds) . ' bills whose status changed and '
+    . count($refreshLisIds) . ' whose status didn’t; ' . $updated . ' were updated.', 2);

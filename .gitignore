@@ -13,3 +13,5 @@ cron/votes.json
 deploy/database.sql
 deploy/local-test-records.sql
 cron/website-archives.json
+cron/bill-history-fetched.json
+logs/run-*.out
