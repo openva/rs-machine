@@ -272,4 +272,14 @@ return [
         'timeout'  => 120,
         'comment'  => 'Runs last in an "all" pass so it prunes that run\'s own debug output.',
     ],
+
+    'log_rotate' => [
+        'schedule'       => '45 5 * * *',
+        'in_all'         => false,
+        // The first run compresses the whole log that built up before this task existed.
+        'timeout'        => 1800,
+        'needs_database' => false,
+        'comment'        => 'Archives logs/site.log daily, compressed, keeping 30 days, before the '
+                          . 'day\'s first "all" pass.',
+    ],
 ];

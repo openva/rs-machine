@@ -4,6 +4,8 @@ composer.phar
 .DS_Store
 .phpunit.result.cache
 logs/site.log
+logs/site.log-*
+logs/site.log.rotating
 cron/bills.csv
 .phpunit.cache/test-results
 settings.local.inc.php
