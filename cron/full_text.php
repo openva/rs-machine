@@ -57,9 +57,8 @@ while ($text = mysqli_fetch_array($result)) {
             $log->put('Error retrieving bill text for ' . $text['number'] . ': ' . $message, 5);
 
             if ($server_errors >= 20) {
-                $log->put('Abandoning collecting bill text, after receiving ' . $server_errors
-                    . ' consecutive error messages from the LIS server.', 4);
-                return;
+                return \RsMachine\TaskResult::failed('abandoned collecting bill text, after '
+                    . $server_errors . ' consecutive errors from the LIS API');
             }
 
             continue;

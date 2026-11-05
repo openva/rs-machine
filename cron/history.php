@@ -23,8 +23,7 @@ if (MEMCACHED_SERVER !== '' && class_exists('Memcached')) {
 // Fetch the current statuses from the LIS API for this session.
 $remoteStatuses = $import->get_legislation_session_statuses();
 if (empty($remoteStatuses)) {
-    $log->put('No session status list returned from LIS API; aborting history update.', 4);
-    return;
+    return \RsMachine\TaskResult::failed('the LIS API returned no list of bills’ statuses');
 }
 
 // Build current status map keyed by LegislationID.

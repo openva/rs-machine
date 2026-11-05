@@ -15,8 +15,7 @@ if (strlen($session_lis_id) === 3) {
 $csv_url = 'https://lis.blob.core.windows.net/lisfiles/' . $session_lis_id . '/Sponsors.csv';
 $csv_raw = get_content($csv_url);
 if ($csv_raw === false) {
-    $log->put('copatrons: Could not fetch Sponsors.csv', 5);
-    return;
+    return \RsMachine\TaskResult::failed('could not download Sponsors.csv');
 }
 
 /*
@@ -30,8 +29,7 @@ if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
 
 $sponsors_hash = md5($csv_raw);
 if ($mc instanceof Memcached && $mc->get('sponsors-csv-hash') == $sponsors_hash) {
-    $log->put('copatrons: Sponsors.csv unchanged', 2);
-    return;
+    return \RsMachine\TaskResult::skipped('Sponsors.csv is unchanged');
 }
 
 /*
@@ -43,9 +41,8 @@ rewind($fp);
 
 $header = fgetcsv($fp, 0, ',');
 if ($header === false) {
-    $log->put('copatrons: Sponsors.csv is empty', 5);
     fclose($fp);
-    return;
+    return \RsMachine\TaskResult::failed('Sponsors.csv is empty');
 }
 
 /*

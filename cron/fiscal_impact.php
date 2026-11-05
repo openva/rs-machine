@@ -12,14 +12,13 @@ use RsMachine\ImpactStatements;
 // Get the CSV
 $filename = __DIR__ . '/FiscalImpactStatements.csv';
 if (!file_exists($filename) || !is_readable($filename)) {
-    exit($filename . ' not found or is not readable');
+    return \RsMachine\TaskResult::failed($filename . ' not found or is not readable');
 }
 $csv = file_get_contents($filename);
 
-// See if it's CSV, or log an error message when there's no docket file (in the off season)
+// Out of session, LIS publishes a page saying the file doesn't exist, in its place.
 if (stripos($csv, 'does not exist') !== false) {
-    $log->put('Error: FiscalImpactStatements.csv does not contain CSV.', 3);
-    return;
+    return \RsMachine\TaskResult::skipped('LIS has no fiscal impact statements for this session');
 }
 
 // LIS sometimes lists a reissued statement more than once, not in publication order, so keep
