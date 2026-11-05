@@ -250,9 +250,12 @@ class TaskRunner
      * Each task's own lock would stop it from overlapping itself, but two passes at once would
      * run their tasks out of order, each skipping whatever the other held.
      *
+     * @param (Closure(string): bool)|null $runTask Runs one task, returning whether it completed
+     *        or skipped. By default, in this process; run.php runs each in its own, under its
+     *        time limit (see timeLimitedCommand()).
      * @return bool True when every task completed or skipped, or an earlier pass is still running.
      */
-    public function runAll(): bool
+    public function runAll(?Closure $runTask = null): bool
     {
         $lock = $this->acquireLock('all');
         if ($lock === null) {
@@ -264,10 +267,57 @@ class TaskRunner
         }
 
         try {
-            return $this->runMany($this->tasksInAll());
+            if ($runTask === null) {
+                return $this->runMany($this->tasksInAll());
+            }
+
+            $ok = true;
+            foreach ($this->tasksInAll() as $name) {
+                if (!$runTask($name)) {
+                    $ok = false;
+                }
+            }
+            return $ok;
         } finally {
             $this->releaseLock($lock);
         }
+    }
+
+    /**
+     * The shell command that runs one task in its own process, stopped once it has run for its
+     * time limit.
+     *
+     * The limit has to be enforced from outside PHP: set_time_limit() counts only the time PHP
+     * itself spends running, not time waiting on the network or the database, which is where a
+     * task that hangs is stuck. coreutils' timeout sends SIGTERM at the limit, then SIGKILL 30
+     * seconds later. Without timeout (e.g., on macOS), the task runs without a limit.
+     *
+     * @param string $timeoutBinary Where to find timeout; a parameter so tests can omit it.
+     */
+    public function timeLimitedCommand(
+        string $name,
+        string $php,
+        string $script,
+        string $timeoutBinary = '/usr/bin/timeout'
+    ): string {
+        $command = escapeshellarg($php) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($name);
+        if (!is_executable($timeoutBinary)) {
+            return $command;
+        }
+
+        $seconds = (int) ($this->manifest[$name]['timeout'] ?? 600);
+
+        return escapeshellarg($timeoutBinary) . ' --kill-after=30 ' . $seconds . ' ' . $command;
+    }
+
+    /**
+     * Whether a command that timeLimitedCommand() built was stopped at its time limit, from its
+     * exit status.
+     */
+    public static function timedOut(int $status): bool
+    {
+        // timeout exits 124 when it stopped the command, and 137 when it had to kill it.
+        return $status === 124 || $status === 137;
     }
 
     /**

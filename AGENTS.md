@@ -166,7 +166,11 @@ The runner owns the concerns that were previously absent or scattered:
 - **Separate processes per job**: `--due` starts "all" and each scheduled task as its own process,
   so a long pass can't keep later tasks from starting. The heartbeat must not be wrapped in
   `flock`, since the jobs it starts would inherit the lock
-- **Per-task timeouts** from the manifest, rather than one global 20-minute ceiling
+- **Per-task timeouts** from the manifest, rather than one global 20-minute ceiling. They're
+  wall-clock limits: scheduled tasks, and each task of the "all" pass, run in their own process
+  under coreutils' `timeout`, which `set_time_limit()` can't replace, since it doesn't count time
+  spent waiting on the network. `run.php <task>` by hand runs in-process, with no limit;
+  `run.php --time-limited <task>` runs it as the schedule does
 - **Failure isolation** — one task throwing no longer aborts the rest of a pass
 - **Per-task timing and structured logging**, including a one-line summary of a whole pass
 - **CSV prefetch** declared on the task that consumes the file

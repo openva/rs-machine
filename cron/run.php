@@ -5,9 +5,13 @@
  *
  * The replacement for update.php's dispatch chain. Usage:
  *
- *   php cron/run.php all              Run every task with in_all => true.
- *   php cron/run.php summaries        Run one task by name.
+ *   php cron/run.php all              Run every task with in_all => true, each in its own process,
+ *                                     under its time limit.
+ *   php cron/run.php summaries        Run one task by name, in this process, with no time limit.
  *   php cron/run.php bills summaries  Run several, in the order given.
+ *   php cron/run.php --time-limited summaries
+ *                                     Run tasks as "all" does: each in its own process, stopped at
+ *                                     its time limit, which is logged.
  *   php cron/run.php --due            Start whatever the manifest says is due this minute.
  *   php cron/run.php --list           Print the manifest as a table and exit.
  *   php cron/run.php --crontab        Print the crontab lines this manifest replaces.
@@ -16,8 +20,8 @@
  *
  *   * * * * * /usr/bin/php rs-machine/cron/run.php --due
  *
- * It starts each due job ("all", or a task) as a separate `run.php <job>` process and exits at
- * once, so a long-running job never delays another. Don't wrap it in flock: the jobs it starts
+ * It starts each due job as a separate process (`run.php all`, or `run.php --time-limited
+ * <task>`) and exits at once, so a long-running job never delays another. Don't wrap it in flock: the jobs it starts
  * would inherit the lock, and hold it as long as they run.
  *
  * Otherwise, exits 0 when every task completed or skipped, 1 when any failed.
@@ -130,6 +134,19 @@ if ($argv[0] === '--list' || $argv[0] === '--crontab') {
  * not an obscure failure from inside the connection code.
  */
 
+/*
+ * ---- Scheduled and time-limited runs -------------------------------------------------------
+ *
+ * These start tasks as their own processes rather than running them here, so they need no
+ * database connection of their own.
+ */
+
+$supervisor = new TaskRunner(
+    $manifest,
+    new TaskContext($log, null, null, null, (int) SESSION_ID, (int) SESSION_YEAR, (string) SESSION_LIS_ID, '', __DIR__),
+    __DIR__
+);
+
 if ($argv[0] === '--due') {
     /*
      * Start each due job as its own process, and exit. Running them here, one after another,
@@ -137,12 +154,6 @@ if ($argv[0] === '--due') {
      * TaskRunner::jobsDueAt). Their output goes to logs/run-<job>.out, overwritten by each run,
      * which keeps anything PHP prints outside the log, such as a fatal error.
      */
-    $dispatcher = new TaskRunner(
-        $manifest,
-        new TaskContext($log, null, null, null, (int) SESSION_ID, (int) SESSION_YEAR, (string) SESSION_LIS_ID, '', __DIR__),
-        __DIR__
-    );
-
     $log_dir = __DIR__ . '/../logs';
     if (!is_dir($log_dir)) {
         @mkdir($log_dir, 0775, true);
@@ -154,10 +165,12 @@ if ($argv[0] === '--due') {
      * without logging, to avoid burying real messages.
      */
     $ok = true;
-    foreach ($dispatcher->jobsDueAt(new DateTimeImmutable('now')) as $job) {
+    foreach ($supervisor->jobsDueAt(new DateTimeImmutable('now')) as $job) {
         $output = is_dir($log_dir) ? $log_dir . '/run-' . $job . '.out' : '/dev/null';
+        $arguments = $job === 'all' ? ['all'] : ['--time-limited', $job];
         $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' '
-            . escapeshellarg($job) . ' > ' . escapeshellarg($output) . ' 2>&1 &';
+            . implode(' ', array_map('escapeshellarg', $arguments))
+            . ' > ' . escapeshellarg($output) . ' 2>&1 &';
         exec($command, $ignored, $status);
         if ($status !== 0) {
             $log->put('Could not start "' . $job . '" (exit status ' . $status . ').', 7);
@@ -168,17 +181,61 @@ if ($argv[0] === '--due') {
     exit($ok ? 0 : 1);
 }
 
-if ($argv[0] === 'all') {
-    $mode = 'all';
-} else {
-    $mode = 'named';
-
-    $unknown = array_diff($argv, array_keys($manifest));
+if ($argv[0] === 'all' || $argv[0] === '--time-limited') {
+    /*
+     * Run each task in its own process, stopped if it runs past its time limit (see
+     * TaskRunner::timeLimitedCommand), and logged if it was.
+     */
+    $names = $argv[0] === 'all' ? null : array_slice($argv, 1);
+    $unknown = array_diff($names ?? [], array_keys($supervisor->tasks()));
+    if ($names === []) {
+        fwrite(STDERR, "Usage: run.php --time-limited <task...>\n");
+        exit(1);
+    }
     if ($unknown !== []) {
         fwrite(STDERR, 'Unknown task(s): ' . implode(', ', $unknown) . "\n");
         fwrite(STDERR, "Run `php cron/run.php --list` to see valid names.\n");
         exit(1);
     }
+
+    $outcomes = [];
+    $run = static function (string $name) use ($supervisor, $log, &$outcomes): bool {
+        $started = microtime(true);
+        passthru($supervisor->timeLimitedCommand($name, PHP_BINARY, __FILE__), $status);
+        $seconds = (int) round(microtime(true) - $started);
+
+        if (TaskRunner::timedOut($status)) {
+            $log->put('Task "' . $name . '" was stopped after ' . $seconds . 's, having reached its time '
+                . 'limit of ' . ($supervisor->tasks()[$name]['timeout'] ?? 600) . 's.', 7);
+            $outcomes[] = $name . '=timed out/' . $seconds . 's';
+        } else {
+            $outcomes[] = $name . '=' . ($status === 0 ? 'ok' : 'failed') . '/' . $seconds . 's';
+        }
+
+        return $status === 0;
+    };
+
+    if ($names === null) {
+        $ok = $supervisor->runAll($run);
+    } else {
+        $ok = true;
+        foreach ($names as $name) {
+            $ok = $run($name) && $ok;
+        }
+    }
+
+    if ($outcomes !== []) {
+        $log->put('Run ' . ($names === null ? 'all' : implode(',', $names)) . ': ' . implode(' ', $outcomes), 2);
+    }
+    exit($ok ? 0 : 1);
+}
+
+// Otherwise, the named tasks are run here, in order.
+$unknown = array_diff($argv, array_keys($manifest));
+if ($unknown !== []) {
+    fwrite(STDERR, 'Unknown task(s): ' . implode(', ', $unknown) . "\n");
+    fwrite(STDERR, "Run `php cron/run.php --list` to see valid names.\n");
+    exit(1);
 }
 
 /*
@@ -269,8 +326,8 @@ $runner = new TaskRunner($manifest, $context, __DIR__, $connect);
  * ---- Run -----------------------------------------------------------------------------------
  */
 
-$ok = $mode === 'all' ? $runner->runAll() : $runner->runMany($argv);
+$ok = $runner->runMany($argv);
 
-$log->put('Run ' . ($mode === 'all' ? 'all' : implode(',', $argv)) . ': ' . $runner->summary(), 2);
+$log->put('Run ' . implode(',', $argv) . ': ' . $runner->summary(), 2);
 
 exit($ok ? 0 : 1);

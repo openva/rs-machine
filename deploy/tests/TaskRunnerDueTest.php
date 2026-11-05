@@ -83,6 +83,93 @@ class TaskRunnerDueTest extends TestCase
         }
     }
 
+    /**
+     * The pass can run each task some other way: in its own process, under its time limit.
+     */
+    public function testThePassCanRunEachTaskElsewhere(): void
+    {
+        $ran = [];
+        $ok = $this->runner()->runAll(function (string $name) use (&$ran): bool {
+            $ran[] = $name;
+            return true;
+        });
+
+        $this->assertTrue($ok);
+        $this->assertSame(['parsed'], $ran);
+        $this->assertFileDoesNotExist($this->cronDir . '/ran', 'The task ran in this process too.');
+    }
+
+    public function testAFailureElsewhereFailsThePass(): void
+    {
+        $this->assertFalse($this->runner()->runAll(fn(string $name): bool => false));
+    }
+
+    public function testATaskRunsUnderItsTimeLimit(): void
+    {
+        $timeout = sys_get_temp_dir() . '/rs-fake-timeout-' . bin2hex(random_bytes(4));
+        touch($timeout);
+        chmod($timeout, 0755);
+
+        try {
+            $this->assertSame(
+                "'" . $timeout . "' --kill-after=30 60 '/usr/bin/php' 'cron/run.php' 'hourly'",
+                $this->runner()->timeLimitedCommand('hourly', '/usr/bin/php', 'cron/run.php', $timeout)
+            );
+        } finally {
+            unlink($timeout);
+        }
+    }
+
+    public function testWithoutTimeoutATaskRunsWithoutALimit(): void
+    {
+        $this->assertSame(
+            "'/usr/bin/php' 'cron/run.php' 'hourly'",
+            $this->runner()->timeLimitedCommand('hourly', '/usr/bin/php', 'cron/run.php', '/nonexistent/timeout')
+        );
+    }
+
+    /**
+     * What set_time_limit() can't do: stop a task that's waiting, not running.
+     */
+    public function testATaskThatRunsTooLongIsStopped(): void
+    {
+        if (!is_executable('/usr/bin/timeout')) {
+            $this->markTestSkipped('coreutils timeout is not installed');
+        }
+        $script = $this->cronDir . '/slow.php';
+        file_put_contents($script, '<?php sleep(30);');
+
+        $manifest = self::MANIFEST;
+        $manifest['hourly']['timeout'] = 1;
+        $runner = new TaskRunner(
+            $manifest,
+            new TaskContext($this->log(), null, null, null, 0, 2026, '', '', $this->cronDir),
+            $this->cronDir
+        );
+
+        $started = microtime(true);
+        exec($runner->timeLimitedCommand('hourly', PHP_BINARY, $script), $output, $status);
+
+        $this->assertTrue(TaskRunner::timedOut($status), 'Exit status ' . $status);
+        $this->assertLessThan(10, microtime(true) - $started);
+    }
+
+    public function testFinishingInTimeIsNotTimingOut(): void
+    {
+        $this->assertFalse(TaskRunner::timedOut(0));
+        $this->assertFalse(TaskRunner::timedOut(1));
+    }
+
+    private function log(): Log
+    {
+        return new class extends Log {
+            public function put($message, $level = 3)
+            {
+                return true;
+            }
+        };
+    }
+
     private function runner(): TaskRunner
     {
         $log = new class extends Log {

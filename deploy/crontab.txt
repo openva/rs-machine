@@ -28,6 +28,7 @@
 # ---- The heartbeat -----------------------------------------------------------------------------
 # Starts whatever cron/tasks.php says is due this minute, including the combined "all" pass. Most
 # minutes nothing is due and this exits immediately. Each job's output is in logs/run-<job>.out.
+# Each task runs under its time limit from cron/tasks.php, using coreutils' timeout.
 * * * * * /usr/bin/php rs-machine/cron/run.php --due
 
 # ---- Standalone PHP scripts --------------------------------------------------------------------
