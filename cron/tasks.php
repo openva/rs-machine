@@ -247,7 +247,9 @@ return [
     'export' => [
         'schedule'       => '30 2 * * *',
         'in_all'         => false,
-        'timeout'        => 1200,
+        // The bills JSONL export fetches each of the year's bills from the API, pausing 0.2s
+        // between them: about 3,600 bills in 2026, which took over 20 minutes.
+        'timeout'        => 3600,
         'needs_database' => false,
         'comment'        => 'Nightly flat-file export, and the one task that tolerates a dead '
                           . 'database connection: it writes flat files from data fetched over '
