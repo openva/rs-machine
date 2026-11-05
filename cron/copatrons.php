@@ -49,19 +49,14 @@ if ($header === false) {
 }
 
 /*
- * Build a lookup of LIS member IDs (e.g. "H0173") to RS legislator IDs.
+ * Look up LIS member IDs (e.g. "H0173") among everyone who served during this session, not just
+ * current legislators, so that copatrons who've since left office aren't deleted.
  */
-$sql = 'SELECT id, lis_id, chamber
-        FROM representatives
-        WHERE lis_id IS NOT NULL
-        AND (date_ended IS NULL OR date_ended > now())';
-$result = mysqli_query($GLOBALS['db'], $sql);
-
-$legislators = [];
-while ($legislator = mysqli_fetch_array($result)) {
-    $key = strtoupper($legislator['chamber'][0])
-        . str_pad($legislator['lis_id'], 4, '0', STR_PAD_LEFT);
-    $legislators[$key] = $legislator['id'];
+$legislators = \RsMachine\Copatrons::legislators($GLOBALS['dbh'], (int) SESSION_ID);
+if ($legislators === []) {
+    fclose($fp);
+    return \RsMachine\TaskResult::failed('no legislators were found for this session, so copatrons '
+        . 'weren’t updated (they would all have been deleted)');
 }
 
 /*
@@ -85,6 +80,12 @@ while ($bill = mysqli_fetch_array($result)) {
  */
 $bill_copatrons = [];
 
+/*
+ * Copatrons whose member ID matches no one who served this session, by bill. Such a bill's stored
+ * copatrons aren't removed, since one of them may be the copatron that wasn't matched.
+ */
+$unmatched = [];
+
 while (($row = fgetcsv($fp, 0, ',')) !== false) {
     if (count($row) < 4) {
         continue;
@@ -106,16 +107,17 @@ while (($row = fgetcsv($fp, 0, ',')) !== false) {
     }
 
     if (!isset($legislators[$member_id])) {
+        $unmatched[$bills[$bill_number]['id']][$member_id] = true;
         continue;
     }
 
-    $legislator_id = $legislators[$member_id];
+    $legislator_id = $legislators[$member_id]['legislator_id'];
     $bill_data = $bills[$bill_number];
 
     /*
-     * Skip if this legislator is the chief patron.
+     * Skip if this legislator is the chief patron. bills.chief_patron_id is a person's ID.
      */
-    if ($legislator_id == $bill_data['chief_patron_id']) {
+    if ($legislators[$member_id]['person_id'] == $bill_data['chief_patron_id']) {
         continue;
     }
 
@@ -179,7 +181,7 @@ foreach ($all_bill_ids as $bill_id) {
     /*
      * Remove copatrons that are in the database but not in the CSV.
      */
-    $to_remove = array_diff_key($db_set, $csv_set);
+    $to_remove = isset($unmatched[$bill_id]) ? [] : array_diff_key($db_set, $csv_set);
     foreach (array_keys($to_remove) as $legislator_id) {
         $delete_stmt->bindParam(':bill_id', $bill_id, PDO::PARAM_INT);
         $delete_stmt->bindParam(':legislator_id', $legislator_id, PDO::PARAM_INT);
@@ -190,7 +192,7 @@ foreach ($all_bill_ids as $bill_id) {
     /*
      * Update the copatron count on the bill.
      */
-    $count = count($csv_set);
+    $count = count($csv_set) + count($unmatched[$bill_id] ?? []);
     $sql = 'UPDATE bills SET copatrons = ' . $count . ' WHERE id = ' . $bill_id;
     mysqli_query($GLOBALS['db'], $sql);
 }
@@ -203,3 +205,12 @@ if ($mc instanceof Memcached) {
 }
 
 $log->put('copatrons: ' . $inserted . ' added, ' . $deleted . ' removed.', 2);
+if ($unmatched !== []) {
+    $members = [];
+    foreach ($unmatched as $ids) {
+        $members += $ids;
+    }
+    $log->put('copatrons: ' . count($members) . ' member IDs in Sponsors.csv (' . implode(', ', array_keys($members))
+        . ') match no one who served this session, so ' . count($unmatched) . ' bills’ copatrons '
+        . 'were added to but not removed from. A term’s dates may be wrong.', 5);
+}
