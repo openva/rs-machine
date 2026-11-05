@@ -31,8 +31,9 @@ if (!empty($session_api_id)) {
     );
 
     $bills_response = curl_exec($lis_bills);
+    $bills_status = curl_getinfo($lis_bills, CURLINFO_HTTP_CODE);
 
-    if ($bills_response !== false) {
+    if ($bills_response !== false && $bills_status < 400) {
         $bills_json = json_decode($bills_response, true);
         if (isset($bills_json['LegislationIds']) && is_array($bills_json['LegislationIds'])) {
             foreach ($bills_json['LegislationIds'] as $bill_entry) {
@@ -41,14 +42,20 @@ if (!empty($session_api_id)) {
                 }
             }
         } else {
-            $log->put('LIS bill list response missing LegislationIds.', 2);
+            $log->put('LIS bill list response missing LegislationIds.', 5);
         }
     } else {
-        $log->put('Failed to retrieve LIS bill list.', 2);
+        $log->put('Failed to retrieve LIS bill list (HTTP ' . $bills_status . ').', 5);
     }
 } else {
-    $log->put('Missing $api_session_id; cannot retrieve LIS bill list.', 2);
+    $log->put('Missing $api_session_id; cannot retrieve LIS bill list.', 5);
 }
+
+/*
+ * Without the list, bills are still stored, but without their LIS IDs, which history.php needs.
+ * Those are filled in once the list is available again (see the end of this file).
+ */
+$bill_list_failed = ($bill_ids_map === []);
 
 /*
  * Open the bills CSV.
@@ -225,8 +232,13 @@ foreach ($bills as $bill) {
                     date_ended IS NULL AND
                     chamber = "' . $bill['last_committee_chamber'] . '"
                 ),
-			status="' . $bill['status'] . '",
-            lis_id=' . $bill_ids_map[$bill['number']];
+			status="' . $bill['status'] . '"';
+
+    // A bill that LIS's list lacks (or the list itself, if it couldn't be retrieved) keeps any
+    // LIS ID it has.
+    if (isset($bill_ids_map[$bill['number']])) {
+        $sql .= ', lis_id=' . (int) $bill_ids_map[$bill['number']];
+    }
 
     // LIS's date of introduction is better than any we can infer: see cleanup.php's fallbacks.
     if ($introduced !== null) {
@@ -238,18 +250,27 @@ foreach ($bills as $bill) {
 
     try {
         $result = mysqli_query($GLOBALS['db'], $sql);
+        $error = $result === false ? mysqli_error($GLOBALS['db']) : '';
     } catch (Exception $exception) {
-        $log->put(
-            'Adding ' . $bill['number'] . ' failed. This probably means that the legislator '
-            . '(' . $bill['chief_patron_id'] . ', ' . strtolower($bill['chief_patron'])
-            . ') who filed this bill isn’t in the database. Error: '
-            . mysqli_error($GLOBALS['db']),
-            2
-        );
-        $missing_bills[] = $bill['number'];
-        unset($hashes[$number]);
-        $missing_legislators[$bill['chief_patron_id']] = $bill['chief_patron'];
         $result = false;
+        $error = $exception->getMessage();
+    }
+
+    if ($result === false) {
+        // Retry this bill next time.
+        unset($hashes[$number]);
+
+        // The chief patron is looked up by a subquery, which finds no one when the legislator
+        // isn't in the database, leaving chief_patron_id null.
+        if (stripos($error, 'chief_patron_id') !== false) {
+            $log->put('Adding ' . strtoupper($bill['number']) . ' failed, because its chief patron ('
+                . $bill['chief_patron_id'] . ', ' . strtolower($bill['chief_patron'])
+                . ') isn’t in the database.', 2);
+            $missing_bills[] = $bill['number'];
+            $missing_legislators[$bill['chief_patron_id']] = $bill['chief_patron'];
+        } else {
+            $log->put('Storing ' . strtoupper($bill['number']) . ' failed: ' . $error, 5);
+        }
     }
 
     if ($result !== false) {
@@ -305,4 +326,44 @@ if (count($missing_legislators) > 0) {
     . 'encoding errors in the bill data, but it is probably because those legislators '
     . '(' . implode(', ', $missing_legislators) . ') '
     . 'are missing from our database.', 6);
+}
+
+/*
+ * Fill in the LIS IDs of this session's bills that lack them: those stored while LIS's list was
+ * unavailable, or before it included them. (A bill is otherwise only updated when its row in the
+ * CSV changes.)
+ */
+if ($bill_ids_map !== []) {
+    $result = mysqli_query(
+        $GLOBALS['db'],
+        'SELECT id, number FROM bills WHERE session_id = ' . (int) SESSION_ID . ' AND lis_id IS NULL'
+    );
+    $filled = 0;
+    while ($result !== false && ($row = mysqli_fetch_assoc($result))) {
+        if (!isset($bill_ids_map[$row['number']])) {
+            continue;
+        }
+        // Depending on how mysqli reports errors, a failure is false or an exception.
+        try {
+            $updated = mysqli_query($GLOBALS['db'], 'UPDATE bills SET lis_id = '
+                . (int) $bill_ids_map[$row['number']] . ' WHERE id = ' . (int) $row['id']);
+            $error = $updated ? '' : mysqli_error($GLOBALS['db']);
+        } catch (Exception $exception) {
+            $updated = false;
+            $error = $exception->getMessage();
+        }
+        if ($updated) {
+            $filled++;
+        } else {
+            $log->put('Could not record the LIS ID of ' . strtoupper($row['number']) . ': ' . $error, 5);
+        }
+    }
+    if ($filled > 0) {
+        $log->put('Recorded the LIS IDs of ' . $filled . ' bills that lacked them.', 3);
+    }
+}
+
+if ($bill_list_failed) {
+    return \RsMachine\TaskResult::failed('LIS’s list of bills couldn’t be retrieved, so new bills were '
+        . 'stored without their LIS IDs, and their history can’t be fetched until it can');
 }
