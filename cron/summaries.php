@@ -2,7 +2,12 @@
 
 ###
 # UPDATE BILL SUMMARIES
+#
+# Summaries.csv has a row for each of a bill's summaries (as introduced, as passed, etc.). Each
+# bill gets its latest; see RsMachine\Summaries.
 ###
+
+use RsMachine\Summaries;
 
 /*
  * Connect to Memcached, since we'll be interacting with it during this session.
@@ -18,56 +23,60 @@ if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
  */
 $summaries_hash = md5(file_get_contents(__DIR__ . '/summaries.csv'));
 if ($mc instanceof Memcached && $mc->get('summaries-csv-hash') == $summaries_hash) {
-    $log->put('Bill summaries unchanged', 2);
-    return;
+    return \RsMachine\TaskResult::skipped('summaries.csv is unchanged');
 }
 
 /*
- * Open the file.
+ * Open the file, and read every row but the header.
  */
 $fp = fopen(__DIR__ . '/summaries.csv', 'r');
 if ($fp === false) {
     $log->put('summaries.csv could not be read from the filesystem.', 8);
     return false;
 }
+$rows = [];
+$first = true;
+while (($row = fgetcsv($fp, 0, ',')) !== false) {
+    if ($first) {
+        $first = false;
+        continue;
+    }
+    // A row with too few fields is a CSV parsing error.
+    if (count($row) < 4) {
+        continue;
+    }
+    $rows[] = ['number' => $row[0], 'doc_id' => trim($row[1]), 'type' => $row[2], 'text' => $row[3]];
+}
+fclose($fp);
+
+$summaries = Summaries::latest($rows);
 
 /*
- * Also, retrieve our saved serialized array of hash data, so that we can only update or insert
- * summaries that have changed, or that are new.
+ * Also, retrieve our saved serialized array of hash data, so that we can only update summaries
+ * that have changed, or that are new.
  */
 $hash_path = __DIR__ . '/hashes/summaries-' . SESSION_ID . '.md5';
+$hashes = [];
 if (file_exists($hash_path)) {
-    $hashes = file_get_contents($hash_path);
-    if ($hashes !== false) {
-        $hashes = unserialize($hashes);
-    } else {
-        $hashes = array();
+    $hashes = unserialize((string) file_get_contents($hash_path));
+    if (!is_array($hashes)) {
+        $hashes = [];
     }
-} else {
-    if (!file_exists(__DIR__ . '/hashes/')) {
-        mkdir(__DIR__ . '/hashes');
-    }
-    $hashes = array();
+} elseif (!file_exists(__DIR__ . '/hashes/')) {
+    mkdir(__DIR__ . '/hashes');
 }
 
 /*
  * Generate a list of all bills and their numbers, to use to make comparisons.
  */
+$bills = [];
 $sql = 'SELECT bills.id, bills.number
 		FROM bills
 		WHERE session_id = ' . $session_id;
 $result = mysqli_query($GLOBALS['db'], $sql);
-if (mysqli_num_rows($result) > 0) {
-    $bills = array();
-    while ($bill = mysqli_fetch_array($result)) {
-        $bills[$bill['number']] = $bill['id'];
-    }
+while ($bill = mysqli_fetch_array($result)) {
+    $bills[$bill['number']] = $bill['id'];
 }
-
-/*
- * Set a flag that will allow us to ignore the header row.
- */
-$first = 'yes';
 
 /*
  * This script often hits the default lock wait timeout of 50 seconds, resulting in the summary not
@@ -77,62 +86,19 @@ $sql = 'SET innodb_lock_wait_timeout=100';
 mysqli_query($GLOBALS['db'], $sql);
 
 /*
- * Define the new headers for this CSV file.
+ * Whether every summary was stored. If not, the file mustn't be marked as processed, or the
+ * summaries that weren't stored would be skipped until LIS changes the file.
  */
-$new_headers = array(
-        'number',
-        'doc_id',
-        'type',
-        'text'
-    );
+$all_stored = true;
+$updated = 0;
 
-/*
- * Step through each row in the CSV file, one by one.
- */
-while (($summary = fgetcsv($fp, 0, ',')) !== false) {
-    # If this is something other than a header row, parse it.
-    if (isset($first)) {
-        unset($first);
-        continue;
-    }
-
+foreach ($summaries as $number => $summary) {
     /*
-     * Rename each field to something reasonable.
-     */
-    foreach ($new_headers as $old => $new) {
-        // If the old header doesn't exist, skip this row entirely -- it's a CSV parsing error.
-        if (!isset($summary[$old])) {
-            continue(2);
-        }
-        $summary[$new] = $summary[$old];
-        unset($summary[$old]);
-    }
-
-    /*
-     * Change the format of the bill number. In this file, the numeric portions are left-padded
-     * with zeros, so that e.g. HB1 is rendered as HB0001. Here we change them to e.g. HB1.
-     */
-    $suffix = substr($summary['number'], 2) + 0;
-    $summary['number'] = substr($summary['number'], 0, 2) . $suffix;
-
-
-    /*
-     * Before we proceed any farther, see if this record is either new or different than last
-     * time that we examined it.
+     * See if this bill's summary is new or different than last time that we stored it.
      */
     $hash = md5(serialize($summary));
-    $number = strtolower($summary['number']);
-
     if (isset($hashes[$number]) && ($hash == $hashes[$number])) {
         continue;
-    } else {
-        $is_new = !isset($hashes[$number]);
-        $hashes[$number] = $hash;
-        if ($is_new) {
-            $log->put('Adding summary ' . $summary['number'] . '.', 2);
-        } else {
-            $log->put('Updating summary ' . $summary['number'] . '.', 1);
-        }
     }
 
     /*
@@ -142,17 +108,12 @@ while (($summary = fgetcsv($fp, 0, ',')) !== false) {
     $summary['text'] = str_replace("\n", ' ', $summary['text']);
     $summary['text'] = str_replace('&nbsp;', ' ', $summary['text']);
     $summary['text'] = str_replace('  ', ' ', $summary['text']);
-    $summary['text'] = str_replace('\u00a0', ' ', $summary['text']);
+    $summary['text'] = str_replace(' ', ' ', $summary['text']);
 
     # There is often an HTML mistake in this tag, so we perform this replacement after
     # running HTML Purifier, not before.
     $summary['text'] = str_replace('<br clear="all" /> ', ' ', $summary['text']);
     $summary['text'] = strip_tags($summary['text'], '<b><i><em><strong>');
-
-    # Run the summary through HTML Purifier.
-    #$config = HTMLPurifier_Config::createDefault();
-    #$purifier = new HTMLPurifier($config);
-    #$summary['text'] = $purifier->purify($summary['text']);
 
     # Clean up the bolding, so that we don't bold a blank space.
     $summary['text'] = str_replace(' </b>', '</b> ', $summary['text']);
@@ -165,47 +126,57 @@ while (($summary = fgetcsv($fp, 0, ',')) !== false) {
         $summary['text'] = substr($summary['text'], 0, -8);
     }
 
-    /*
-     * If we have any summary text, store it in the database.
-     */
-    if (!empty($summary['text'])) {
-        /*
-         * Look up the bill ID for this bill number.
-         */
-        $bill_id = $bills[strtolower($summary['number'])];
-        if (empty($bill_id)) {
-            $log->put('Summary found for ' . $summary['number']
-                . ', but we have no record of that bill.', 2);
-            continue;
-        }
-
-        /*
-         * Commit this to the database.
-         */
-        $sql = 'UPDATE bills
-				SET summary="' . mysqli_real_escape_string($GLOBALS['db'], $summary['text']) . '"
-				WHERE id=' . $bill_id;
-        $result = mysqli_query($GLOBALS['db'], $sql);
-        if (!$result) {
-            $log->put('Insertion of ' . strtoupper($summary['number']) . ' summary failed. '
-                . 'Error: ' . mysqli_error($GLOBALS['db']) . ' SQL: ' . $sql, 6);
-        }
-    } else {
-        $log->put('Summary of ' . strtoupper($summary['number']) . ' is blank.', 2);
+    if (empty($summary['text'])) {
+        $log->put('Summary of ' . strtoupper($number) . ' is blank.', 2);
+        $hashes[$number] = $hash;
+        continue;
     }
-} // end looping through lines in this CSV file
 
-# Close the CSV file.
-fclose($fp);
+    /*
+     * Look up the bill ID for this bill number. A bill that isn't in the database yet gets its
+     * summary once it is.
+     */
+    $bill_id = $bills[$number] ?? null;
+    if (empty($bill_id)) {
+        $log->put('Summary found for ' . strtoupper($number) . ', but we have no record of that bill.', 2);
+        $all_stored = false;
+        continue;
+    }
+
+    /*
+     * Commit this to the database.
+     */
+    $sql = 'UPDATE bills
+			SET summary="' . mysqli_real_escape_string($GLOBALS['db'], $summary['text']) . '"
+			WHERE id=' . $bill_id;
+    try {
+        $result = mysqli_query($GLOBALS['db'], $sql);
+        $error = $result ? '' : mysqli_error($GLOBALS['db']);
+    } catch (mysqli_sql_exception $e) {
+        $result = false;
+        $error = $e->getMessage();
+    }
+    if (!$result) {
+        $log->put('Insertion of ' . strtoupper($number) . ' summary failed, and will be retried. '
+            . 'Error: ' . $error, 6);
+        $all_stored = false;
+        continue;
+    }
+
+    $hashes[$number] = $hash;
+    $updated++;
+    $log->put('Stored the ' . strtolower($summary['type']) . ' of ' . strtoupper($number) . '.', 1);
+    if ($mc instanceof Memcached) {
+        $mc->delete('bill-' . $bill_id);
+    }
+}
 
 # Store our per-bill hashes array to a file, so that we can open it up next time and see which
 # bills have changed.
 file_put_contents($hash_path, serialize($hashes));
 
-/*
- * Save the CSV hash now that processing is complete, so a partial failure forces a full reparse
- * on the next run.
- */
-if ($mc instanceof Memcached) {
+if ($all_stored && $mc instanceof Memcached) {
     $mc->set('summaries-csv-hash', $summaries_hash);
 }
+
+$log->put('Stored ' . $updated . ' bill summaries.', 2);
