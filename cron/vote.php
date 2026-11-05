@@ -124,6 +124,9 @@ if (file_exists($votes_file_path)) {
 // Cache the vote file
 file_put_contents($votes_file_path, json_encode($votes));
 
+// Each voter's person ID, by LIS member ID (see RsMachine\SessionMembers).
+$session_members = \RsMachine\SessionMembers::lookUp($db, (int) SESSION_ID);
+
 // Iterate through the API response, which is a list of every vote cast so far in this session
 foreach ($votes as $vote) {
     // Only bother with votes that we know we are missing (because their identifier is present
@@ -230,23 +233,25 @@ foreach ($votes as $vote) {
         if (isset($vote['VoteMember']) && count($vote['VoteMember']) > 0) {
             $sql = 'INSERT INTO representatives_votes
                     SET
-                        representative_id=
-                            (SELECT id
-                            FROM representatives
-                            WHERE
-                                lis_id=:lis_id AND
-                                chamber=:chamber),
+                        representative_id=:representative_id,
                         vote=:vote,
                         vote_id=:vote_id,
                         date_created=now()
                     ON DUPLICATE KEY UPDATE vote=VALUES(vote)';
             $stmt = $db->prepare($sql);
             foreach ($vote['VoteMember'] as $legislator_vote) {
-                $member_id = (int)preg_replace('/[^0-9]/', '', $legislator_vote['MemberNumber']);
-                $stmt->bindParam(':lis_id', $member_id);
-                $stmt->bindParam(':chamber', $chamber);
-                $stmt->bindParam(':vote', $legislator_vote['ResponseCode']);
-                $stmt->bindParam(':vote_id', $vote_id);
+                $member_id = \RsMachine\SessionMembers::memberId(
+                    $chamber,
+                    (int)preg_replace('/[^0-9]/', '', $legislator_vote['MemberNumber'])
+                );
+                if (!isset($session_members[$member_id])) {
+                    $log->put('The vote of ' . $member_id . ' in vote ' . $vote['VoteID'] . ' wasn’t '
+                        . 'recorded, because no one with that member ID served this session.', 5);
+                    continue;
+                }
+                $stmt->bindValue(':representative_id', $session_members[$member_id]);
+                $stmt->bindValue(':vote', $legislator_vote['ResponseCode']);
+                $stmt->bindValue(':vote_id', $vote_id);
                 $result = $stmt->execute();
                 if ($result === false) {
                     $log->put('Error: A legislator’s vote could not be inserted into the database.' . $sql, 7);

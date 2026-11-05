@@ -1,7 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
-use RsMachine\Copatrons;
+use RsMachine\SessionMembers;
 
 require_once __DIR__ . '/../../includes/settings.inc.php';
 require_once __DIR__ . '/../../includes/functions.inc.php';
@@ -9,9 +9,10 @@ require_once __DIR__ . '/../../includes/vendor/autoload.php';
 require_once __DIR__ . '/../../includes/class.Database.php';
 
 /**
- * Whom copatrons.php looks LIS member IDs up among: everyone who served during the session.
+ * Whom LIS member IDs are looked up among, for copatrons and votes: everyone who served during
+ * the session.
  */
-class CopatronsLookupTest extends TestCase
+class SessionMembersTest extends TestCase
 {
     /** A session ID that no real session has. */
     private const SESSION_ID = 250;
@@ -43,7 +44,7 @@ class CopatronsLookupTest extends TestCase
 
     public function testACurrentLegislatorIsFound(): void
     {
-        $person = $this->legislator('zzcopatron1', [['house', 9001, '1995-01-10', null]]);
+        $person = $this->legislator('zzmember1', [['house', 9001, '1995-01-10', null]]);
 
         $this->assertSame($person, $this->lookUp()['H9001'] ?? null);
     }
@@ -53,14 +54,14 @@ class CopatronsLookupTest extends TestCase
      */
     public function testALegislatorWhoLeftDuringTheSessionIsFound(): void
     {
-        $person = $this->legislator('zzcopatron2', [['senate', 9002, '1995-01-10', '2001-06-30']]);
+        $person = $this->legislator('zzmember2', [['senate', 9002, '1995-01-10', '2001-06-30']]);
 
         $this->assertSame($person, $this->lookUp()['S9002'] ?? null);
     }
 
     public function testALegislatorWhoLeftBeforeTheSessionIsNot(): void
     {
-        $this->legislator('zzcopatron3', [['house', 9003, '1995-01-10', '2000-06-30']]);
+        $this->legislator('zzmember3', [['house', 9003, '1995-01-10', '2000-06-30']]);
 
         $this->assertArrayNotHasKey('H9003', $this->lookUp());
     }
@@ -70,7 +71,7 @@ class CopatronsLookupTest extends TestCase
      */
     public function testBothOfAChamberChangersIdsAreFound(): void
     {
-        $person = $this->legislator('zzcopatron4', [
+        $person = $this->legislator('zzmember4', [
             ['house', 9004, '1995-01-10', '2001-01-31'],
             ['senate', 9005, '2001-02-01', null],
         ]);
@@ -82,29 +83,29 @@ class CopatronsLookupTest extends TestCase
 
     public function testATermThatHasntStartedIsNot(): void
     {
-        $this->legislator('zzcopatron5', [['house', 9006, '2099-01-10', null]]);
+        $this->legislator('zzmember5', [['house', 9006, '2099-01-10', null]]);
 
         $this->assertArrayNotHasKey('H9006', $this->lookUp());
     }
 
     public function testMemberIdsArePadded(): void
     {
-        $this->assertSame('H0173', Copatrons::memberId('house', 173));
-        $this->assertSame('S0099', Copatrons::memberId('senate', 99));
+        $this->assertSame('H0173', SessionMembers::memberId('house', 173));
+        $this->assertSame('S0099', SessionMembers::memberId('senate', 99));
     }
 
-    /** @return array<string,array{legislator_id:int,person_id:int}> */
+    /** @return array<string,int> */
     private function lookUp(): array
     {
-        return Copatrons::legislators($this->dbh, self::SESSION_ID);
+        return SessionMembers::lookUp($this->dbh, self::SESSION_ID);
     }
 
     /**
      * @param array<int,array{0:string,1:int,2:string,3:?string}> $terms Chamber, LIS number,
      *        start, end.
-     * @return array{legislator_id:int,person_id:int}
+     * @return int The person's ID.
      */
-    private function legislator(string $shortname, array $terms): array
+    private function legislator(string $shortname, array $terms): int
     {
         $this->dbh->prepare('INSERT INTO people (shortname, name, name_formal, date_created)
             VALUES (:shortname, "Legislator, Test", "Test Legislator", NOW())')
@@ -121,22 +122,14 @@ class CopatronsLookupTest extends TestCase
                     ':started' => $started, ':ended' => $ended]);
         }
 
-        // As representatives_table.php does, with an ID that isn't the person's.
-        $this->dbh->prepare('INSERT INTO representatives
-                (id, name_formal, name, name_formatted, shortname, chamber, district_id, date_started, date_created)
-            VALUES (:id, "Test Legislator", "Legislator, Test", "Test Legislator", :shortname, "house", 1,
-                "1995-01-10", NOW())')
-            ->execute([':id' => 60000 + (int) substr($shortname, -1), ':shortname' => $shortname]);
-
-        return ['legislator_id' => 60000 + (int) substr($shortname, -1), 'person_id' => $person_id];
+        return $person_id;
     }
 
     private function cleanUp(): void
     {
         $this->dbh->exec('DELETE t FROM terms t JOIN people p ON p.id = t.person_id
-            WHERE p.shortname LIKE "zzcopatron%"');
-        $this->dbh->exec('DELETE FROM people WHERE shortname LIKE "zzcopatron%"');
-        $this->dbh->exec('DELETE FROM representatives WHERE shortname LIKE "zzcopatron%"');
+            WHERE p.shortname LIKE "zzmember%"');
+        $this->dbh->exec('DELETE FROM people WHERE shortname LIKE "zzmember%"');
         $this->dbh->exec('DELETE FROM sessions WHERE id = ' . self::SESSION_ID);
     }
 }

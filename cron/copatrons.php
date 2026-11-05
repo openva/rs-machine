@@ -49,7 +49,7 @@ if ($header === false) {
  * Look up LIS member IDs (e.g. "H0173") among everyone who served during this session, not just
  * current legislators, so that copatrons who've since left office aren't deleted.
  */
-$legislators = \RsMachine\Copatrons::legislators($GLOBALS['dbh'], (int) SESSION_ID);
+$legislators = \RsMachine\SessionMembers::lookUp($GLOBALS['dbh'], (int) SESSION_ID);
 if ($legislators === []) {
     fclose($fp);
     return \RsMachine\TaskResult::failed('no legislators were found for this session, so copatrons '
@@ -108,13 +108,14 @@ while (($row = fgetcsv($fp, 0, ',')) !== false) {
         continue;
     }
 
-    $legislator_id = $legislators[$member_id]['legislator_id'];
+    // A person's ID, like bills.chief_patron_id.
+    $legislator_id = $legislators[$member_id];
     $bill_data = $bills[$bill_number];
 
     /*
-     * Skip if this legislator is the chief patron. bills.chief_patron_id is a person's ID.
+     * Skip if this legislator is the chief patron.
      */
-    if ($legislators[$member_id]['person_id'] == $bill_data['chief_patron_id']) {
+    if ($legislator_id == $bill_data['chief_patron_id']) {
         continue;
     }
 

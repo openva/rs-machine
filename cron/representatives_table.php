@@ -11,6 +11,13 @@ declare(strict_types=1);
  * past service would overwrite the current one, and with it the LIS ID that vote.php and
  * copatrons.php look legislators up by.)
  *
+ * Each row's ID is its person's ID (people.id), which is what bills.chief_patron_id,
+ * bills_copatrons.legislator_id, representatives_votes.representative_id and the website's other
+ * references to legislators hold, and what the website joins to representatives.id. Until
+ * November 2026, this used the ID of the person's first term, which differs for anyone who took
+ * office after people and terms were created, so the website showed some bills' chief patrons as
+ * other legislators. Rows with such an ID are given their person's ID first.
+ *
  * When invoked via cron/update.php, the surrounding framework will already have loaded the
  * necessary includes and configured logging. The fallbacks below allow the script to be executed
  * directly from the CLI for one-off migrations.
@@ -129,11 +136,37 @@ try {
     $pdo->beginTransaction();
     $inTransaction = true;
 
+    /*
+     * Give each row its person's ID. Some rows' IDs are other people's, so they're moved out of
+     * the way first, to IDs above any person's, then to their own. (The upsert below matches on
+     * either the ID or the shortname, so until this is done it could update the wrong row.)
+     */
+    $mismatched = (int) $pdo->query(
+        'SELECT COUNT(*) FROM representatives r JOIN people p ON p.shortname = r.shortname
+        WHERE r.id <> p.id'
+    )->fetchColumn();
+    if ($mismatched > 0) {
+        $offset = 40000;
+        $highest = (int) $pdo->query('SELECT GREATEST(
+            (SELECT COALESCE(MAX(id), 0) FROM representatives), (SELECT COALESCE(MAX(id), 0) FROM people))')
+            ->fetchColumn();
+        if ($highest >= $offset || $highest + $offset > 65535) {
+            throw new RuntimeException('IDs are too high (' . $highest . ') to move representatives\' IDs '
+                . 'out of the way');
+        }
+
+        $pdo->exec('UPDATE representatives r JOIN people p ON p.shortname = r.shortname
+            SET r.id = r.id + ' . $offset . ' WHERE r.id <> p.id');
+        $pdo->exec('UPDATE representatives r JOIN people p ON p.shortname = r.shortname
+            SET r.id = p.id WHERE r.id >= ' . $offset);
+        $log->put('representatives_table: Gave ' . $mismatched . ' legislators their person\'s ID.', 5);
+    }
+
     foreach ($rows as $row) {
         $dateStarted = normalizeDate($row['date_started']) ?? fallbackDate($row['term_date_created'] ?? $row['person_date_created']);
 
         $insert->execute([
-            ':id' => (int)$row['id'],
+            ':id' => (int)$row['person_id'],
             ':name_formal' => $row['name_formal'],
             ':name' => $row['name'],
             ':name_formatted' => $row['name_formatted'],
