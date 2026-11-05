@@ -3,8 +3,12 @@
 ###
 # UPDATE BILLS' FULL TEXT
 # What we're actually doing here is updating the bills_full_text table. Then we use that
-# to synch up the data in the bills table later on. We don't bother with any bill's text that, after
-# twenty tries, we just can't manage to retrieve.
+# to synch up the data in the bills table later on.
+#
+# A version's text is often published after the version is listed, sometimes weeks after (e.g.,
+# a chapter's). So a version is tried on every run 20 times, about six hours' worth, then once a
+# day (each failure updates date_modified), until failed_retrievals reaches 255, its maximum:
+# about eight months.
 ###
 /* This only works if there's already an entry in bills_full_text. */
 $sql = 'SELECT
@@ -19,7 +23,11 @@ $sql = 'SELECT
 			ON bills.session_id = sessions.id
 		WHERE
 			bills_full_text.text IS NULL
-			AND bills_full_text.failed_retrievals < 20
+			AND bills_full_text.failed_retrievals < 255
+			AND (
+				bills_full_text.failed_retrievals < 20
+				OR bills_full_text.date_modified < NOW() - INTERVAL 1 DAY
+			)
 			AND bills.session_id = ' . SESSION_ID . '
 		ORDER BY
 			bills_full_text.failed_retrievals ASC,
@@ -71,7 +79,7 @@ while ($text = mysqli_fetch_array($result)) {
         $server_errors = 0;
 
         $sql = 'UPDATE bills_full_text
-				SET failed_retrievals = failed_retrievals+1
+				SET failed_retrievals = LEAST(failed_retrievals + 1, 255)
 				WHERE id=' . $text['id'];
         mysqli_query($GLOBALS['db'], query: $sql);
 
@@ -87,7 +95,7 @@ while ($text = mysqli_fetch_array($result)) {
     if ($full_text === '') {
         $server_errors = 0;
         $sql = 'UPDATE bills_full_text
-				SET failed_retrievals = failed_retrievals+1
+				SET failed_retrievals = LEAST(failed_retrievals + 1, 255)
 				WHERE id=' . $text['id'];
         mysqli_query($GLOBALS['db'], $sql);
         if (mb_stripos($text['number'], 'CHAP') === false) {
@@ -102,7 +110,7 @@ while ($text = mysqli_fetch_array($result)) {
     if ($escaped_text === '') {
         $server_errors = 0;
         $sql = 'UPDATE bills_full_text
-				SET failed_retrievals = failed_retrievals+1
+				SET failed_retrievals = LEAST(failed_retrievals + 1, 255)
 				WHERE id=' . $text['id'];
         mysqli_query($GLOBALS['db'], $sql);
         if (mb_stripos($text['number'], 'CHAP') === false) {
