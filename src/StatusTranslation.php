@@ -69,6 +69,19 @@ final class StatusTranslation
     }
 
     /**
+     * The bill that an incorporation names ("Incorporated by Finance (HB979-Watts)"), as Richmond
+     * Sunlight stores bill numbers ("hb979"), or null when it names none.
+     */
+    public static function incorporatedInto(string $status): ?string
+    {
+        if (preg_match('/\b([HS](?:JR|B|J|R))\s*0*([1-9]\d*)\b/i', $status, $matches) !== 1) {
+            return null;
+        }
+
+        return strtolower($matches[1] . $matches[2]);
+    }
+
+    /**
      * The status that a history entry represents, or null for one that doesn't change it (e.g.
      * "Read second time").
      */

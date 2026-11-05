@@ -75,4 +75,27 @@ class StatusTranslationTest extends TestCase
     {
         $this->assertSame($expected, StatusTranslation::translate($status));
     }
+
+    /**
+     * @return array<string, array{0: string, 1: ?string}>
+     */
+    public static function incorporations(): array
+    {
+        return [
+            'a House bill'         => ['Incorporated by Finance (HB979-Watts)  (Voice Vote)', 'hb979'],
+            'a Senate bill'        => ['Incorporated by Finance and Appropriations (SB94-Roem)  (13-Y 2-N)', 'sb94'],
+            'a joint resolution'   => ['Incorporated by Rules (HJ12-Smith)', 'hj12'],
+            'a resolution'         => ['Incorporated by Rules (SR3-Jones)', 'sr3'],
+            'an older form'        => ['House: Incorporated into HJR 45', 'hjr45'],
+            'a padded number'      => ['Incorporated by Courts of Justice (SB0007)', 'sb7'],
+            'no bill named'        => ['Incorporated by Finance', null],
+            'a vote, not a bill'   => ['Incorporated by Finance (22-Y 0-N)', null],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('incorporations')]
+    public function testIncorporatedInto(string $status, ?string $expected): void
+    {
+        $this->assertSame($expected, StatusTranslation::incorporatedInto($status));
+    }
 }

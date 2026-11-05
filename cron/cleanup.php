@@ -200,36 +200,20 @@ $sql = 'SELECT id, session_id, (
 			session_id = ' . $session_id . '
 		HAVING incorporated IS NOT NULL';
 $result = mysqli_query($GLOBALS['db'], $sql);
-if (mysqli_num_rows($result) > 0) {
-    while ($bill = mysqli_fetch_array($result)) {
-        $bill = array_map(static function ($value) {
-            return is_string($value) ? stripslashes($value) : $value;
-        }, $bill);
+$find_target = $dbh->prepare('SELECT id FROM bills WHERE number = :number AND session_id = :session_id');
+$record_target = $dbh->prepare('UPDATE bills SET incorporated_into = :target WHERE id = :id');
+while ($bill = mysqli_fetch_array($result)) {
+    # The bill that this one was incorporated into, named in the history entry, e.g.
+    # "Incorporated by Finance (HB979-Watts)".
+    $target_number = \RsMachine\StatusTranslation::incorporatedInto((string) $bill['incorporated']);
+    if ($target_number === null) {
+        continue;
+    }
 
-        # Extract the target bill number from the incorporation text.
-        preg_match('/(hb|sb|hr|sr|hjr|sjr)([0-9]+)/', $bill['incorporated'], $regs);
-        if (isset($regs[0])) {
-            $bill['incorporated_into'] = strtolower($regs[0]);
-        }
-
-        # If we successfully got a target bill number, then we can update the source bill with
-        # its ID.
-        if (!empty($bill['incorporated_into'])) {
-            $sql = 'SELECT id
-					FROM bills
-					WHERE number="' . $bill['incorporated_into'] . '"
-					AND session_id=' . $bill['session_id'];
-            $result2 = mysqli_query($GLOBALS['db'], $sql);
-            if ($result2 !== false) {
-                $tmp = mysqli_fetch_array($result2);
-                $bill['incorporated_into'] = $tmp['id'];
-
-                $sql = 'UPDATE bills
-						SET incorporated_into = ' . $bill['incorporated_into'] . '
-						WHERE id = ' . $bill['id'];
-                $result2 = mysqli_query($GLOBALS['db'], $sql);
-            }
-        }
+    $find_target->execute([':number' => $target_number, ':session_id' => $bill['session_id']]);
+    $target_id = $find_target->fetchColumn();
+    if ($target_id !== false && (int) $target_id !== (int) $bill['id']) {
+        $record_target->execute([':target' => $target_id, ':id' => $bill['id']]);
     }
 }
 
