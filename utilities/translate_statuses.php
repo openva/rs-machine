@@ -5,7 +5,8 @@
  *
  * cleanup.php does this hourly, but only for the current session, so a session whose history was
  * imported under older translation rules keeps the statuses those rules gave it. This brings it up
- * to date with RsMachine\StatusTranslation. Only untranslated history entries are translated, so
+ * to date with RsMachine\StatusTranslation. Only untranslated history entries are translated,
+ * apart from committee failures that were motions that failed, whose translations are cleared, so
  * it's safe to rerun.
  *
  * Usage: php utilities/translate_statuses.php <session ID> [<session ID> ...]
@@ -34,5 +35,5 @@ $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 foreach ($session_ids as $session_id) {
     $translated = \RsMachine\StatusTranslation::apply($dbh, $session_id);
-    echo 'Session ' . $session_id . ': translated ' . $translated . " history entries.\n";
+    echo 'Session ' . $session_id . ': changed the translations of ' . $translated . " history entries.\n";
 }

@@ -97,26 +97,86 @@ final class StatusTranslation
     }
 
     /**
-     * Translate a session's untranslated history entries, then set each of its bills' status to
-     * that of its latest translated entry.
+     * Whether a committee failure ("Continued to 2027 in Finance and Appropriations") is a motion
+     * that failed, because the same committee reported the bill the same day.
      *
-     * @return int How many history entries were translated.
+     * LIS records some motions that fail as though they'd happened. Senate committees' histories
+     * have "Continued to 2027 in Finance and Appropriations", "Passed by indefinitely in Courts of
+     * Justice" or "Failed to report from Courts of Justice with substitute" on the same day as
+     * "Reported from" that committee, which is what the committee did.
+     *
+     * @param string[] $same_day The bill's history entries from the same day.
+     */
+    public static function isFailedMotion(string $status, array $same_day): bool
+    {
+        $status = trim($status);
+        if (self::translate($status) !== 'failed committee') {
+            return false;
+        }
+        // The committee: whatever follows the last "in" or "from", without "Committee" before it,
+        // or an amendment or a vote tally after it.
+        $pattern = '/^.*\b(?:in|from) (?:Committee )?(.+?)(?: with (?:a )?(?:substitute|amendments?))?\s*(?:\(.*)?$/i';
+        if (preg_match($pattern, $status, $matches) !== 1) {
+            return false;
+        }
+        $committee = preg_quote(trim($matches[1]), '/');
+
+        foreach ($same_day as $other) {
+            if (preg_match('/^' . self::PREFIX . 'Reported from ' . $committee . '(?:\s*$|\s*\(| with | and (?:re)?referred )/i', trim((string) $other)) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Translate a session's untranslated history entries, and clear the translation of any
+     * committee failure that turns out to be a motion that failed (see isFailedMotion()). Then
+     * set each of the session's bills' status to that of its latest translated entry.
+     *
+     * A failure is looked at again on every run, because the entry recording that the committee
+     * reported the bill may arrive after it.
+     *
+     * @return int How many history entries' translations were changed.
      */
     public static function apply(PDO $dbh, int $session_id): int
     {
         $select = $dbh->prepare(
-            'SELECT id, status FROM bills_status WHERE session_id = :session_id AND translation IS NULL'
+            'SELECT id, bill_id, DATE(date) AS day, status, translation
+            FROM bills_status
+            WHERE session_id = :session_id'
         );
         $select->execute([':session_id' => $session_id]);
+        $rows = $select->fetchAll(PDO::FETCH_ASSOC);
+
+        // Each bill's history entries, by day.
+        $days = [];
+        foreach ($rows as $row) {
+            $days[$row['bill_id'] . ' ' . $row['day']][] = (string) $row['status'];
+        }
 
         $update = $dbh->prepare('UPDATE bills_status SET translation = :translation WHERE id = :id');
-        $translated = 0;
-        foreach ($select->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $translation = self::translate((string) $row['status']);
-            if ($translation !== null) {
-                $update->execute([':translation' => $translation, ':id' => $row['id']]);
-                $translated++;
+        $changed = 0;
+        foreach ($rows as $row) {
+            $same_day = $days[$row['bill_id'] . ' ' . $row['day']];
+            if ($row['translation'] === null) {
+                $translation = self::translate((string) $row['status']);
+                if ($translation === null || self::isFailedMotion((string) $row['status'], $same_day)) {
+                    continue;
+                }
+            } elseif (
+                $row['translation'] === 'failed committee'
+                && self::isFailedMotion((string) $row['status'], $same_day)
+            ) {
+                $translation = null;
+            } else {
+                continue;
             }
+            $update->bindValue(':translation', $translation, $translation === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $update->bindValue(':id', (int) $row['id'], PDO::PARAM_INT);
+            $update->execute();
+            $changed++;
         }
 
         $bills = $dbh->prepare(
@@ -134,6 +194,6 @@ final class StatusTranslation
         );
         $bills->execute([':session_id' => $session_id]);
 
-        return $translated;
+        return $changed;
     }
 }

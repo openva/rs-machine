@@ -98,4 +98,76 @@ class StatusTranslationTest extends TestCase
     {
         $this->assertSame($expected, StatusTranslation::incorporatedInto($status));
     }
+
+    /**
+     * Committee failures, with the bill's other history entries from that day. The first four
+     * are SB382, HB916, SB673 and SB283 (2026).
+     *
+     * @return array<string, array{0: string, 1: string[], 2: bool}>
+     */
+    public static function failedMotions(): array
+    {
+        return [
+            'continued, then reported' => [
+                'Continued to 2027 in Finance and Appropriations',
+                ['Fiscal Impact Statement from Department of Planning and Budget (SB382)',
+                 'Reported from Finance and Appropriations with substitute (11-Y 4-N)'],
+                true,
+            ],
+            'reported without a tally' => [
+                'Continued to 2027 in Finance and Appropriations',
+                ['Reported from Finance and Appropriations with substitute'],
+                true,
+            ],
+            'passed by, then reported and rereferred' => [
+                'Passed by indefinitely in Courts of Justice',
+                ['Reported from Courts of Justice with substitute and rereferred to Finance and Appropriations (12-Y 3-N)'],
+                true,
+            ],
+            'failed to report one version, then reported another' => [
+                'Failed to report from Courts of Justice with substitute',
+                ['Reported from Courts of Justice with substitute (9-Y 6-N)'],
+                true,
+            ],
+            'with "Committee" before the name' => [
+                'Left in Committee Public Safety',
+                ['Reported from Public Safety (12-Y 10-N)'],
+                true,
+            ],
+            'from the CSV, with a prefix' => [
+                'Senate: Passed by indefinitely in Rules',
+                ['Senate: Reported from Rules (10-Y 5-N)'],
+                true,
+            ],
+            'reported from a different committee' => [
+                'Left in Appropriations',
+                ['Reported from Courts of Justice and referred to Appropriations (15-Y 7-N)'],
+                false,
+            ],
+            'a committee whose name begins the same' => [
+                'Left in Finance',
+                ['Reported from Finance and Appropriations (10-Y 5-N)'],
+                false,
+            ],
+            'nothing else that day' => [
+                'Continued to 2027 in Rules',
+                ['Fiscal Impact Statement from Department of Planning and Budget (HB1)'],
+                false,
+            ],
+            'not a committee failure' => [
+                'Subcommittee recommends laying on the table (10-Y 0-N)',
+                ['Reported from Appropriations'],
+                false,
+            ],
+        ];
+    }
+
+    /**
+     * @param string[] $same_day
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failedMotions')]
+    public function testIsFailedMotion(string $status, array $same_day, bool $expected): void
+    {
+        $this->assertSame($expected, StatusTranslation::isFailedMotion($status, $same_day));
+    }
 }
