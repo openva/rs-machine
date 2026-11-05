@@ -170,12 +170,14 @@ mysqli_query($GLOBALS['db'], $sql);
 ###
 # UPDATE BILLS' SUMMARY HASHES
 # We maintain an MD5 hash of all bill summaries to allow a quick discovery of bills that are
-# identical to the current one.
+# identical to the current one. A bill gets a new summary as it advances, so the hash is updated
+# whenever it no longer matches. (summary_hash is latin1, so MD5()'s result is converted to
+# compare them; <=> treats a missing hash of a missing summary as matching.)
 ###
 $sql = 'UPDATE bills
-		SET summary_hash = md5(summary)
+		SET summary_hash = MD5(summary)
 		WHERE
-			summary_hash IS NULL AND
+			NOT (summary_hash <=> CONVERT(MD5(summary) USING latin1)) AND
 			session_id = ' . $session_id;
 mysqli_query($GLOBALS['db'], $sql);
 
