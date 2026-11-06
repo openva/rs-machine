@@ -13,6 +13,7 @@
 /* This only works if there's already an entry in bills_full_text. */
 $sql = 'SELECT
             bills_full_text.id,
+            bills_full_text.bill_id,
             bills_full_text.number,
             sessions.lis_id AS session_id,
             bills.date_introduced
@@ -128,6 +129,14 @@ while ($text = mysqli_fetch_array($result)) {
         $log->put('Error: Inserting ' . strtoupper($text['number']) . ' bill text failed.', 5);
     } else {
         $log->put('Inserting ' . strtoupper($text['number']) . ' bill text succeeded.', 2);
+
+        // The bill's text has changed, so it needs to be checked for place names again (see
+        // update_places.php). The bill's date_modified is left alone, since the bill hasn't changed.
+        mysqli_query(
+            $GLOBALS['db'],
+            'UPDATE bills SET places_checked = NULL, date_modified = date_modified WHERE id = '
+                . (int) $text['bill_id']
+        );
     }
 
     $server_errors = 0;
