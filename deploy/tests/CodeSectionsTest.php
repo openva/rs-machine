@@ -145,6 +145,20 @@ class CodeSectionsTest extends TestCase
         }
     }
 
+    public function testStopsAtTheDeadline(): void
+    {
+        $dbh = $this->database();
+        try {
+            $bill = $this->insertBill($dbh);
+            $this->insertText($dbh, $bill, 'HB1', '2099-01-10', '<p>1. That § 1-200 of the Code of Virginia is amended.</p>');
+
+            $this->assertSame([], CodeSections::update($dbh, self::SESSION_ID, [], 10, microtime(true) - 1));
+            $this->assertCount(1, CodeSections::update($dbh, self::SESSION_ID, [], 10, microtime(true) + 60));
+        } finally {
+            $this->cleanUp($dbh);
+        }
+    }
+
     private function database(): PDO
     {
         $dbh = @(new Database())->connect();

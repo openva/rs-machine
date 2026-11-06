@@ -15,8 +15,9 @@ use RsMachine\StateFile;
 $state_file = __DIR__ . '/code-sections-parsed.json';
 $before = StateFile::load($state_file);
 
-// Each run parses a few hundred bills, so the first run of a session doesn't take too long.
-$parsed = CodeSections::update($dbh, SESSION_ID, $before, 300);
+// Each run parses a few hundred bills, so the first run of a session doesn't take too long. It
+// stops after six minutes, well inside its time limit, since its progress is saved only at the end.
+$parsed = CodeSections::update($dbh, SESSION_ID, $before, 300, microtime(true) + 360);
 
 if (!StateFile::save($state_file, $parsed, array_keys($parsed))) {
     $log->put('Unable to write ' . $state_file, 5);

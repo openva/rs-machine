@@ -17,9 +17,12 @@
  * MySQL closes a connection that's been idle for wait_timeout (300 seconds in production), and
  * this file's first steps use PDO, so the mysqli connection can be closed by the time it's used.
  * When it has been (errors 2006 and 2013), $query reconnects and tries the statement again.
+ *
+ * A statement that takes more than 30 seconds is logged, since this whole file usually takes less.
  */
 $failed_statements = 0;
 $query = static function (string $sql) use ($log, &$failed_statements) {
+    $start = microtime(true);
     $result = mysqli_query($GLOBALS['db'], $sql);
     if ($result === false && in_array(mysqli_errno($GLOBALS['db']), [2006, 2013], true)) {
         try {
@@ -39,6 +42,11 @@ $query = static function (string $sql) use ($log, &$failed_statements) {
         $log->put('Cleanup statement failed: ' . mysqli_error($GLOBALS['db']) . ' ('
             . mysqli_errno($GLOBALS['db']) . '), in: '
             . mb_substr(preg_replace('/\s+/', ' ', trim($sql)), 0, 150), 5);
+    }
+    $seconds = microtime(true) - $start;
+    if ($seconds > 30) {
+        $log->put('Cleanup statement took ' . round($seconds) . 's: '
+            . mb_substr(preg_replace('/\s+/', ' ', trim($sql)), 0, 150), 4);
     }
     return $result;
 };
@@ -83,7 +91,11 @@ $result = $sql->execute();
 
 // Translate LIS's history entries into our statuses, and update bills' statuses to match. The
 // rules are in RsMachine\StatusTranslation.
+$start = microtime(true);
 \RsMachine\StatusTranslation::apply($dbh, (int) $session_id);
+if (microtime(true) - $start > 30) {
+    $log->put('Cleanup took ' . round(microtime(true) - $start) . 's to translate statuses.', 4);
+}
 
 ###
 # UPDATE BILLS' STATUS

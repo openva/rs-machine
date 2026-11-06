@@ -68,9 +68,11 @@ final class CodeSections
      *
      * @param array<int,int> $parsed Bill ID => the ID of the text whose sections are stored.
      * @param int            $limit  The most bills to parse.
+     * @param float|null     $deadline When to stop, as a Unix timestamp, so the caller can save
+     *                                 its progress before its time limit.
      * @return array<int,int> $parsed, updated, and holding only this session's bills.
      */
-    public static function update(PDO $dbh, int $session_id, array $parsed, int $limit): array
+    public static function update(PDO $dbh, int $session_id, array $parsed, int $limit, ?float $deadline = null): array
     {
         // The latest version of each bill's text.
         $latest = $dbh->prepare(
@@ -97,7 +99,7 @@ final class CodeSections
 
         $done = 0;
         foreach ($latest as $bill_id => $full_text_id) {
-            if ($done >= $limit) {
+            if ($done >= $limit || ($deadline !== null && microtime(true) >= $deadline)) {
                 break;
             }
             if (($parsed[$bill_id] ?? null) === $full_text_id) {
