@@ -30,6 +30,22 @@ exceeds its own interval, or if a cron expression doesn't parse.
 Each task takes a lock keyed on its name, so a task cannot overlap itself however it was invoked,
 and one failing task no longer aborts the rest of a pass.
 
+### Running tasks against another session
+
+Tasks normally work on the current session (`SESSION_ID` and the related settings). To run them
+against a different session, such as a special session that wasn't imported while it was underway,
+pass that session's ID from the `sessions` table:
+
+```bash
+php cron/run.php --session=33 bills copatrons summaries history full_text vote tags
+```
+
+Only tasks marked `per_session` in `cron/tasks.php` can be run this way. Others, like `legislators`, are refused.
+Each task's working files in `cron/` (its downloaded CSVs and the caches listed under `state`) are
+put back as they were when it finishes, so the current session's next run isn't affected. If LIS
+has no copy of a file for that session, the task stops rather than reading the current session's
+copy. (LIS publishes no `FiscalImpactStatements.csv` for some special sessions, for example.)
+
 This replaces `cron/update.php`, which is still present but no longer scheduled. Its `php
 cron/update.php <type>` invocations map to `php cron/run.php <type>`.
 

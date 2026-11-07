@@ -46,6 +46,9 @@ class TaskRunner
     /** @var array<int, array<string, mixed>> One entry per task run, for the summary line. */
     private array $ledger = [];
 
+    /** Whether tasks run against a session other than the current one. See isolate(). */
+    private bool $isolated = false;
+
     /**
      * @param array<string, mixed> $manifest Contents of cron/tasks.php, tasks and config together.
      * @param (Closure(): array{0: ?\mysqli, 1: ?\PDO})|null $reconnect Opens new database
@@ -60,6 +63,20 @@ class TaskRunner
         [$this->manifest, $config] = self::partitionManifest($manifest);
 
         $this->allSchedule = $config['@all'] ?? null;
+    }
+
+    /**
+     * Run tasks against a session other than the current one (run.php --session).
+     *
+     * The tasks keep their working files in cron/ no matter what session they're working on:
+     * prefetched CSVs and the caches listed under `state`. In this mode, each task's files are
+     * put back as they were once it finishes, while it still holds its lock, so that the current
+     * session's next run never reads the other session's data. And a failed prefetch stops the
+     * task, rather than letting it read the current session's copy of the file.
+     */
+    public function isolate(): void
+    {
+        $this->isolated = true;
     }
 
     /**
@@ -347,8 +364,13 @@ class TaskRunner
         }
 
         $started = hrtime(true);
+        $saved   = [];
 
         try {
+            if ($this->isolated) {
+                $saved = $this->saveWorkingFiles($task);
+            }
+
             $this->reconnectIfClosed($name);
 
             if ($this->needsDatabase($name) && $this->context->db === null) {
@@ -386,7 +408,67 @@ class TaskRunner
 
             return false;
         } finally {
+            if ($this->isolated) {
+                $this->restoreWorkingFiles($saved);
+            }
             $this->releaseLock($lock);
+        }
+    }
+
+    /**
+     * Copy aside a task's working files in cron/, for restoreWorkingFiles() to put back.
+     *
+     * @param array<string, mixed> $task
+     * @return array<string, ?array{copy: string, mtime: int, mode: int}> Keyed by path; null for a file
+     *         that didn't exist.
+     */
+    private function saveWorkingFiles(array $task): array
+    {
+        $files = array_merge(array_values($task['prefetch'] ?? []), $task['state'] ?? []);
+
+        $saved = [];
+        foreach (array_unique($files) as $file) {
+            $path = $this->cronDir . '/' . $file;
+            if (!file_exists($path)) {
+                $saved[$path] = null;
+                continue;
+            }
+            $copy = tempnam(sys_get_temp_dir(), 'rs-task-');
+            if ($copy === false || !copy($path, $copy)) {
+                throw new RuntimeException('could not save a copy of ' . $file);
+            }
+            $saved[$path] = [
+                'copy'  => $copy,
+                'mtime' => (int) filemtime($path),
+                'mode'  => fileperms($path) & 0777,
+            ];
+        }
+
+        return $saved;
+    }
+
+    /**
+     * Put back the working files that saveWorkingFiles() copied aside, and remove any that a
+     * task created.
+     *
+     * @param array<string, ?array{copy: string, mtime: int, mode: int}> $saved
+     */
+    private function restoreWorkingFiles(array $saved): void
+    {
+        foreach ($saved as $path => $original) {
+            if ($original === null) {
+                if (file_exists($path)) {
+                    unlink($path);
+                }
+                continue;
+            }
+            if (!rename($original['copy'], $path)) {
+                $this->context->log->put('Could not restore ' . $path . ' from ' . $original['copy']
+                    . '; restore it by hand before the current session\'s next run.', 7);
+                continue;
+            }
+            chmod($path, $original['mode']);
+            touch($path, $original['mtime']);
         }
     }
 
@@ -563,11 +645,27 @@ class TaskRunner
 
         $script = $this->cronDir . '/fetch_csv.sh';
 
+        /*
+         * Pass the session's LIS code (e.g. 20261), so that a run against another session
+         * (run.php --session) fetches that session's files. Without it, the script uses the
+         * current session, which the deploy writes into it.
+         */
+        $sessionCode = preg_match('/^\d{3}$/', $this->context->lisSessionId) === 1
+            ? '20' . $this->context->lisSessionId
+            : '';
+
         foreach ($files as $remote => $local) {
             $command = escapeshellcmd('/bin/bash') . ' ' . escapeshellarg($script) . ' '
-                     . escapeshellarg($remote) . ' ' . escapeshellarg($this->cronDir . '/' . $local);
+                     . escapeshellarg($remote) . ' ' . escapeshellarg($this->cronDir . '/' . $local)
+                     . ($sessionCode !== '' ? ' ' . escapeshellarg($sessionCode) : '');
 
             exec($command . ' 2>&1', $output, $status);
+
+            if ($status !== 0 && $this->isolated) {
+                // The copy already in cron/ is the current session's, so it mustn't be used.
+                throw new RuntimeException('could not fetch ' . $remote . ' for session '
+                    . $sessionCode . ': ' . implode(' ', array_slice($output, -3)));
+            }
 
             if ($status !== 0) {
                 /*

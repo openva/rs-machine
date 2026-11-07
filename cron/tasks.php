@@ -27,6 +27,11 @@
  *             [remote LIS filename => local filename in cron/].
  *   comment   Why this task is scheduled the way it is. Kept here so the reasoning travels
  *             with the schedule instead of living in crontab comments.
+ *   per_session  Whether the task can be run against a session other than the current one, with
+ *             `run.php --session=<sessions.id>`. Only tasks that work on one session's bills are.
+ *   state     Files in cron/ that the task keeps between runs (besides its prefetched CSVs).
+ *             A --session run puts them back as they were afterwards, so that the current
+ *             session's next run doesn't pick up the other session's data.
  *
  * INVARIANT: no task may have both a non-null `schedule` and `in_all => true`. That is the
  * duplication this manifest exists to prevent, and TaskManifestTest asserts it.
@@ -57,6 +62,7 @@ return [
         'schedule' => null,
         'in_all'   => true,
         'timeout'  => 600,
+        'per_session' => true,
         'prefetch' => [
             'BILLS.CSV'   => 'bills.csv',
             'Sponsors.csv' => 'sponsors.csv',
@@ -70,6 +76,8 @@ return [
         'schedule' => '3,13,23,33,43,53 6-23 * * *',
         'in_all'   => false,
         'timeout'  => 540,
+        'per_session' => true,
+        'state'    => ['bill-statuses.json', 'bill-history-fetched.json'],
         'comment'  => 'Every 10 minutes during session hours. The timeout is deliberately under '
                     . 'the 10-minute interval: update.php used a single global 1200s ceiling, so '
                     . 'a long run would silently eat the next two ticks. Fails fast instead.',
@@ -79,6 +87,7 @@ return [
         'schedule' => '2 6-23 * * *',
         'in_all'   => false,
         'timeout'  => 300,
+        'per_session' => true,
         'prefetch' => ['Summaries.csv' => 'summaries.csv'],
         'comment'  => 'Was both in "all" and scheduled here. Now scheduled only.',
     ],
@@ -87,6 +96,7 @@ return [
         'schedule' => '11,31,51 6-23 * * *',
         'in_all'   => false,
         'timeout'  => 600,
+        'per_session' => true,
         'comment'  => 'Was both in "all" and scheduled here. Now scheduled only. Scrapes LIS '
                     . 'HTML, so subject to the 15-request/30-second rate limit.',
     ],
@@ -95,6 +105,8 @@ return [
         'schedule' => '5,15,25,35,45,55 * * 1-3,10-12 *',
         'in_all'   => false,
         'timeout'  => 480,
+        'per_session' => true,
+        'state'    => ['code-sections-parsed.json'],
         'comment'  => 'Was both in "all" and scheduled here. Now scheduled only. Session months '
                     . 'only (Jan-Mar, Oct-Dec).',
     ],
@@ -103,6 +115,7 @@ return [
         'schedule' => null,
         'in_all'   => true,
         'timeout'  => 300,
+        'per_session' => true,
     ],
 
     /*
@@ -113,6 +126,8 @@ return [
         'schedule' => '4 10,13,16,21 * * *',
         'in_all'   => false,
         'timeout'  => 600,
+        'per_session' => true,
+        'state'    => ['votes.json'],
         'comment'  => 'Four times daily, after each likely floor session.',
     ],
 
@@ -171,6 +186,7 @@ return [
         'schedule' => '53 11,13,15,17,19,21 * * *',
         'in_all'   => false,
         'timeout'  => 300,
+        'per_session' => true,
         'prefetch' => ['FiscalImpactStatements.csv' => 'FiscalImpactStatements.csv'],
         'comment'  => 'Was both in "all" and scheduled here. Now scheduled only.',
     ],
@@ -179,6 +195,7 @@ return [
         'schedule' => null,
         'in_all'   => true,
         'timeout'  => 900,
+        'per_session' => true,
         'comment'  => 'Calls OpenAI; the generous timeout absorbs API latency.',
     ],
 
@@ -197,6 +214,7 @@ return [
         'schedule' => null,
         'in_all'   => true,
         'timeout'  => 300,
+        'per_session' => true,
     ],
 
     'photosynthesis' => [
@@ -215,6 +233,7 @@ return [
         'schedule' => null,
         'in_all'   => true,
         'timeout'  => 900,
+        'per_session' => true,
         'comment'  => 'The largest task file (838 lines) and the slowest; hence the wide ceiling.',
     ],
 
@@ -241,6 +260,7 @@ return [
         'schedule' => '41 2,16 * * *',
         'in_all'   => false,
         'timeout'  => 900,
+        'per_session' => true,
         'comment'  => 'Was both in "all" and scheduled here. Now scheduled only.',
     ],
 

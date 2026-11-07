@@ -143,8 +143,10 @@ $sql = 'UPDATE bills
             session_id=' . $session_id;
 $query($sql);
 
-// Mark bills as failed if their status is still "introduced" after the session is over.
-if (IN_SESSION == false && time() > strtotime(SESSION_END)) {
+// Mark bills as failed if their status is still "introduced" after the session is over. This acts
+// on the session before the one being run, so it's skipped when running against another session
+// (run.php --session), where that could be any session at all.
+if (!defined('SESSION_OVERRIDE') && IN_SESSION == false && time() > strtotime(SESSION_END)) {
     $sql = 'UPDATE bills
             SET outcome="failed"
             WHERE status="introduced" AND session_id = ' . ($session_id - 1);

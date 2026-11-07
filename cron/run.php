@@ -72,8 +72,104 @@ $log      = new Log();
 $argv = $_SERVER['argv'];
 array_shift($argv);
 
+$sessionArgument = null;
+foreach ($argv as $i => $argument) {
+    if (str_starts_with($argument, '--session=')) {
+        $sessionArgument = substr($argument, strlen('--session='));
+        unset($argv[$i]);
+    }
+}
+$argv = array_values($argv);
+
 if ($argv === []) {
     fwrite(STDERR, "Usage: run.php <all|--due|--list|--crontab|task...>\n");
+    fwrite(STDERR, "       run.php --session=<sessions.id> <task...>\n");
+    exit(1);
+}
+
+/*
+ * ---- Running against another session -------------------------------------------------------
+ *
+ * `run.php --session=33 bills history` runs those tasks against session 33 instead of the
+ * current one, e.g. to import a special session that ended before anyone noticed it. The tasks
+ * read the session from the constants in settings.inc.php (SESSION_ID, SESSION_LIS_ID, …), which
+ * can't be redefined once set, so this looks up the session and then runs this script again in a
+ * new process that defines that session's constants before the settings load. Only tasks marked
+ * `per_session` in cron/tasks.php may be run this way; see TaskRunner::isolate() for how they're
+ * kept from disturbing the current session's working files.
+ */
+if ($sessionArgument !== null && !defined('SESSION_OVERRIDE')) {
+    if (!ctype_digit($sessionArgument)) {
+        fwrite(STDERR, "--session takes a session's ID in the sessions table, e.g. --session=33.\n");
+        exit(1);
+    }
+
+    $tasks = TaskRunner::partitionManifest($manifest)[0];
+    foreach ($argv as $name) {
+        if (!isset($tasks[$name]) || ($tasks[$name]['per_session'] ?? false) !== true) {
+            $allowed = array_keys(array_filter($tasks, static fn($t) => ($t['per_session'] ?? false) === true));
+            fwrite(STDERR, '"' . $name . '" can\'t be run with --session. These can: '
+                . implode(', ', $allowed) . "\n");
+            exit(1);
+        }
+    }
+
+    try {
+        $dbh = new PDO(PDO_DSN, PDO_USERNAME, PDO_PASSWORD);
+        $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $stmt = $dbh->prepare('SELECT id, lis_id, lis_api_id, year, suffix, date_started, date_ended
+                               FROM sessions WHERE id = ?');
+        $stmt->execute([(int) $sessionArgument]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        fwrite(STDERR, 'Could not look up the session: ' . $e->getMessage() . "\n");
+        exit(1);
+    }
+
+    if ($session === false) {
+        fwrite(STDERR, 'There is no session ' . $sessionArgument . " in the sessions table.\n");
+        exit(1);
+    }
+    if (!preg_match('/^\d{3}$/', (string) $session['lis_id'])) {
+        fwrite(STDERR, 'Session ' . $session['id'] . " has no three-digit LIS ID (sessions.lis_id).\n");
+        exit(1);
+    }
+
+    $constants = [
+        'SESSION_OVERRIDE'   => true,
+        'SESSION_ID'         => (int) $session['id'],
+        'SESSION_SUFFIX'     => (string) ($session['suffix'] ?? ''),
+        'SESSION_LIS_ID'     => (string) $session['lis_id'],
+        'SESSION_LIS_API_ID' => (string) ($session['lis_api_id'] ?? ''),
+        'SESSION_YEAR'       => (int) $session['year'],
+        'SESSION_START'      => (string) $session['date_started'],
+        'SESSION_END'        => (string) ($session['date_ended'] ?? $session['date_started']),
+    ];
+    $prepend = tempnam(sys_get_temp_dir(), 'rs-session-');
+    $code = "<?php\n";
+    foreach ($constants as $constant => $value) {
+        $code .= 'define(' . var_export($constant, true) . ', ' . var_export($value, true) . ");\n";
+    }
+    if ($prepend === false || file_put_contents($prepend, $code) === false) {
+        fwrite(STDERR, "Could not write the session's settings to a temporary file.\n");
+        exit(1);
+    }
+
+    $log->put('Running ' . implode(', ', $argv) . ' against session ' . $session['id'] . ' ('
+        . $session['year'] . ($session['suffix'] !== null ? ', special session ' . $session['suffix'] : '')
+        . ', LIS ' . $session['lis_id'] . ').', 3);
+
+    passthru(
+        escapeshellarg(PHP_BINARY) . ' -d ' . escapeshellarg('auto_prepend_file=' . $prepend) . ' '
+        . escapeshellarg(__FILE__) . ' ' . implode(' ', array_map('escapeshellarg', $argv)),
+        $status
+    );
+    unlink($prepend);
+    exit($status);
+}
+
+if (defined('SESSION_OVERRIDE') && ($argv[0] === 'all' || str_starts_with($argv[0], '--'))) {
+    fwrite(STDERR, "Only named tasks can be run against another session.\n");
     exit(1);
 }
 
@@ -321,6 +417,9 @@ $context = new TaskContext(
 );
 
 $runner = new TaskRunner($manifest, $context, __DIR__, $connect);
+if (defined('SESSION_OVERRIDE')) {
+    $runner->isolate();
+}
 
 /*
  * ---- Run -----------------------------------------------------------------------------------

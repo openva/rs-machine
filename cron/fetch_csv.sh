@@ -7,8 +7,12 @@ set -x
 filename="$1"
 output_filename="$2"
 
-# The deploy replaces this placeholder with the session's LIS ID.
-url="https://lis.blob.core.windows.net/lisfiles/20{SESSION_LIS_ID}/${filename}"
+# The LIS session code (e.g. 20261) may be given as a third argument, which run.php does so that
+# it can fetch another session's files (see --session). Otherwise, the deploy replaces this
+# placeholder with the current session's LIS ID.
+default_session_code="20{SESSION_LIS_ID}"
+session_code="${3:-$default_session_code}"
+url="https://lis.blob.core.windows.net/lisfiles/${session_code}/${filename}"
 # (Checking for a brace, not the placeholder itself, which the deploy would replace here too.)
 if [[ "$url" == *"{"* ]]; then
     echo "The LIS session ID was never filled in, so ${filename} can't be fetched." >&2

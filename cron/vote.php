@@ -180,9 +180,11 @@ foreach ($votes as $vote) {
     #
     # Only bother to look up the ID if there are few enough votes that it could plausibly be an
     # in-committee vote.
+    // A vote with no committee number (a sparsely attended floor vote) has nothing to look up.
     if (
-        (($chamber == 'senate') && ($total < 25))
-        || (($chamber == 'house') && ($total < 80))
+        !empty($vote['CommitteeNumber'])
+        && ((($chamber == 'senate') && ($total < 25))
+        || (($chamber == 'house') && ($total < 80)))
     ) {
         $committee_id = $import->lookup_committee_id($committees, $vote['CommitteeNumber']);
     }
