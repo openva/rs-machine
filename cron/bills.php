@@ -138,6 +138,7 @@ foreach ($bills as $bill) {
      */
     $import = new Import($log);
     $introduced = BillsCsv::introductionDate($bill);
+    $text_versions = BillsCsv::textVersions($bill);
     $bill = $import->prepare_bill($bill);
 
     // LIS's CSV replaces every non-ASCII character in the catch line with "?" (e.g. "Damaré"
@@ -294,18 +295,16 @@ foreach ($bills as $bill) {
         }
 
         // Create a bill full text record for every version of the bill text that's filed.
-        for ($i = 0; $i < count($bill['text']); $i++) {
-            if (!empty($bill['text'][$i]['number']) && !empty($bill['text'][$i]['date'])) {
-                $sql = 'INSERT INTO bills_full_text
-                        SET
-                            bill_id = ' . $bill['id'] . ',
-                            number="' . $bill['text'][$i]['number'] . '",
-                            session_id=' . SESSION_ID . ',
-                            date_introduced="' . $bill['text'][$i]['date'] . '",
-                            date_created=now()
-                        ON DUPLICATE KEY UPDATE date_introduced=date_introduced';
-                mysqli_query($GLOBALS['db'], $sql);
-            }
+        foreach ($text_versions as $version => $date) {
+            $sql = 'INSERT INTO bills_full_text
+                    SET
+                        bill_id = ' . $bill['id'] . ',
+                        number="' . $version . '",
+                        session_id=' . SESSION_ID . ',
+                        date_introduced="' . $date . '",
+                        date_created=now()
+                    ON DUPLICATE KEY UPDATE date_introduced=date_introduced';
+            mysqli_query($GLOBALS['db'], $sql);
         }
     }
 
