@@ -18,6 +18,13 @@ class PlaceNames
     public const FIRST_YEAR = 2024;
 
     /**
+     * The most characters of a bill's text to send to a model: about 25,000 tokens, which costs
+     * about six cents. Some bills run to 700,000 characters, which is more than a model will accept
+     * (and the call would fail every time it was tried).
+     */
+    public const MODEL_MAX_CHARS = 100000;
+
+    /**
      * Phrases that suggest a place is named in a way that exact matching can't handle: a
      * "County of," "City of," or "Town of" that isn't followed by a place we know, a list ("Counties
      * of"), or a capitalized name followed by "County" or "City" (a town's, say, or one we missed).
@@ -85,23 +92,69 @@ class PlaceNames
     }
 
     /**
-     * The text of a bill to look for places in: its summary, and the text that the bill changes
-     * (or, if it doesn't change existing text, all of its text). A bill that amends a section of
-     * the Code of Virginia reprints the whole section, and the places that it mentions but doesn't
-     * change aren't the places that it's about.
+     * Where a bill's text shows what it changes: text that it adds is in <ins> or <em class="new">
+     * (the two ways that LIS marks it), and text that it strikes is in <s>.
+     */
+    private const CHANGED = '/<ins(?:\s[^>]*)?>(.*?)<\/ins>'
+        . '|<s(?:\s[^>]*)?>(.*?)<\/s>'
+        . '|<em\s[^>]*\bclass=["\']?new\b[^>]*>(.*?)<\/em>/is';
+
+    /**
+     * Where a bill's text begins a section of the Code or an enactment clause ("2. That the
+     * Department shall..."). Each begins something that's amended, added, or enacted on its own.
+     */
+    private const BLOCK_START = '/(?=<p\s[^>]*\bclass=["\']?(?:catchln|enactcls)\b)/i';
+
+    /**
+     * The text of a bill to look for places in: its summary, and the language that the bill
+     * changes. A bill that amends a section of the Code of Virginia reprints the whole section, and
+     * the places that it mentions but doesn't change aren't the places that it's about.
      *
-     * @param object $bill A bill, as the API returns it.
+     * @param object $bill A bill, with a "summary" and its "full_text" (as the database has them).
      */
     public static function billText(object $bill): string
     {
-        $text = (string) ($bill->summary ?? '') . ' ';
-        if (empty($bill->changes)) {
-            return $text . strip_tags((string) ($bill->full_text ?? ''));
+        $summary = html_entity_decode(strip_tags((string) ($bill->summary ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return str_replace("\u{00A0}", ' ', $summary) . ' ' . self::changedLanguage((string) ($bill->full_text ?? ''));
+    }
+
+    /**
+     * The language that a bill changes: what it adds and what it strikes from existing law, and all
+     * of what it enacts that isn't an amendment.
+     *
+     * The text is taken a section at a time. In a section that's amended, only the marked passages
+     * (added or struck) are taken, so that a place that the law already names isn't taken because
+     * the bill adds another one next to it. A section or enactment clause with nothing marked is
+     * wholly new (a new section, a clause creating a work group, an effective date), and all of it
+     * is taken. So is the text of a resolution, which has no markup at all.
+     *
+     * @param string $html The text of a bill, as the API returns it.
+     */
+    public static function changedLanguage(string $html): string
+    {
+        $language = [];
+        foreach (preg_split(self::BLOCK_START, $html) as $block) {
+            if (preg_match_all(self::CHANGED, $block, $passages, PREG_SET_ORDER) > 0) {
+                foreach ($passages as $passage) {
+                    $language[] = $passage[1] . ($passage[2] ?? '') . ($passage[3] ?? '');
+                }
+            } else {
+                $language[] = $block;
+            }
         }
-        foreach ($bill->changes as $change) {
-            $text .= $change->text . "\n";
-        }
-        return $text;
+
+        // Entities (a "&nbsp;" between "Fairfax" and "County") would keep a name from matching.
+        $text = html_entity_decode(strip_tags(implode("\n", $language)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return trim(str_replace("\u{00A0}", ' ', $text));
+    }
+
+    /**
+     * A text, cut to what can be sent to a model (see MODEL_MAX_CHARS). Exact matching sees all of
+     * the text; only the model's share is cut.
+     */
+    public static function forModel(string $text): string
+    {
+        return mb_strlen($text) <= self::MODEL_MAX_CHARS ? $text : mb_substr($text, 0, self::MODEL_MAX_CHARS);
     }
 
     /**

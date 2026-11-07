@@ -29,33 +29,12 @@ $db = $dbh->connect();
 $log = new Log();
 
 /*
- * How much to do in a run. Settling a bill without GPT costs only a request to our own API, so
+ * How much to do in a run. Settling a bill without GPT costs only reading it from the database, so
  * many are done each run. Asking GPT costs money, so only a few are.
  */
-const PLACES_BILLS_PER_RUN = 100;
+const PLACES_BILLS_PER_RUN = 1000;
 const PLACES_MODEL_CALLS_PER_RUN = 10;
 const PLACES_SECONDS_PER_RUN = 240;
-
-/*
- * Get the text of a bill from the API: its summary, and the text that it changes (or, if it
- * doesn't change any, all of its text).
- */
-$fetch_text = function (array $bill): ?string {
-    $context = stream_context_create(['http' => ['timeout' => 20]]);
-    $json = @file_get_contents(
-        'https://api.richmondsunlight.com/1.1/bill/' . $bill['year'] . '/' . $bill['number'] . '.json',
-        false,
-        $context
-    );
-    if ($json === false) {
-        return null;
-    }
-    $bill_info = json_decode($json);
-    if (!is_object($bill_info)) {
-        return null;
-    }
-    return PlaceNames::billText($bill_info);
-};
 
 /*
  * Ask GPT for the names of the places in a text. The connection to its endpoint is made when it's
@@ -113,7 +92,8 @@ if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
     $mc->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
 }
 
-$tagger = new PlaceTagger($db, $fetch_text, $ask_model);
+// Bills' text is read from the database (a null here means the default).
+$tagger = new PlaceTagger($db, null, $ask_model);
 $stats = $tagger->run(
     PLACES_BILLS_PER_RUN,
     PLACES_MODEL_CALLS_PER_RUN,

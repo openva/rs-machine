@@ -26,16 +26,50 @@ class PlaceTagger
     private ?array $localities = null;
 
     /**
-     * @param callable(array): ?string $fetchText Given a bill (its id, number, and year), returns
-     *     the text to look for places in, or null if it couldn't be retrieved.
+     * @param callable(array): ?string|null $fetchText Given a bill (its id, number, and year),
+     *     returns the text to look for places in, or null if it couldn't be retrieved. By default,
+     *     it's read from the database (see textFromDatabase()); this is for tests to replace.
      * @param callable(string): ?array $askModel Given a text, returns the names of the places that
      *     a model found in it (an empty list if there are none), or null if it couldn't be asked.
      */
-    public function __construct(PDO $db, callable $fetchText, callable $askModel)
+    public function __construct(PDO $db, ?callable $fetchText, callable $askModel)
     {
         $this->db = $db;
-        $this->fetchText = $fetchText;
+        $this->fetchText = $fetchText ?? fn (array $bill): ?string => $this->textFromDatabase($bill);
         $this->askModel = $askModel;
+    }
+
+    /**
+     * The text of a bill to look for places in, from the database: its summary, and the language
+     * that its latest version changes (see PlaceNames::billText()).
+     *
+     * @param array{id: int} $bill
+     * @return string|null The text, or null if there's no such bill.
+     */
+    public function textFromDatabase(array $bill): ?string
+    {
+        $stmt = $this->db->prepare(
+            'SELECT bills.summary, latest.text
+            FROM bills
+            LEFT JOIN bills_full_text AS latest
+                ON latest.id = (
+                    SELECT versions.id
+                    FROM bills_full_text AS versions
+                    WHERE
+                        versions.bill_id = bills.id
+                        AND versions.text IS NOT NULL
+                        AND versions.text <> ""
+                    ORDER BY versions.date_introduced DESC, versions.id DESC
+                    LIMIT 1
+                )
+            WHERE bills.id = :bill_id'
+        );
+        $stmt->execute([':bill_id' => $bill['id']]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return null;
+        }
+        return PlaceNames::billText((object) ['summary' => $row['summary'], 'full_text' => $row['text']]);
     }
 
     /**
@@ -211,7 +245,7 @@ class PlaceTagger
                     $stats['waiting']++;
                     continue;
                 }
-                $answer = ($this->askModel)($text);
+                $answer = ($this->askModel)(PlaceNames::forModel($text));
                 if ($answer === null) {
                     $stats['unretrieved']++;
                     continue;

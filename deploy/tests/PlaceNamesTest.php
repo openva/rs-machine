@@ -133,24 +133,158 @@ class PlaceNamesTest extends TestCase
         $this->assertFalse($this->find('Salem City')['settled'], 'Salem isn\'t in this list');
     }
 
-    public function testBillTextIsTheSummaryAndTheChangedText(): void
+    /**
+     * A bill's text as LIS gives it: an enactment clause, then each section (a "catchln" heading, and
+     * "section" paragraphs), in which added text is in <ins> or <em class="new"> and struck text is in <s>.
+     */
+    private function amendment(string $body): string
     {
-        $bill = (object) [
-            'summary' => 'Fireworks.',
-            'full_text' => '<p>Existing law about Fairfax County.</p>',
-            'changes' => [(object) ['text' => 'Norfolk'], (object) ['text' => 'Hampton']],
-        ];
-        $text = PlaceNames::billText($bill);
-        $this->assertStringContainsString('Fireworks.', $text);
-        $this->assertStringContainsString("Norfolk\nHampton\n", $text);
-        $this->assertStringNotContainsString('Fairfax', $text, 'Existing law isn\'t what the bill is about');
+        return '<p class=enactstm>Be it enacted by the General Assembly of Virginia:</p>'
+            . '<p class=enactcls>1. That &sect;&nbsp;<a href="#">15.2-2304</a> is amended and reenacted as follows:</p>'
+            . '<p class=catchln>&sect;&nbsp;<a href="#">15.2-2304</a>. Affordable housing; zoning.</p>'
+            . $body;
     }
 
-    public function testBillTextIsTheWholeTextWhenNothingIsChanged(): void
+    /**
+     * Staunton is added to a list that already names Charlottesville, Richmond, and Virginia Beach.
+     * Only Staunton is what the bill changes.
+     */
+    public function testAPlaceAddedToAListIsFoundButThePlacesAlreadyInItAreNot(): void
     {
-        $text = PlaceNames::billText((object) ['summary' => 'Fireworks.', 'full_text' => '<p>Fairfax County.</p>', 'changes' => []]);
-        $this->assertSame('Fireworks. Fairfax County.', $text, 'Without tags');
-        $this->assertSame('Only a summary. ', PlaceNames::billText((object) ['summary' => 'Only a summary.']));
+        $html = $this->amendment('<p class=section>The localities are the City of Charlottesville, the City of Richmond, '
+            . 'the City of Virginia Beach, <ins>and the City of Staunton</ins>.</p>');
+        $text = PlaceNames::changedLanguage($html);
+
+        $this->assertStringContainsString('Staunton', $text);
+        $this->assertStringNotContainsString('Charlottesville', $text);
+        $this->assertStringNotContainsString('Richmond', $text);
+        $this->assertStringNotContainsString('Virginia Beach', $text);
+    }
+
+    public function testNewTextMarkedAsNewIsFoundAsWellAsInserted(): void
+    {
+        $html = $this->amendment('<p class=section>The City of Norfolk and <em class="new">the City of Salem</em> may.</p>');
+        $text = PlaceNames::changedLanguage($html);
+        $this->assertStringContainsString('the City of Salem', $text);
+        $this->assertStringNotContainsString('Norfolk', $text);
+    }
+
+    /**
+     * A place that a bill takes out of a law is a place that it changes, too.
+     */
+    public function testAPlaceStruckFromALawIsFound(): void
+    {
+        $html = $this->amendment('<p class=section>The Counties of Albemarle, <s>and Loudoun,</s> and the City of Norfolk.</p>');
+        $text = PlaceNames::changedLanguage($html);
+        $this->assertStringContainsString('Loudoun', $text);
+        $this->assertStringNotContainsString('Albemarle', $text);
+        $this->assertStringNotContainsString('Norfolk', $text);
+    }
+
+    /**
+     * A new section has nothing marked in it, since all of it is new.
+     */
+    public function testEverythingInANewSectionIsFound(): void
+    {
+        $html = '<p class=enactcls>1. That the Code of Virginia is amended by adding a section numbered 36-140.02 as follows:</p>'
+            . '<p class=catchln>&sect; 36-140.02. Housing grants.</p>'
+            . '<p class=section>Grants shall go to Fairfax County, the City of Norfolk, and the City of Richmond.</p>';
+        $text = PlaceNames::changedLanguage($html);
+        $this->assertStringContainsString('Fairfax County', $text);
+        $this->assertStringContainsString('City of Norfolk', $text);
+        $this->assertStringContainsString('City of Richmond', $text);
+    }
+
+    /**
+     * One bill that amends a section (naming places that it doesn't change), adds another, and has an
+     * enactment clause of its own.
+     */
+    public function testEachSectionOfABillIsTakenOnItsOwn(): void
+    {
+        $html = '<p class=enactcls>1. That &sect; 1-1 is amended and reenacted and that the Code is amended by adding a section numbered 1-2 as follows:</p>'
+            . '<p class=catchln>&sect; 1-1. Old section.</p>'
+            . '<p class=section>The City of Richmond and Henrico County <ins>and Roanoke County</ins> may.</p>'
+            . '<p class=catchln><ins>&sect; 1-2. New section.</ins></p>'
+            . '<p class=section>The City of Norfolk may.</p>'
+            . '<p class=catchln>&sect; 1-3. Another new section.</p>'
+            . '<p class=section>The City of Salem may.</p>'
+            . '<p class=enactcls>2. That the work group shall include Prince William County.</p>';
+        $text = PlaceNames::changedLanguage($html);
+
+        $this->assertStringContainsString('Roanoke County', $text, 'Added to an amended section');
+        $this->assertStringNotContainsString('Henrico', $text, 'Already in the amended section');
+        $this->assertStringNotContainsString('City of Richmond', $text, 'Already in the amended section');
+        $this->assertStringContainsString('City of Salem', $text, 'A new section with nothing marked');
+        $this->assertStringContainsString('Prince William County', $text, 'An enactment clause');
+    }
+
+    /**
+     * A resolution has no markup, and no sections: all of it is its language.
+     */
+    public function testAResolutionIsTakenWhole(): void
+    {
+        $html = '<center>HOUSE JOINT RESOLUTION NO. 14</center><p>WHEREAS, the Wolf Creek Cherokee live in Wythe County and the City of Richmond.</p>';
+        $text = PlaceNames::changedLanguage($html);
+        $this->assertStringContainsString('Wythe County', $text);
+        $this->assertStringContainsString('City of Richmond', $text);
+        $this->assertStringNotContainsString('<', $text);
+    }
+
+    /**
+     * Older bills don't have the section markup, but still mark what they change.
+     */
+    public function testATextWithMarkedPassagesButNoSectionsIsTakenByItsMarkedPassages(): void
+    {
+        $text = PlaceNames::changedLanguage('<p>A BILL to amend. The City of Richmond may <ins>and Salem City</ins> do so.</p>');
+        $this->assertStringContainsString('Salem City', $text);
+        $this->assertStringNotContainsString('Richmond', $text);
+    }
+
+    /**
+     * LIS puts a non-breaking space between the words of a name, as in "Fairfax&nbsp;County".
+     */
+    public function testANameWithANonBreakingSpaceIsMatched(): void
+    {
+        $text = PlaceNames::changedLanguage('<p class=enactcls>1. That the City&nbsp;of&nbsp;Norfolk and Fairfax&nbsp;County shall report.</p>');
+        $result = PlaceNames::fromText($text, $this->localities());
+        sort($result['places']);
+        $this->assertSame(['Fairfax County', 'Norfolk'], $result['places']);
+        $this->assertTrue($result['settled']);
+    }
+
+    public function testTheSummaryIsAddedToTheChangedLanguage(): void
+    {
+        $bill = (object) [
+            'summary' => 'Adds Fairfax County to the casino list.',
+            'full_text' => $this->amendment('<p class=section>The City of Richmond <ins>and Norfolk City</ins>.</p>'),
+        ];
+        $text = PlaceNames::billText($bill);
+        $this->assertStringContainsString('Adds Fairfax County to the casino list.', $text);
+        $this->assertStringContainsString('Norfolk City', $text);
+        $this->assertStringNotContainsString('City of Richmond', $text);
+        $this->assertSame('Only a summary.', trim(PlaceNames::billText((object) ['summary' => 'Only a summary.'])));
+    }
+
+    /**
+     * Some bills are 700,000 characters, more than a model accepts.
+     */
+    public function testALongTextIsCutForTheModelButAShortOneIsNot(): void
+    {
+        $short = str_repeat('x', PlaceNames::MODEL_MAX_CHARS);
+        $this->assertSame($short, PlaceNames::forModel($short));
+
+        $cut = PlaceNames::forModel(str_repeat('é', 700000));   // Multibyte, to be cut by characters
+        $this->assertSame(PlaceNames::MODEL_MAX_CHARS, mb_strlen($cut));
+        $this->assertSame(1, preg_match('//u', $cut), 'Still valid UTF-8');
+    }
+
+    public function testASummaryFromTheDatabaseIsCleanedUp(): void
+    {
+        $text = PlaceNames::billText((object) ['summary' => 'Adds <i>Fairfax&nbsp;County</i> &amp; Norfolk.', 'full_text' => '']);
+        $result = PlaceNames::fromText($text, $this->localities());
+        $this->assertSame(['Fairfax County'], $result['places']);
+        $this->assertStringContainsString('& Norfolk', $text);
+        $this->assertStringNotContainsString('<i>', $text);
     }
 
     public function testAnAnswerIsSplitIntoPlaces(): void

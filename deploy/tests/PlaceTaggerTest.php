@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use RsMachine\PlaceNames;
 use RsMachine\PlaceTagger;
 
 require_once __DIR__ . '/../../includes/settings.inc.php';
@@ -95,14 +96,14 @@ class PlaceTaggerTest extends TestCase
      */
     private function bill(string $text, array $options = []): int
     {
-        $options += ['session_id' => self::SESSION_2030, 'with_text' => true, 'checked' => null, 'places' => []];
+        $options += ['session_id' => self::SESSION_2030, 'with_text' => true, 'checked' => null, 'places' => [], 'summary' => null];
         $id = $this->next_id++;
         $number = 'hb' . ($id - self::FIRST_ID + 9001);
 
         self::$db->prepare(
-            'INSERT INTO bills (id, number, session_id, chief_patron_id, date_created, places_checked, date_modified)
-            VALUES (?, ?, ?, 16, NOW(), ?, "2025-01-02 03:04:05")'
-        )->execute([$id, $number, $options['session_id'], $options['checked']]);
+            'INSERT INTO bills (id, number, session_id, chief_patron_id, summary, date_created, places_checked, date_modified)
+            VALUES (?, ?, ?, 16, ?, NOW(), ?, "2025-01-02 03:04:05")'
+        )->execute([$id, $number, $options['session_id'], $options['summary'], $options['checked']]);
 
         self::$db->prepare(
             'INSERT INTO bills_full_text (bill_id, number, session_id, date_introduced, text, date_created)
@@ -118,6 +119,28 @@ class PlaceTaggerTest extends TestCase
         $this->bill_ids[$number] = $id;
         $this->texts[$number] = $text;
         return $id;
+    }
+
+    /**
+     * Add another version of a bill's text.
+     */
+    private function version(int $bill_id, string $text, string $date_introduced): void
+    {
+        self::$db->prepare(
+            'INSERT INTO bills_full_text (bill_id, number, session_id, date_introduced, text, date_created)
+            VALUES (?, ?, ?, ?, ?, NOW())'
+        )->execute([$bill_id, 'v' . ($bill_id % 1000) . substr($date_introduced, 2, 2) . substr($date_introduced, 5, 2), self::SESSION_2030, $date_introduced, $text]);
+    }
+
+    /**
+     * A tagger that reads bills' text from the database, as the cron job does.
+     */
+    private function databaseTagger(): PlaceTagger
+    {
+        return new PlaceTagger(self::$db, null, function (string $text): ?array {
+            $this->asked[] = $text;
+            return [];
+        });
     }
 
     private function tagger(): PlaceTagger
@@ -194,6 +217,45 @@ class PlaceTaggerTest extends TestCase
         $this->assertSame([$second_of_newer, $first_of_newer, $older], $this->chosen());
     }
 
+    /**
+     * The text comes from the database, not the API, and only what the bill changes is searched. The
+     * City of Richmond is in the law that the bill amends, and Henrico County is what it adds.
+     */
+    public function testTheTextIsReadFromTheDatabaseAndOnlyChangedLanguageIsSearched(): void
+    {
+        $id = $this->bill('<p class=enactcls>1. That &sect; 1-1 is amended and reenacted as follows:</p>'
+            . '<p class=catchln>&sect; 1-1. Courts.</p>'
+            . '<p class=section>Venue is the Circuit Court of the City of Richmond <ins>and Henrico County</ins>.</p>');
+        $stats = $this->databaseTagger()->run(1, 10);
+
+        $this->assertSame(['Henrico County'], $this->places($id));
+        $this->assertSame([], $this->asked, 'GPT wasn\'t asked');
+        $this->assertSame(1, $stats['exact']);
+    }
+
+    public function testTheSummaryIsSearchedAsWell(): void
+    {
+        $id = $this->bill('<p class=enactcls>1. That the Department shall report.</p>', ['summary' => 'Adds <b>Fairfax&nbsp;County</b> to the list.']);
+        $this->databaseTagger()->run(1, 10);
+
+        $this->assertSame(['Fairfax County'], $this->places($id), 'Tags and entities in a summary don\'t keep a name from matching');
+    }
+
+    public function testTheLatestVersionOfTheTextIsTheOneSearched(): void
+    {
+        $id = $this->bill('<p class=enactcls>1. That the Department shall report on Henrico County.</p>');   // Version dated 2025-01-01
+        $this->version($id, '<p class=enactcls>1. That the Department shall report on Fairfax County.</p>', '2025-02-01');
+        $this->version($id, '<p class=enactcls>1. That the Department shall report on Roanoke County.</p>', '2024-12-01');
+        $this->databaseTagger()->run(1, 10);
+
+        $this->assertSame(['Fairfax County'], $this->places($id));
+    }
+
+    public function testABillThatIsntInTheDatabaseHasNoText(): void
+    {
+        $this->assertNull($this->databaseTagger()->textFromDatabase(['id' => 999999999]));
+    }
+
     public function testACountyNamedPlainlyIsTaggedWithoutAskingGpt(): void
     {
         $id = $this->bill('Imposes a tax in Fairfax County.');
@@ -243,6 +305,23 @@ class PlaceTaggerTest extends TestCase
         $this->assertSame(['Chesterfield County', 'Henrico County'], $this->places($id));
         $this->assertTrue($this->checked($id));
         $this->assertSame(1, $stats['model']);
+    }
+
+    /**
+     * Exact matching sees all of a long bill; only what's sent to GPT is cut (a 700,000-character
+     * bill is more than it accepts, and would fail on every try).
+     */
+    public function testOnlyTheTextSentToGptIsCut(): void
+    {
+        $text = 'The Counties of Henrico and Chesterfield. ' . str_repeat('x ', 150000) . 'Fairfax County.';
+        $this->answers[PlaceNames::forModel($text)] = ['County of Henrico', 'County of Chesterfield'];
+        $id = $this->bill($text);
+        $this->tagger()->run(1, 10);
+
+        $this->assertCount(1, $this->asked);
+        $this->assertSame(PlaceNames::MODEL_MAX_CHARS, mb_strlen($this->asked[0]), 'GPT got the first 100,000 characters');
+        $this->assertSame(['Chesterfield County', 'Fairfax County', 'Henrico County'], $this->places($id),
+            'Fairfax County is past the cut, but exact matching found it');
     }
 
     public function testWhatWasFoundExactlyIsKeptWhenGptFindsMore(): void
