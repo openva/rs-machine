@@ -15,6 +15,7 @@ $sql = 'SELECT
             bills_full_text.id,
             bills_full_text.bill_id,
             bills_full_text.number,
+            bills_full_text.failed_retrievals,
             sessions.lis_id AS session_id,
             bills.date_introduced
 		FROM bills_full_text
@@ -84,8 +85,11 @@ while ($text = mysqli_fetch_array($result)) {
 				WHERE id=' . $text['id'];
         mysqli_query($GLOBALS['db'], query: $sql);
 
-        if ($status === 'no_text' && time() - strtotime($text['date_introduced']) > 86400) {
-            $log->put('Full text of ' . $text['number'] . ' was reported as not having any text yet', 3);
+        // Said once, when the version is to be tried daily instead (see the top of this file).
+        // Some versions never have text here: budget bills' (HB30ER) are on LIS's budget site.
+        if ($status === 'no_text' && (int) $text['failed_retrievals'] === 19) {
+            $log->put('Full text of ' . $text['number'] . ' was reported as not having any text '
+                . 'yet, after 20 tries. It will be tried once a day from now on.', 3);
         }
 
         sleep(1);
