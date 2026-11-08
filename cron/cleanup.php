@@ -267,139 +267,41 @@ while ($result !== false && ($bill = mysqli_fetch_array($result))) {
 
 ###
 # SYNCHRONIZE IDENTICAL BILLS' TAGS
-# When the summary hashes for two or more bills are identical, then we can safely synchronize their
-# tags.
+# When two or more bills have the same summary, they're identical, so they get each other's tags.
+# (Bills without a summary share the hash of nothing, so they're left out.) RsMachine\TagSync says
+# which tags each lacks.
 ###
 $sql = 'SELECT bills.summary_hash AS hash, bills.id,
-			GROUP_CONCAT( tags.tag
-			ORDER BY tag ASC
-			SEPARATOR "," ) AS tags
-		FROM bills LEFT JOIN tags
-		ON bills.id = tags.bill_id
-		LEFT JOIN bills AS bills2
-		ON bills.summary_hash=bills2.summary_hash
+			GROUP_CONCAT(DISTINCT tags.tag ORDER BY tags.tag SEPARATOR "\t") AS tags
+		FROM bills
+		LEFT JOIN tags
+			ON bills.id = tags.bill_id
 		WHERE
-			bills.id != bills2.id
-			AND bills.session_id = ' . $session_id . '
-		GROUP BY bills.id
-		ORDER BY bills.summary_hash';
+			bills.session_id = ' . $session_id . '
+			AND bills.summary IS NOT NULL AND bills.summary != ""
+			AND EXISTS (
+				SELECT 1 FROM bills AS bills2
+				WHERE bills2.summary_hash = bills.summary_hash
+					AND bills2.session_id = bills.session_id
+					AND bills2.id != bills.id)
+		GROUP BY bills.id';
 $result = $query($sql);
-if ($result !== false && mysqli_num_rows($result) > 0) {
-    # Initialize the array.
-    $hash = array();
-
-    # Iterate through the bills and build up an array of them.
-    while ($bill = mysqli_fetch_array($result)) {
-        if (!empty($bill['tags'])) {
-            $tags = explode(',', $bill['tags']);
-            $hash[$bill['hash']][$bill['id']] = $tags;
-        } else {
-            $hash[$bill['hash']][$bill['id']] = array();
-        }
+if ($result !== false) {
+    $identical = [];
+    while ($bill = mysqli_fetch_assoc($result)) {
+        $identical[$bill['hash']][(int) $bill['id']] = ($bill['tags'] ?? '') === ''
+            ? []
+            : explode("\t", $bill['tags']);
     }
 
-    # Iterate through each grouping of identical bills.
-    foreach ($hash as $bill) {
-        // This sucks, because it's only comparing the first two bills in the array. But we've got
-        // to, because the rest of this is dependent on that construct. At some point this will
-        // really need to be rewritten to deal with this problem.
-        if (count($bill) > 2) {
-            for ($i = 0; $i < count($bill); $i++) {
-                unset($bill[$i]);
-            }
-        }
-
-        # It's possible for bills to slip through that are not, in fact, identical to others. That's
-        # a problem in the SQL query, but as a double check, we avoid that sort of thing here.
-        elseif (count($bill) == 1) {
-            continue;
-        }
-
-        # Save the keys to this array, because we'll need them later.
-        $keys = array_keys($bill);
-
-        # Convert this from an associative array to an indexed array.
-        $bill = array_values($bill);
-
-        # If neither bill has any tags, we might as well stop now.
-        if ((count($bill[0]) == 0) && (count($bill[1]) == 0)) {
-            unset($hash);
-            continue;
-        } else {
-            # Check if there's any difference between these two tag sets. You'd think that we only
-            # need to do a single array diff, rather than alternating. But you'd be wrong.
-            $tmp = array_diff($bill[0], $bill[1]);
-            $tmp2 = array_diff($bill[1], $bill[0]);
-            $diff = array_merge($tmp, $tmp2);
-
-            # If there's any difference between the tags, then we need to synch them.
-            if (count($diff) > 0) {
-                # If this is a simple case of one bill having tags and the other one not, just
-                # assign the tags to the other bill and be done with it.
-                if ((count($bill[0]) == 0) && (count($bill[1]) > 0)) {
-                    $bill[0] = array_merge($bill[0], $bill[1]);
-                    $bill[1] = array();
-                } elseif ((count($bill[0]) == 0) && (count($bill[1]) > 0)) {
-                    $bill[1] = array_merge($bill[0], $bill[1]);
-                    $bill[0] = array();
-                }
-
-                # But if both bills are tagged, but not identically, then we need to join
-                # them.
-                else {
-                    # Save a copy of the original bill tags; we'll need them later.
-                    $original = $bill;
-
-                    # Merge the values together.
-                    $merge = array_merge($bill[0], $bill[1]);
-
-                    # Calculate the intersection between these two bills' tags.
-                    $intersection = array_intersect($bill[0], $bill[1]);
-
-                    # Now unset any tag that's already present in both bills.
-                    $bill[0] = array_diff($bill[0], $intersection);
-                    $bill[1] = array_diff($bill[1], $intersection);
-
-                    # Make each bill's tag the product of the two of them.
-                    $bill[0] = array_merge($bill[0], $bill[1]);
-                    $bill[1] = array_merge($bill[0], $bill[1]);
-
-                    # Unset any tag that was present initially.
-                    $bill[0] = array_diff($bill[0], $original[0]);
-                    $bill[1] = array_diff($bill[1], $original[1]);
-
-                    # Just in case, make sure that these are unique.
-                    $bill[0] = array_unique($bill[0]);
-                    $bill[1] = array_unique($bill[1]);
-                }
-
-                # Convert this indexed array back to an associative array by restoring its original
-                # keys.
-                for ($i = 0; $i < count($keys); $i++) {
-                    $bill[$keys[$i]] = $bill[$i];
-                    unset($bill[$i]);
-                }
-            }
-
-            # If there's no difference between the tags, we can give up.
-            else {
-                unset($hash);
-                continue;
-            }
-
-            # Iterate through the bills.
-            foreach ($bill as $bill_id => $tags) {
-                # Iterate through the tags, but only if there are any.
-                if (count($tags) > 0) {
-                    foreach ($tags as $tag) {
-                        # Assemble the insertion SQL. The tags table assumes that we'll always have a user id,
-                        # but that's not true here. So we employ a user ID of 0.
-                        $sql = 'INSERT INTO tags
-								SET bill_id=' . $bill_id . ', tag="' . $tag . '",
-								user_id=0, date_created=now()';
-                        $query($sql);
-                    }
-                }
+    foreach ($identical as $bills) {
+        foreach (\RsMachine\TagSync::missing($bills) as $bill_id => $tags) {
+            foreach ($tags as $tag) {
+                // The tags table expects a user ID, which this has none of, so it's given 0.
+                $query('INSERT INTO tags
+                        SET bill_id = ' . (int) $bill_id . ',
+                            tag = "' . mysqli_real_escape_string($GLOBALS['db'], $tag) . '",
+                            user_id = 0, date_created = NOW()');
             }
         }
     }
