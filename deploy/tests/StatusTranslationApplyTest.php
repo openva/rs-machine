@@ -83,6 +83,21 @@ class StatusTranslationApplyTest extends TestCase
         $this->assertSame('failed committee', $this->billStatus());
     }
 
+    /**
+     * LIS gives a continued bill's new-session record its whole history, including the previous
+     * session's (HB9 (2027), abridged).
+     */
+    public function testAContinuedBillIsInCommittee(): void
+    {
+        $this->entry('2025-12-19 00:00:00', 'Referred to Committee on Rules');
+        $this->entry('2026-02-06 00:00:00', 'Continued to 2027 in Rules (Voice Vote)');
+        $this->entry('2026-07-21 00:00:00', 'Continued from last session');
+
+        StatusTranslation::apply($this->dbh, self::SESSION_ID);
+
+        $this->assertSame('in committee', $this->billStatus());
+    }
+
     private function entry(string $date, string $status): int
     {
         $this->dbh->prepare('INSERT INTO bills_status (bill_id, session_id, status, date, date_created)

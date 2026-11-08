@@ -46,6 +46,7 @@ class StatusTranslationTest extends TestCase
             ['Referred to Committee on Labor and Commerce', 'in committee'],
             ['Committee', 'in committee'],
             ['Rereferred to Finance', 'in committee'],
+            ['Continued from last session', 'in committee'],
             ['Reported from General Laws with substitute (20-Y 1-N)', 'passed committee'],
             ['Rereferred from Courts of Justice to Finance and Appropriations', 'passed committee'],
 
