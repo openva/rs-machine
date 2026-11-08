@@ -412,7 +412,11 @@ The database structure includes (key tables):
   - `date_created`, `date_introduced`
 - **`bills_status`** - Status history with date, status code, committee references
 - **`bills_full_text`** - Multiple versions of bill text with `bill_id`, `number`, `date_introduced`
-- **`terms`** - Legislator terms with `person_id`, `lis_id`, `chamber`, `date_started`, `date_ended`
+- **`terms`** - Legislator terms with `person_id`, `lis_id`, `chamber`, `date_started`, `date_ended`,
+  and `lis_shortname`: LIS's `PatronDisplayName`, lowercased, the name it uses for a member in vote
+  tallies ("cole", or "scott, d." while there are two Scotts). LIS changes it as namesakes come and
+  go, so [cron/legislators.php](cron/legislators.php) updates every open term's daily, via
+  `Import::update_lis_shortnames()`
 - **`people`** - Legislator personal information (name, photo, etc.)
 - **`committees`** - Committee structure with `lis_id`, `parent_id`, `chamber`, `name`
 - **`representatives`** - Legacy table synced with people + terms via `representatives_table.php`

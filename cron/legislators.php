@@ -203,6 +203,14 @@ if (count($delegates) < 90) {
 }
 
 /*
+ * Store every member's LIS shortname (the name LIS uses for them in vote tallies). LIS changes
+ * one member's when another with the same surname joins or leaves, so the whole roster is checked
+ * daily, rather than waiting for the rotation below to reach them.
+ */
+$changed = $import->update_lis_shortnames(array_merge($senate_members, $house_members));
+$log->put('Changed the LIS shortnames of ' . $changed . ' legislators.', $changed > 0 ? 3 : 1);
+
+/*
  * Update legislators' records periodically
  *
  * Select a handful of currently-serving legislators and update their records based on a re-query
