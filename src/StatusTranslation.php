@@ -38,6 +38,10 @@ final class StatusTranslation
             ['in committee', '/^Referred to Committee/'],
             ['in committee', "/^{$p}Committee$/"],
             ['in committee', "/^{$p}Rereferred to/"],
+            // A bill continued from the previous year's session, still in the committee it was
+            // continued in. Without this, its status would be the previous session's "Continued to
+            // 2027 in Rules", which is a committee failure.
+            ['in committee', '/^Continued from /'],
             ['failed committee', "/^{$p}Left in /"],
             ['failed committee', "/^{$p}Tabled in /"],
             ['failed committee', "/^{$p}Passed by (?:in |indefinitely)/"],
