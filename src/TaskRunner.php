@@ -37,6 +37,9 @@ class TaskRunner
      */
     private const CONFIG_PREFIX = '@';
 
+    /** fetch_csv.sh's exit status when LIS has no such file for the session. */
+    private const FETCH_UNPUBLISHED = 4;
+
     /** The schedule for the combined "all" pass, from the manifest's `@all` key. */
     public readonly ?string $allSchedule;
 
@@ -53,12 +56,16 @@ class TaskRunner
      * @param array<string, mixed> $manifest Contents of cron/tasks.php, tasks and config together.
      * @param (Closure(): array{0: ?\mysqli, 1: ?\PDO})|null $reconnect Opens new database
      *        connections, for when MySQL has closed the ones a pass started with.
+     * @param bool $beforeSession Whether it's the legislative season, but the session hasn't
+     *        started (LEGISLATIVE_SEASON and not IN_SESSION). LIS won't have published some of
+     *        the session's files yet, so that their absence isn't an error.
      */
     public function __construct(
         array $manifest,
         private TaskContext $context,
         private string $cronDir,
-        private ?Closure $reconnect = null
+        private ?Closure $reconnect = null,
+        private bool $beforeSession = false
     ) {
         [$this->manifest, $config] = self::partitionManifest($manifest);
 
@@ -377,16 +384,23 @@ class TaskRunner
                 throw new RuntimeException('no database connection');
             }
 
-            $this->prefetch($name, $task);
+            $unpublished = $this->prefetch($name, $task);
 
-            /*
-             * Per-task ceiling, replacing update.php's single global set_time_limit(1200). The
-             * old ceiling exceeded some tasks' own scheduling interval, so a slow run would eat
-             * subsequent ticks; the manifest keeps each timeout under its task's interval.
-             */
-            set_time_limit((int) ($task['timeout'] ?? 600));
+            if ($unpublished !== [] && count($unpublished) === count($task['prefetch'])) {
+                // LIS has none of this task's files for the session yet, so there's nothing to do.
+                $result = TaskResult::skipped('LIS has no ' . implode(' or ', $unpublished)
+                    . ' for this session');
+            } else {
+                /*
+                 * Per-task ceiling, replacing update.php's single global set_time_limit(1200).
+                 * The old ceiling exceeded some tasks' own scheduling interval, so a slow run
+                 * would eat subsequent ticks; the manifest keeps each timeout under its task's
+                 * interval.
+                 */
+                set_time_limit((int) ($task['timeout'] ?? 600));
 
-            $result = $this->invoke($name, $task);
+                $result = $this->invoke($name, $task);
+            }
             $ms     = (int) ((hrtime(true) - $started) / 1e6);
 
             $this->logResult($name, $result, $ms);
@@ -635,13 +649,22 @@ class TaskRunner
      * Previously each CSV was a separate crontab line scheduled a minute before its consumer,
      * with the pairing implied only by adjacency in the file. Declaring it on the task makes the
      * dependency explicit and impossible to schedule inconsistently.
+     *
+     * When LIS has no such file for the session (it publishes each session's files only once it
+     * has data for them), the local copy is removed: it's from an earlier session, and a task
+     * reading it would find none of its records in this session. That's logged as an error,
+     * except before the session starts, when it's expected.
+     *
+     * @return string[] The files that LIS doesn't have for this session.
      */
-    private function prefetch(string $name, array $task): void
+    private function prefetch(string $name, array $task): array
     {
         $files = $task['prefetch'] ?? [];
         if ($files === []) {
-            return;
+            return [];
         }
+
+        $unpublished = [];
 
         $script = $this->cronDir . '/fetch_csv.sh';
 
@@ -659,7 +682,19 @@ class TaskRunner
                      . escapeshellarg($remote) . ' ' . escapeshellarg($this->cronDir . '/' . $local)
                      . ($sessionCode !== '' ? ' ' . escapeshellarg($sessionCode) : '');
 
+            $output = [];
             exec($command . ' 2>&1', $output, $status);
+
+            if ($status === self::FETCH_UNPUBLISHED) {
+                $path = $this->cronDir . '/' . $local;
+                if (file_exists($path) && !unlink($path)) {
+                    throw new RuntimeException('could not remove ' . $local . ', which LIS no longer has');
+                }
+                $this->context->log->put('LIS has no ' . $remote . ' for this session, so task "'
+                    . $name . '" can\'t use it.', $this->beforeSession ? 2 : 6);
+                $unpublished[] = $remote;
+                continue;
+            }
 
             if ($status !== 0 && $this->isolated) {
                 // The copy already in cron/ is the current session's, so it mustn't be used.
@@ -681,6 +716,8 @@ class TaskRunner
                 );
             }
         }
+
+        return $unpublished;
     }
 
     /**

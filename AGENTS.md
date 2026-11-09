@@ -224,6 +224,12 @@ an update. `run.php` is CLI-only.
 **4. CSV Fetching and Parsing**
 - CSV files are downloaded from LIS via [cron/fetch_csv.sh](cron/fetch_csv.sh) shell scripts
 - Files are stored in `cron/` directory (e.g., `cron/bills.csv`, `cron/committees.csv`)
+- LIS publishes each session's files only once it has data for them, so early in a session some
+  are missing (a 404, for which fetch_csv.sh exits 4). The runner then removes the local copy,
+  which is the previous session's, and skips a task when LIS has none of its files. That's
+  logged as an error, except between the start of the legislative season and the session
+  (`LEGISLATIVE_SEASON` and not `IN_SESSION`), when it's expected. Any other failed fetch keeps
+  the last copy, for the task to use
 - Each parser maintains MD5 hashes in `cron/hashes/` to avoid reprocessing unchanged records
   - Hash files are session-specific (e.g., `cron/hashes/bills-30.md5` for session 30)
   - Hashes are serialized PHP arrays with bill number as key, MD5 as value

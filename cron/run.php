@@ -416,7 +416,13 @@ $context = new TaskContext(
     cronDir: __DIR__
 );
 
-$runner = new TaskRunner($manifest, $context, __DIR__, $connect);
+/*
+ * In the weeks before a session, LIS hasn't yet published some of its files (dockets, fiscal impact
+ * statements), so the runner logs their absence as routine rather than as errors.
+ */
+$before_session = defined('LEGISLATIVE_SEASON') && LEGISLATIVE_SEASON === true
+    && defined('IN_SESSION') && IN_SESSION === false;
+$runner = new TaskRunner($manifest, $context, __DIR__, $connect, $before_session);
 if (defined('SESSION_OVERRIDE')) {
     $runner->isolate();
 }
