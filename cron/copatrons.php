@@ -161,6 +161,7 @@ $all_bill_ids = array_unique(
     array_merge(array_keys($bill_copatrons), array_keys($existing))
 );
 
+$changed_bills = [];
 foreach ($all_bill_ids as $bill_id) {
     $csv_set = $bill_copatrons[$bill_id] ?? [];
     $db_set = $existing[$bill_id] ?? [];
@@ -187,6 +188,10 @@ foreach ($all_bill_ids as $bill_id) {
         $deleted++;
     }
 
+    if ($to_add !== [] || $to_remove !== []) {
+        $changed_bills[] = $bill_id;
+    }
+
     /*
      * Update the copatron count on the bill.
      */
@@ -194,6 +199,9 @@ foreach ($all_bill_ids as $bill_id) {
     $sql = 'UPDATE bills SET copatrons = ' . $count . ' WHERE id = ' . $bill_id;
     mysqli_query($GLOBALS['db'], $sql);
 }
+
+// The website's cached records of these bills list their copatrons.
+\RsMachine\BillCache::forget($mc instanceof Memcached ? $mc : null, $changed_bills);
 
 /*
  * Save the hash so we skip unchanged files.

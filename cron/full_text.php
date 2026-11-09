@@ -141,6 +141,9 @@ while ($text = mysqli_fetch_array($result)) {
             'UPDATE bills SET places_checked = NULL, date_modified = date_modified WHERE id = '
                 . (int) $text['bill_id']
         );
+
+        // The website's cached record of the bill lists its text versions.
+        \RsMachine\BillCache::forget($mc instanceof Memcached ? $mc : null, [$text['bill_id']]);
     }
 
     $server_errors = 0;

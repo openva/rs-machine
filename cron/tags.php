@@ -130,6 +130,9 @@ foreach ($bills as $bill) {
             }
         } // end foreach tags
 
+        // The website's cached record of the bill lists its tags.
+        \RsMachine\BillCache::forget($mc instanceof Memcached ? $mc : null, [$bill['id']]);
+
         $log->put('Auto-generated tags: ' . implode(', ', $tags), 2);
     }
 } // end foreach bills

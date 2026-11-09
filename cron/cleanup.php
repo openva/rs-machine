@@ -51,6 +51,19 @@ $query = static function (string $sql) use ($log, &$failed_statements) {
     return $result;
 };
 
+/*
+ * Many of these statements change bills in bulk, so which bills they changed is found by comparing
+ * each bill's fingerprint (of what the website caches about it) from before and after, and those
+ * bills' cached records are deleted at the end. See RsMachine\BillCache.
+ */
+try {
+    $fingerprints = \RsMachine\BillCache::fingerprints($dbh, (int) $session_id);
+} catch (PDOException $e) {
+    $fingerprints = null;
+    $log->put('Cleanup could not fingerprint bills, so it won\'t clear the cached records of bills '
+        . 'that it changes: ' . $e->getMessage(), 5);
+}
+
 
 ###
 # FILL IN BILLS' INTRODUCTION DATE
@@ -505,6 +518,21 @@ $sql = 'UPDATE bills_status_narratives
                     translation IS NOT NULL
             )';
 $query($sql);
+
+# Clear the cached records of the bills that changed.
+if ($fingerprints !== null) {
+    try {
+        $changed = \RsMachine\BillCache::changed(
+            $fingerprints,
+            \RsMachine\BillCache::fingerprints($dbh, (int) $session_id)
+        );
+        \RsMachine\BillCache::forget($mc instanceof Memcached ? $mc : null, $changed);
+        $log->put('Cleanup changed ' . count($changed) . ' bills.', 1);
+    } catch (PDOException $e) {
+        $log->put('Cleanup could not tell which bills it changed, so their cached records weren\'t '
+            . 'cleared: ' . $e->getMessage(), 5);
+    }
+}
 
 if ($failed_statements > 0) {
     return \RsMachine\TaskResult::failed($failed_statements . ' statements failed; see the log');
