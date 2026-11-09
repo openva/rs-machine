@@ -58,8 +58,11 @@ if (!empty($session_api_id)) {
 $bill_list_failed = ($bill_ids_map === []);
 
 /*
- * Open the bills CSV.
+ * Open the bills CSV. The runner removes it when LIS has none for this session.
  */
+if (!file_exists(__DIR__ . '/bills.csv')) {
+    return \RsMachine\TaskResult::skipped('LIS has no BILLS.CSV for this session');
+}
 $bills = file_get_contents(__DIR__ . '/bills.csv');
 
 /*
