@@ -220,6 +220,7 @@ $log->put('Changed the LIS shortnames of ' . $changed . ' legislators.', $change
  */
 $sql = 'SELECT
             t.id,
+            t.person_id,
             p.name,
             t.chamber,
             t.lis_id
@@ -262,10 +263,11 @@ foreach ($legislators as $legislator) {
     }
 
     /*
-     * Remove this legislator's cached record
+     * Remove this legislator's cached record, which the website keys by their person ID, not
+     * their term's.
      */
     if ($mc instanceof Memcached) {
-        $mc->delete('legislator-' . $legislator->id);
+        $mc->delete('legislator-' . $legislator->person_id);
     }
 }
 
