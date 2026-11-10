@@ -151,6 +151,12 @@ if (empty($bills)) {
     return;
 }
 
+// Don't ask OpenAI while its spend limit is reached.
+$quota = \RsMachine\OpenAiQuota::shared();
+if ($quota->pausedUntil() !== null) {
+    return $quota->skipped();
+}
+
 $ch = curl_init('https://api.openai.com/v1/chat/completions');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
@@ -202,6 +208,10 @@ foreach ($bills as $bill) {
     }
 
     $decoded = json_decode($response, true);
+    if (\RsMachine\OpenAiQuota::isExhausted($decoded)) {
+        $quota->recordExhausted($log, 'bills_status_narratives', $decoded);
+        return $quota->skipped();
+    }
     $content = $decoded['choices'][0]['message']['content'] ?? null;
     if (empty($content)) {
         if (isset($decoded['error'])) {
@@ -216,6 +226,7 @@ foreach ($bills as $bill) {
         continue;
     }
 
+    $quota->clear();
     $narrative = trim($content);
 
     store_bill_narrative($db, $bill, $narrative, $log);

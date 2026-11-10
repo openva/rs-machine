@@ -48,8 +48,15 @@ $role = 'You are a helpful assistant who identifies the names of places mentione
     . '(e.g. "City of Fairfax," "County of Fairfax," or "Town of Scottsville.") If no places '
     . 'are in the text at all, remain silent.' . "\n\n";
 
-$ask_model = function (string $text) use (&$curl, $role, $log): ?array {
-    if (!defined('OPENAI_KEY') || OPENAI_KEY === '') {
+/*
+ * While OpenAI's spend limit is reached, bills are still tagged by exact matching, and those that
+ * need GPT wait (see RsMachine\OpenAiQuota).
+ */
+$quota = \RsMachine\OpenAiQuota::shared();
+$openai_paused = $quota->pausedUntil() !== null;
+
+$ask_model = function (string $text) use (&$curl, &$openai_paused, $quota, $role, $log): ?array {
+    if (!defined('OPENAI_KEY') || OPENAI_KEY === '' || $openai_paused) {
         return null;
     }
     if ($curl === null) {
@@ -77,9 +84,15 @@ $ask_model = function (string $text) use (&$curl, $role, $log): ?array {
     }
 
     $response = json_decode((string) $response, true);
+    if (\RsMachine\OpenAiQuota::isExhausted($response)) {
+        $quota->recordExhausted($log, 'update_places', $response);
+        $openai_paused = true;
+        return null;
+    }
     if (!isset($response['choices'][0]['message']['content'])) {
         return null;
     }
+    $quota->clear();
     return PlaceNames::fromAnswer($response['choices'][0]['message']['content']);
 };
 

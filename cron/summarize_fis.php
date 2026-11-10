@@ -43,6 +43,12 @@ foreach (ImpactStatements::toSummarize(mysqli_fetch_all($result, MYSQLI_ASSOC), 
 // Initalize variable for logging
 $fis_added = 0;
 
+// Don't ask OpenAI while its spend limit is reached.
+$quota = \RsMachine\OpenAiQuota::shared();
+if ($bills !== [] && $quota->pausedUntil() !== null) {
+    return $quota->skipped();
+}
+
 foreach ($bills as $bill) {
     // Sometimes we're not getting bill numbers, unclear why
     if (!isset($bill['number']) || empty($bill['number'])) {
@@ -54,7 +60,9 @@ foreach ($bills as $bill) {
      */
     $pdfContent = file_get_contents($bill['pdf_url']);
     if (!$pdfContent) {
-        die('Failed to download PDF');
+        $log->put('The fiscal impact statement for ' . $bill['number'] . ' (' . urlencode($bill['pdf_url'])
+            . ') couldn’t be downloaded. Skipping.', 4);
+        continue;
     }
 
     /*
@@ -76,6 +84,8 @@ foreach ($bills as $bill) {
     if (!$text) {
         $log->put('The fiscal impact statement for ' . $bill['number'] . ' (' . urlencode($bill['pdf_url'])
             . ') doesn’t appear to be a PDF. Skipping. ', 3);
+        @unlink($tmpPdfFile);
+        @unlink($tmpTxtFile);
         continue;
     }
 
@@ -109,16 +119,26 @@ foreach ($bills as $bill) {
     ]);
 
     $response = curl_exec($ch);
+    unlink($tmpPdfFile);
+    unlink($tmpTxtFile);
 
     if (!$response) {
-        die("Failed to get a response from OpenAI");
+        $log->put('Error: OpenAI didn’t respond to the request to summarize ' . $bill['number'] . ': '
+            . curl_error($ch), 4);
+        continue;
     }
 
     $responseData = json_decode($response, true);
+    if (\RsMachine\OpenAiQuota::isExhausted($responseData)) {
+        $quota->recordExhausted($log, 'summarize_fis', $responseData);
+        return $quota->skipped();
+    }
     if (!isset($responseData['choices'][0]['message']['content'])) {
-        $log->put('Error: OpenAI couldn’t summarize ' . $bill['number'], 4);
+        $log->put('Error: OpenAI couldn’t summarize ' . $bill['number']
+            . (isset($responseData['error']['message']) ? ': ' . $responseData['error']['message'] : ''), 4);
         continue;
     }
+    $quota->clear();
     $summary = $responseData['choices'][0]['message']['content'];
 
     // Link to the fiscal impact statement
@@ -148,11 +168,6 @@ foreach ($bills as $bill) {
         $log->put('Added a fiscal impact summary for ' . $bill['number'] . '.', 2);
     }
 
-    /*
-     * Clean up temporary files
-     */
-    unlink($tmpPdfFile);
-    unlink($tmpTxtFile);
 }
 
 if ($fis_added) {

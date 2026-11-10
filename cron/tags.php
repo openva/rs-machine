@@ -30,6 +30,13 @@ if (count($bills) == 0) {
 foreach ($bills as &$bill) {
     $bill['summary'] = strip_tags($bill['summary']);
 }
+unset($bill);
+
+// Don't ask OpenAI while its spend limit is reached.
+$quota = \RsMachine\OpenAiQuota::shared();
+if ($quota->pausedUntil() !== null) {
+    return $quota->skipped();
+}
 
 /*
  * Submit each bill to OpenAI
@@ -97,15 +104,21 @@ foreach ($bills as $bill) {
     /*
      * Use the response
      */
-    $result = json_decode($response, true);
+    $result = json_decode((string) $response, true);
+    if (\RsMachine\OpenAiQuota::isExhausted($result)) {
+        $quota->recordExhausted($log, 'tags', $result);
+        curl_close($ch);
+        return $quota->skipped();
+    }
     if (!isset($result['choices'][0]['message']['content'])) {
         if (isset($result['error'])) {
             $log->put('OpenAI returned an error for ' . $bill['number'] . ' tags: '
-                . ($decoded['error']['message'] ?? 'Unknown error'), 5);
+                . ($result['error']['message'] ?? 'Unknown error'), 5);
         } else {
             $log->put('OpenAI failed to return tags for ' . $bill['number'] . '.', 5);
         }
     } else {
+        $quota->clear();
         $generated_text = strtolower($result['choices'][0]['message']['content']);
         $tags = explode(', ', $generated_text);
 
