@@ -22,6 +22,9 @@ class PlaceTagger
     /** @var callable(string): ?array Asks a model for the place names in a text, or null. */
     private $askModel;
 
+    /** @var callable(): bool Whether the model can be asked now. */
+    private $modelAvailable;
+
     /** @var array<int, array{name: string, county: bool, latitude: float, longitude: float}>|null */
     private ?array $localities = null;
 
@@ -31,12 +34,17 @@ class PlaceTagger
      *     it's read from the database (see textFromDatabase()); this is for tests to replace.
      * @param callable(string): ?array $askModel Given a text, returns the names of the places that
      *     a model found in it (an empty list if there are none), or null if it couldn't be asked.
+     * @param callable(): bool|null $modelAvailable Whether the model can be asked now (it can't
+     *     while OpenAI's spend limit is reached, say). Bills that need it wait while it can't, rather
+     *     than being counted as failures. It's asked again after a failed request, since the request
+     *     may be what found the model unavailable. By default, it's always available.
      */
-    public function __construct(PDO $db, ?callable $fetchText, callable $askModel)
+    public function __construct(PDO $db, ?callable $fetchText, callable $askModel, ?callable $modelAvailable = null)
     {
         $this->db = $db;
         $this->fetchText = $fetchText ?? fn (array $bill): ?string => $this->textFromDatabase($bill);
         $this->askModel = $askModel;
+        $this->modelAvailable = $modelAvailable ?? fn (): bool => true;
     }
 
     /**
@@ -214,7 +222,8 @@ class PlaceTagger
      *     checked_ids: int[]}
      *     How many bills were checked (and so, how many of those were settled without a model, and
      *     how many with one), how many places they were tagged with, how many couldn't be checked,
-     *     how many are waiting for a model, and which bills were checked.
+     *     how many are waiting for a model (because this run's allocation is used up, or the model
+     *     can't be asked now), and which bills were checked.
      */
     public function run(int $max_bills, int $max_model_calls, ?int $stop_at = null): array
     {
@@ -241,13 +250,13 @@ class PlaceTagger
 
             $used_model = false;
             if (!$found['settled']) {
-                if ($max_model_calls <= 0) {
+                if ($max_model_calls <= 0 || !($this->modelAvailable)()) {
                     $stats['waiting']++;
                     continue;
                 }
                 $answer = ($this->askModel)(PlaceNames::forModel($text));
                 if ($answer === null) {
-                    $stats['unretrieved']++;
+                    $stats[($this->modelAvailable)() ? 'unretrieved' : 'waiting']++;
                     continue;
                 }
                 $max_model_calls--;

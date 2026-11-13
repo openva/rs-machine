@@ -55,8 +55,12 @@ $role = 'You are a helpful assistant who identifies the names of places mentione
 $quota = \RsMachine\OpenAiQuota::shared();
 $openai_paused = $quota->pausedUntil() !== null;
 
-$ask_model = function (string $text) use (&$curl, &$openai_paused, $quota, $role, $log): ?array {
-    if (!defined('OPENAI_KEY') || OPENAI_KEY === '' || $openai_paused) {
+$model_available = function () use (&$openai_paused): bool {
+    return defined('OPENAI_KEY') && OPENAI_KEY !== '' && !$openai_paused;
+};
+
+$ask_model = function (string $text) use (&$curl, &$openai_paused, $model_available, $quota, $role, $log): ?array {
+    if (!$model_available()) {
         return null;
     }
     if ($curl === null) {
@@ -90,6 +94,9 @@ $ask_model = function (string $text) use (&$curl, &$openai_paused, $quota, $role
         return null;
     }
     if (!isset($response['choices'][0]['message']['content'])) {
+        $reason = is_array($response) ? trim((string) ($response['error']['message'] ?? '')) : '';
+        $log->put('OpenAI did not identify the places in a bill'
+            . ($reason !== '' ? ': “' . $reason . '”' : ', and gave no reason') . '.', 3);
         return null;
     }
     $quota->clear();
@@ -106,7 +113,7 @@ if (MEMCACHED_SERVER != '' && class_exists('Memcached')) {
 }
 
 // Bills' text is read from the database (a null here means the default).
-$tagger = new PlaceTagger($db, null, $ask_model);
+$tagger = new PlaceTagger($db, null, $ask_model, $model_available);
 $stats = $tagger->run(
     PLACES_BILLS_PER_RUN,
     PLACES_MODEL_CALLS_PER_RUN,

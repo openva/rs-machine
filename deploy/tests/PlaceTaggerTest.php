@@ -381,6 +381,45 @@ class PlaceTaggerTest extends TestCase
         $this->assertSame(1, $stats['unretrieved']);
     }
 
+    public function testABillWaitsWhileGptIsUnavailable(): void
+    {
+        $text = 'The Counties of Henrico and Chesterfield.';
+        $id = $this->bill($text);
+        $asked = false;
+        $tagger = new PlaceTagger(self::$db, fn () => $text, function () use (&$asked) {
+            $asked = true;
+            return [];
+        }, fn () => false);
+        $stats = $tagger->run(1, 10);
+
+        $this->assertFalse($asked, 'GPT is not asked while it is unavailable');
+        $this->assertFalse($this->checked($id));
+        $this->assertSame(1, $stats['waiting']);
+        $this->assertSame(0, $stats['unretrieved']);
+    }
+
+    public function testBillsWaitOnceARequestFindsGptUnavailable(): void
+    {
+        $first = $this->bill('The Counties of Henrico and Chesterfield.');
+        $second = $this->bill('The Counties of Fairfax and Arlington.');
+        $available = true;
+        $calls = 0;
+        $tagger = new PlaceTagger(self::$db, fn (array $bill) => $this->texts[$bill['number']], function () use (&$available, &$calls) {
+            $calls++;
+            $available = false;   // The spend limit has been reached
+            return null;
+        }, function () use (&$available) {
+            return $available;
+        });
+        $stats = $tagger->run(2, 10);
+
+        $this->assertSame(1, $calls, 'GPT is asked no more after it is found unavailable');
+        $this->assertSame(2, $stats['waiting']);
+        $this->assertSame(0, $stats['unretrieved']);
+        $this->assertFalse($this->checked($first));
+        $this->assertFalse($this->checked($second));
+    }
+
     /**
      * The old code reused the previous place's lookup for a name that it couldn't recognize, and
      * so tagged the bill with the wrong place (or the same one over and over).
