@@ -28,18 +28,6 @@ if (count($bills) == 0) {
 }
 
 /*
- * Map full bill-type names to their abbreviations.
- */
-$type_map = [
-    'house bill' => 'hb',
-    'senate bill' => 'sb',
-    'house joint resolution' => 'hj',
-    'senate joint resolution' => 'sj',
-    'house resolution' => 'hr',
-    'senate resolution' => 'sr',
-];
-
-/*
  * Prepare the INSERT statement.
  */
 $insert_sql = 'INSERT IGNORE INTO bills_news
@@ -93,28 +81,10 @@ foreach ($feeds as $feed_url => $publication) {
         $search_text = $title . ' ' . $description . ' ' . $content;
 
         /*
-         * Find bill references.
+         * Find bill references: by number, by name, and by links to this session's bills (see
+         * RsMachine\BillReferences).
          */
-        $found_bills = [];
-
-        // Abbreviated patterns: HB123, SB 42, etc.
-        if (preg_match_all('/\b(HB|SB|HJ|SJ|HR|SR)\s*(\d+)\b/i', $search_text, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $match) {
-                $normalized = strtolower($match[1]) . $match[2];
-                $found_bills[$normalized] = true;
-            }
-        }
-
-        // Full name patterns: House Bill 123, Senate Joint Resolution 10, etc.
-        if (preg_match_all('/\b(House|Senate)\s+(Bill|Joint Resolution|Resolution)\s+(\d+)\b/i', $search_text, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $match) {
-                $key = strtolower($match[1] . ' ' . $match[2]);
-                if (isset($type_map[$key])) {
-                    $normalized = $type_map[$key] . $match[3];
-                    $found_bills[$normalized] = true;
-                }
-            }
-        }
+        $found_bills = array_flip(\RsMachine\BillReferences::find($search_text, (string) SESSION_LIS_ID, (int) SESSION_YEAR));
 
         /*
          * Insert a row for each matched bill.

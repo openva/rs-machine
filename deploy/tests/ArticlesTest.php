@@ -2,53 +2,20 @@
 
 use PHPUnit\Framework\TestCase;
 
+use RsMachine\BillReferences;
+
 /**
- * Tests for the bill-reference extraction logic used by cron/articles.php.
- *
- * The regex patterns and normalization map are duplicated from the cron script
- * so that they can be exercised in isolation, without standing up a database or
- * global scope.
+ * How cron/articles.php finds the bills that an article mentions (RsMachine\BillReferences). The
+ * current session is 2026's regular session (LIS's 261).
  */
 class ArticlesTest extends TestCase
 {
-    /** Same lookup used in articles.php */
-    private static $type_map = [
-        'house bill' => 'hb',
-        'senate bill' => 'sb',
-        'house joint resolution' => 'hj',
-        'senate joint resolution' => 'sj',
-        'house resolution' => 'hr',
-        'senate resolution' => 'sr',
-    ];
-
     /**
-     * Extract bill references from a string, returning a sorted list of
-     * normalized bill numbers (e.g. "hb123", "sb42").
+     * The bills that a text mentions, as articles.php finds them.
      */
     private function extractBills(string $text): array
     {
-        $found = [];
-
-        // Abbreviated patterns
-        if (preg_match_all('/\b(HB|SB|HJ|SJ|HR|SR)\s*(\d+)\b/i', $text, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $match) {
-                $found[strtolower($match[1]) . $match[2]] = true;
-            }
-        }
-
-        // Full name patterns
-        if (preg_match_all('/\b(House|Senate)\s+(Bill|Joint Resolution|Resolution)\s+(\d+)\b/i', $text, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $match) {
-                $key = strtolower($match[1] . ' ' . $match[2]);
-                if (isset(self::$type_map[$key])) {
-                    $found[self::$type_map[$key] . $match[3]] = true;
-                }
-            }
-        }
-
-        $result = array_keys($found);
-        sort($result);
-        return $result;
+        return BillReferences::find($text, '261', 2026);
     }
 
     // ------------------------------------------------------------------
@@ -141,6 +108,25 @@ class ArticlesTest extends TestCase
         // because the script searches the full HTML content.
         $text = '<a href="https://lis.virginia.gov/bill-details/20261/HB650">House Bill 650</a>';
         $this->assertSame(['hb650'], $this->extractBills($text));
+    }
+
+    public function testLinksToThisSessionsBills(): void
+    {
+        $this->assertSame(['hb1208'], $this->extractBills('<a href="https://lis.virginia.gov/bill-details/20261/HB1208">a bill</a>'));
+        $this->assertSame(['sb592'], $this->extractBills('<a href="https://lis.virginia.gov/bill-details/20261/SB592/text/CHAP0347">the law</a>'));
+        $this->assertSame(['hj7'], $this->extractBills('<a href="https://www.richmondsunlight.com/bill/2026/hj7/">a resolution</a>'));
+    }
+
+    public function testIgnoresLinksToOtherSessionsBills(): void
+    {
+        // Last year's bill, and this year's special session's.
+        $this->assertSame([], $this->extractBills('<a href="https://lis.virginia.gov/bill-details/20251/HB2724?">last year</a>'));
+        $this->assertSame([], $this->extractBills('<a href="https://lis.virginia.gov/bill-details/20262/HR2069">a special session</a>'));
+        $this->assertSame([], $this->extractBills('<a href="https://www.richmondsunlight.com/bill/2024/hb1/">an old bill</a>'));
+        // Nor the bill's text, later in the same link.
+        $this->assertSame([], $this->extractBills('<a href="https://lis.virginia.gov/bill-details/20251/HB12/text/HB12">its text</a>'));
+        // A bill named in the text still counts, even if its link is to another session's.
+        $this->assertSame(['hb5'], $this->extractBills('<a href="https://lis.virginia.gov/bill-details/20251/HB5">HB 5</a>'));
     }
 
     public function testWordBoundaryPreventsPartialMatch(): void
