@@ -243,6 +243,16 @@ return [
         'timeout'  => 300,
     ],
 
+    'day_highlights' => [
+        'schedule' => '17 3,6-23 * * *',
+        'in_all'   => false,
+        'timeout'  => 900,
+        'comment'  => 'Scores the bills acted on each day, and chooses its highlights, for the day '
+                    . 'pages (/day/). Hourly, it scores today and yesterday, as votes, video, news, '
+                    . 'and comments arrive; at 3 a.m., the past two weeks. After the hourly "all" '
+                    . 'pass, so that it sees that pass\'s votes and news.',
+    ],
+
     'cache' => [
         'schedule' => null,
         'in_all'   => true,
