@@ -7,6 +7,11 @@
 $feeds = [
     'https://virginiamercury.com/feed/localFeed/' => 'Virginia Mercury',
     'https://cardinalnews.org/feed/' => 'Cardinal News',
+    'https://www.vpm.org/index.rss' => 'Virginia Public Media',
+    'https://www.virginiascope.com/feed/' => 'Virginia Scope',
+    'https://www.roanokerambler.com/rss/' => 'The Roanoke Rambler',
+    'https://virginiabusiness.com/feed/' => 'Virginia Business',
+    'https://www.richmonder.org/rss/' => 'The Richmonder',
 ];
 
 /*
