@@ -7,7 +7,7 @@ use Log;
 
 /**
  * Whether OpenAI's spend limit has been reached, for the tasks that use it (tags.php,
- * summarize_fis.php, bills_status_narratives.php and update_places.php).
+ * summarize_fis.php, bills_status_narratives.php, update_places.php and day_briefs.php).
  *
  * When it has, OpenAI refuses every request until the limit is raised or the month ends, so a task
  * that finds it reached stops, and all of them skip their requests for PAUSE_SECONDS, rather than

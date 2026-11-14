@@ -253,6 +253,16 @@ return [
                     . 'pass, so that it sees that pass\'s votes and news.',
     ],
 
+    'day_briefs' => [
+        'schedule' => '41 3,6 * * *',
+        'in_all'   => false,
+        'timeout'  => 900,
+        'comment'  => 'Writes the past three days\' briefs, with OpenAI, for the day pages (/day/) and '
+                    . 'their RSS feed, which publishes each day at 7 a.m. After day_highlights\' 3:17 '
+                    . 'and 6:17 runs, since a brief is written from the day\'s highlights. A day\'s '
+                    . 'brief is written again only if its highlights or news change.',
+    ],
+
     'cache' => [
         'schedule' => null,
         'in_all'   => true,
