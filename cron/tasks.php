@@ -165,6 +165,17 @@ return [
                     . 'deactivates records, so it should run on a predictable daily cadence.',
     ],
 
+    'committee_members' => [
+        'schedule' => '11 13 * * *',
+        'in_all'   => false,
+        'timeout'  => 600,
+        'comment'  => 'After legislators, so that new legislators have terms to be matched to. '
+                    . 'Ends the memberships of anybody LIS no longer lists, including legislators '
+                    . 'who have left office, so memberships needn\'t be ended by hand before a '
+                    . 'session (which would only have it reopen them all as new rows). Until '
+                    . 'November 2026, it was only ever run by hand.',
+    ],
+
     'representatives_table' => [
         'schedule' => '31 3 * * *',
         'in_all'   => false,

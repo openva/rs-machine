@@ -35,7 +35,7 @@ $session_code = '20' . SESSION_LIS_ID;
  */
 if (!defined('SESSION_LIS_API_ID') || SESSION_LIS_API_ID === '') {
     $log->put('Error: SESSION_LIS_API_ID is not defined, so committee members can\'t be fetched.', 8);
-    die('Error: SESSION_LIS_API_ID is not defined.');
+    return \RsMachine\TaskResult::failed('SESSION_LIS_API_ID is not defined.');
 }
 
 /*
@@ -67,7 +67,7 @@ foreach (['H', 'S'] as $chamber_code) {
 
     if ($response === false || $http_code >= 400) {
         $log->put('Error: Committee API request failed for chamber ' . $chamber_code . ' with HTTP ' . $http_code . ': ' . $error, 8);
-        die('Error: Could not fetch committee list from API.');
+        return \RsMachine\TaskResult::failed('Could not fetch committee list from API.');
     }
 
     if ($http_code == 204) {
@@ -79,12 +79,12 @@ foreach (['H', 'S'] as $chamber_code) {
 
     if ($data === null || !isset($data['Success'])) {
         $log->put('Error: Invalid JSON response from Committee API for chamber ' . $chamber_code, 8);
-        die('Error: Invalid response from Committee API.');
+        return \RsMachine\TaskResult::failed('Invalid response from Committee API.');
     }
 
     if ($data['Success'] !== true) {
         $log->put('Error: Committee API reported failure for chamber ' . $chamber_code . ': ' . ($data['FailureMessage'] ?? 'Unknown error'), 8);
-        die('Error: Committee API reported failure.');
+        return \RsMachine\TaskResult::failed('Committee API reported failure.');
     }
 
     if (!empty($data['Committees'])) {
@@ -101,7 +101,7 @@ $log->put('Retrieved ' . count($api_committees) . ' committees from API.', 3);
 
 if (count($api_committees) < 20) {
     $log->put('Error: Too few committees retrieved from API (' . count($api_committees) . ').', 8);
-    die('Error: Too few committees retrieved from API.');
+    return \RsMachine\TaskResult::failed('Too few committees retrieved from API.');
 }
 
 /*
@@ -111,7 +111,7 @@ $committees = $import->create_committee_list();
 
 if (empty($committees)) {
     $log->put('Error: No committees found in database.', 8);
-    die('Error: No committees found in database.');
+    return \RsMachine\TaskResult::failed('No committees found in database.');
 }
 
 /*
@@ -133,7 +133,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $term) {
 
 if (empty($legislators)) {
     $log->put('Error: No legislators found in database.', 8);
-    die('Error: No legislators found in database.');
+    return \RsMachine\TaskResult::failed('No legislators found in database.');
 }
 
 /*
@@ -274,7 +274,7 @@ foreach ($committees as $committee) {
  */
 if ($total_members < 300) {
     $log->put('Error: Only ' . $total_members . ' total committee memberships found, which is implausibly low.', 8);
-    die('Error: Only ' . $total_members . ' entries were found from the API.');
+    return \RsMachine\TaskResult::failed('only ' . $total_members . ' committee memberships were found in the API, which is implausibly low');
 }
 
 $log->put('Successfully retrieved ' . $total_members . ' total committee memberships from API.', 4);
@@ -367,3 +367,5 @@ $ended += $GLOBALS['dbh']->exec(
 
 $log->put('Committee member import complete: ' . $inserted . ' inserted, ' . $skipped
     . ' skipped (already exist), ' . $ended . ' ended (no longer listed).', 4);
+
+return \RsMachine\TaskResult::completed(['added' => $inserted, 'unchanged' => $skipped, 'ended' => $ended]);
