@@ -220,6 +220,12 @@ an update. `run.php` is CLI-only.
   last fetched is in `cron/bill-history-fetched.json`; the rules are in `RsMachine\HistoryRefresh`
 - A changed bill that isn't in the database yet (LIS's API lists bills hours before BILLS.CSV does)
   is left out of `bill-statuses.json`, so its history is fetched once bills.php adds it
+- bills.php takes bills' LIS IDs from `GetLegislationIdsListAsync`, which omits many bills (1,523 of
+  2025's 3,512), and a bill without one never has its history fetched. history.php fills in
+  missing IDs from `getlegislationsessionlistasync`, which is complete. History is fetched only
+  for the current session, so once a session is over, run
+  `php cron/run.php --session=<sessions.id> history` and then
+  `php utilities/translate_statuses.php <sessions.id>` to bring its bills' outcomes up to date
 
 **4. CSV Fetching and Parsing**
 - CSV files are downloaded from LIS via [cron/fetch_csv.sh](cron/fetch_csv.sh) shell scripts
@@ -361,7 +367,9 @@ aws s3 cp s3://deploy.richmondsunlight.com/test-data/local-test-records.sql.gz -
 docker compose down -v && ./docker-run.sh
 docker exec rs_machine includes/vendor/bin/phpunit --testsuite local --testdox
 ```
-The default suite excludes it, and its tests skip when the sample isn't loaded.
+The default suite excludes it, and its tests skip when the sample isn't loaded. The sample is loaded before
+the fixtures, so that where both have a record, production's is the one tested (every dump uses
+`INSERT IGNORE`, so the first loaded is kept).
 [.github/workflows/local-tests.yml](.github/workflows/local-tests.yml) runs it on a schedule; it
 doesn't gate deployment, since a failure means something in the data needs fixing, not the code.
 Tests in it must state things true of any data, never expect particular records, and never print

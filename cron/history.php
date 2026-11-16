@@ -53,6 +53,30 @@ if (!$pdo instanceof PDO) {
     return false;
 }
 
+// bills.php takes bills' LIS IDs from GetLegislationIdsListAsync, which omits some bills (1,523 of
+// 2025's 3,512), and bills without one never had their history fetched. This list is complete, so
+// fill in any that are missing from it.
+$lisIdsByNumber = [];
+foreach ($currentById as $lisId => $remote) {
+    if ($remote['number'] !== null && $remote['number'] !== '') {
+        $lisIdsByNumber[strtolower($remote['number'])] = $lisId;
+    }
+}
+$stmt = $pdo->prepare('SELECT id, number FROM bills WHERE session_id = ? AND lis_id IS NULL');
+$stmt->execute([SESSION_ID]);
+$setLisId = $pdo->prepare('UPDATE IGNORE bills SET lis_id = ?, date_modified = date_modified
+    WHERE id = ? AND lis_id IS NULL');
+$filledIn = 0;
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $bill) {
+    if (isset($lisIdsByNumber[$bill['number']])) {
+        $setLisId->execute([$lisIdsByNumber[$bill['number']], $bill['id']]);
+        $filledIn += $setLisId->rowCount();
+    }
+}
+if ($filledIn > 0) {
+    $log->put('Filled in the LIS IDs of ' . $filledIn . ' bills that had none.', 3);
+}
+
 // This session's bills, keyed by LIS legislation ID.
 $stmt = $pdo->prepare('SELECT id, number, lis_id FROM bills WHERE session_id = ? AND lis_id IS NOT NULL');
 $stmt->execute([SESSION_ID]);
