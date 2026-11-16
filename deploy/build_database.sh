@@ -16,10 +16,9 @@ cd "$(dirname "$0")/.."
 source_dir="richmondsunlight.com"
 output="deploy/database.sql"
 
-# Assembled in this order. The fixtures go last, so their rows are added to the test records.
-# (The video fixtures aren't needed here.)
+# Assembled in this order, after structure.sql and the local sample (below). The fixtures go last,
+# so their rows are added to the test records. (The video fixtures aren't needed here.)
 files=(
-    structure.sql
     basic-contents.sql
     test-records.sql
     fiscal-impact-fixtures.sql
@@ -32,7 +31,7 @@ elif ! (cd "$source_dir" && git pull --ff-only --quiet); then
     echo "Could not update $source_dir; building the database from the copy already here." >&2
 fi
 
-for file in "${files[@]}"; do
+for file in structure.sql "${files[@]}"; do
     if [ ! -s "$source_dir/deploy/mysql/$file" ]; then
         echo "$source_dir/deploy/mysql/$file is missing or empty, so the database can't be built." >&2
         exit 1
@@ -44,21 +43,28 @@ done
 # with:
 #   aws s3 cp s3://deploy.richmondsunlight.com/test-data/local-test-records.sql.gz - | gunzip \
 #       > deploy/local-test-records.sql
+#
+# It's loaded before the fixtures. Every dump uses INSERT IGNORE, so where two have a row with the
+# same key, the first loaded is kept, and the fixtures' copies of legislators, terms, and committee
+# memberships are months older than production's. Loaded after them, the sample's current records
+# were discarded, and the local tests failed over data that production had long since corrected.
 sample="deploy/local-test-records.sql"
 
 # Write to a temporary file, so a failure doesn't leave a partial database.sql behind.
 tmp_file="$(mktemp "$output.XXXXXX")"
 trap 'rm -f "$tmp_file"' EXIT
 {
-    for file in "${files[@]}"; do
-        cat "$source_dir/deploy/mysql/$file"
-        # A dump that doesn't end with a newline would run into the next one's first line.
-        printf '\n'
-    done
+    # A dump that doesn't end with a newline would run into the next one's first line.
+    cat "$source_dir/deploy/mysql/structure.sql"
+    printf '\n'
     if [ -s "$sample" ]; then
         cat "$sample"
         printf '\n'
     fi
+    for file in "${files[@]}"; do
+        cat "$source_dir/deploy/mysql/$file"
+        printf '\n'
+    done
 } > "$tmp_file"
 chmod 644 "$tmp_file"
 mv "$tmp_file" "$output"
