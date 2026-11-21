@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required packages including Composer
 RUN apt-get update && apt-get install -y \
-    php-cli php-curl php-mysql php-mbstring php-xml php-zip \
+    php-cli php-curl php-gd php-mysql php-mbstring php-xml php-zip \
     php-memcached memcached unzip git curl mariadb-client composer && \
     apt-get clean
 

@@ -8,6 +8,6 @@ sudo apt-get update
 sudo apt-get -y upgrade
 
 # Install necessary packages.
-sudo apt-get install -y php-mysql php-memcached php-xml composer zip ruby awscli npm expect \
+sudo apt-get install -y php-mysql php-memcached php-xml php-gd composer zip ruby awscli npm expect \
     poppler-utils mariadb-client
 sudo npm i -g csvtojson
