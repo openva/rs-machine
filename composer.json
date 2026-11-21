@@ -8,7 +8,7 @@
         "ezyang/htmlpurifier": "~4.9",
         "phpmailer/phpmailer": "~6.1",
         "sunra/php-simple-html-dom-parser": "1.5.2",
-        "openva/rs-video-processor": "dev-master",
+        "openva/rs-video-processor": "dev-main",
         "dragonmantank/cron-expression": "^3.6"
     },
     "require-dev": {
