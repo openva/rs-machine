@@ -83,8 +83,13 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 foreach ($bills as $bill) {
     $prompt = $bill['catch_line'] . "\n\n" . $bill['summary'];
 
+    /*
+     * A mini reasoning model, at a fraction of gpt-4o's price. Its reasoning is billed as output,
+     * and tagging needs little of it.
+     */
     $data = [
-        'model' => 'gpt-4o',
+        'model' => 'gpt-5-mini',
+        'reasoning_effort' => 'minimal',
         'messages' => [
             ['role' => 'system', 'content' => $role],
             ['role' => 'user', 'content' => 'Please provide tags for the following bill: ' . $prompt]
@@ -120,7 +125,11 @@ foreach ($bills as $bill) {
     } else {
         $quota->clear();
         $generated_text = strtolower($result['choices'][0]['message']['content']);
-        $tags = explode(', ', $generated_text);
+        // Separated by commas, as asked, though perhaps without spaces, or ending with a period.
+        $tags = array_values(array_unique(array_filter(
+            array_map(fn ($tag) => trim($tag, " \t\n\r.\"'"), preg_split('/[,\n]/', $generated_text)),
+            fn ($tag) => $tag !== ''
+        )));
 
         foreach ($tags as $tag) {
             if ($tag == 'legislation') {

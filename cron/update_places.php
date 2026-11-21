@@ -67,15 +67,19 @@ $ask_model = function (string $text) use (&$curl, &$openai_paused, $model_availa
         $curl = curl_init('https://api.openai.com/v1/chat/completions');
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 60);
+        // A reasoning model, reading up to 100,000 characters, can take longer than a minute.
+        curl_setopt($curl, CURLOPT_TIMEOUT, 120);
         curl_setopt($curl, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json',
             'Authorization: Bearer ' . OPENAI_KEY
         ]);
     }
 
+    // A mini reasoning model, at a fraction of gpt-4o's price. Its reasoning is billed as output,
+    // so it's kept low, which is enough to pick out names.
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode([
-        'model' => 'gpt-4o',
+        'model' => 'gpt-5-mini',
+        'reasoning_effort' => 'low',
         'messages' => [
             ['role' => 'system', 'content' => $role],
             ['role' => 'user', 'content' => 'Please extract place names from the following text: ' . $text]
