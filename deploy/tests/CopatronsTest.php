@@ -29,11 +29,11 @@ class CopatronsTest extends TestCase
         rewind($fp);
 
         // Skip header.
-        fgetcsv($fp, 0, ',');
+        fgetcsv($fp, 0, ',', escape: '\\');
 
         $bill_copatrons = [];
 
-        while (($row = fgetcsv($fp, 0, ',')) !== false) {
+        while (($row = fgetcsv($fp, 0, ',', escape: '\\')) !== false) {
             if (count($row) < 4) {
                 continue;
             }
@@ -307,14 +307,14 @@ CSV;
         $fp = fopen('php://memory', 'r+');
         fwrite($fp, $csv_raw);
         rewind($fp);
-        fgetcsv($fp, 0, ',');
+        fgetcsv($fp, 0, ',', escape: '\\');
 
         $legislators = [];
         $bills = [];
         $member_seq = 1;
         $bill_seq = 1;
 
-        while (($row = fgetcsv($fp, 0, ',')) !== false) {
+        while (($row = fgetcsv($fp, 0, ',', escape: '\\')) !== false) {
             if (count($row) < 4) {
                 continue;
             }
@@ -356,13 +356,13 @@ CSV;
         $fp = fopen('php://memory', 'r+');
         fwrite($fp, $csv_raw);
         rewind($fp);
-        fgetcsv($fp, 0, ',');
+        fgetcsv($fp, 0, ',', escape: '\\');
 
         $legislators = [];
         $chief_patron_id = null;
         $member_seq = 1;
 
-        while (($row = fgetcsv($fp, 0, ',')) !== false) {
+        while (($row = fgetcsv($fp, 0, ',', escape: '\\')) !== false) {
             if (count($row) < 4) {
                 continue;
             }
@@ -395,7 +395,7 @@ CSV;
         $fp = fopen('php://memory', 'r+');
         fwrite($fp, $csv_raw);
         rewind($fp);
-        fgetcsv($fp, 0, ',');
+        fgetcsv($fp, 0, ',', escape: '\\');
 
         $legislators = [];
         $bills = [];
@@ -404,7 +404,7 @@ CSV;
         $chief_patron_count = 0;
         $total_rows = 0;
 
-        while (($row = fgetcsv($fp, 0, ',')) !== false) {
+        while (($row = fgetcsv($fp, 0, ',', escape: '\\')) !== false) {
             if (count($row) < 4) {
                 continue;
             }

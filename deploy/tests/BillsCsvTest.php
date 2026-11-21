@@ -44,8 +44,8 @@ class BillsCsvTest extends TestCase
             . '"11/18/19","","","","","","","","N","N","N","N","N","N","N","N","HB1","11/18/19","","","","","","","",'
             . '"","","","H2201","","","","","11/18/19","H2201"';
 
-        $this->assertSame('2019-11-18', BillsCsv::introductionDate(str_getcsv($line, ',', '"')));
-        $this->assertSame(['HB1' => '2019-11-18'], BillsCsv::textVersions(str_getcsv($line, ',', '"')));
+        $this->assertSame('2019-11-18', BillsCsv::introductionDate(str_getcsv($line, ',', '"', escape: '\\')));
+        $this->assertSame(['HB1' => '2019-11-18'], BillsCsv::textVersions(str_getcsv($line, ',', '"', escape: '\\')));
     }
 
     public function testReadsTheTextVersions(): void

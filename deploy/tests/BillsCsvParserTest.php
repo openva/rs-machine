@@ -19,8 +19,8 @@ class BillsCsvParserTest extends TestCase
     public function testCanParseCsvFields()
     {
         $handle = fopen($this->testDataPath, 'r');
-        $headers = fgetcsv($handle);
-        $firstRow = fgetcsv($handle);
+        $headers = fgetcsv($handle, escape: '\\');
+        $firstRow = fgetcsv($handle, escape: '\\');
         fclose($handle);
 
         // Verify required fields exist in headers
@@ -55,10 +55,10 @@ class BillsCsvParserTest extends TestCase
     public function testAllRowsHaveValidFormat()
     {
         $handle = fopen($this->testDataPath, 'r');
-        $headers = fgetcsv($handle);
+        $headers = fgetcsv($handle, escape: '\\');
         $rowNum = 1;
 
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, escape: '\\')) !== false) {
             $this->assertCount(count($headers), $row, "Row $rowNum has incorrect number of columns");
             $this->assertNotEmpty($row[array_search('Bill_id', $headers)], "Row $rowNum missing Bill_id");
             $this->assertMatchesRegularExpression(

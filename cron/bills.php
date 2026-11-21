@@ -112,7 +112,7 @@ $missing_bills = array();
 $bills = explode("\n", $bills);
 unset($bills[0]);
 foreach ($bills as $bill) {
-    $bill = str_getcsv($bill, ',', '"');
+    $bill = str_getcsv($bill, ',', '"', escape: '\\');
 
     // Before we proceed any farther, see if this record is either new or different than last time
     // that we examined it. Rows whose catch line needs repair from the LIS API (see below) get a

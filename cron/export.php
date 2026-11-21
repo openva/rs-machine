@@ -155,13 +155,13 @@ if (mysqli_num_rows($result) > 0) {
         $log->put('Could not write to ' . $downloads_dir . 'legislators.csv.', 8);
         return false;
     }
-    fputcsv($fp, $csv_header);
+    fputcsv($fp, $csv_header, escape: '\\');
 
     while ($bill = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
         $bill = array_map(static function ($value) {
             return is_string($value) ? stripslashes($value) : $value;
         }, $bill);
-        fputcsv($fp, $bill);
+        fputcsv($fp, $bill, escape: '\\');
     }
 
     # Close the file.
@@ -186,13 +186,13 @@ if (mysqli_num_rows($result) > 0) {
         'Date Introduced');
     # Open a handle to write a file.
     $fp = fopen($downloads_dir . 'bills.csv', 'w');
-    fputcsv($fp, $csv_header);
+    fputcsv($fp, $csv_header, escape: '\\');
 
     while ($bill = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
         $bill = array_map(static function ($value) {
             return is_string($value) ? stripslashes($value) : $value;
         }, $bill);
-        fputcsv($fp, $bill);
+        fputcsv($fp, $bill, escape: '\\');
     }
 
     # Close the file.
@@ -218,13 +218,13 @@ if (mysqli_num_rows($result) > 0) {
     $csv_header = array('Year','Bill #','Section #');
     # Open a handle to write a file.
     $fp = fopen($downloads_dir . 'sections.csv', 'w');
-    fputcsv($fp, $csv_header);
+    fputcsv($fp, $csv_header, escape: '\\');
 
     while ($bill = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
         $bill = array_map(static function ($value) {
             return is_string($value) ? stripslashes($value) : $value;
         }, $bill);
-        fputcsv($fp, $bill);
+        fputcsv($fp, $bill, escape: '\\');
     }
 
     # Close the file.

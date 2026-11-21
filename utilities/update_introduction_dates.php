@@ -73,7 +73,7 @@ foreach ($session_ids as $session_id) {
     $lines = explode("\n", trim($csv));
     array_shift($lines);
     foreach ($lines as $line) {
-        $row = str_getcsv($line, ',', '"');
+        $row = str_getcsv($line, ',', '"', escape: '\\');
         $number = strtolower(trim($row[0] ?? ''));
         if (!isset($stored[$number])) {
             continue;

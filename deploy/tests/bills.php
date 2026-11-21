@@ -10,7 +10,7 @@ $log = new Log();
 $import = new Import($log);
 
 $csv_line = '"HB1","Absentee voting; no excuse required.","H208","Herring","H22","Committee    Referral Pending","11/18/19","","","","","","","","N","N","N","N","N","N","N","N","HB1","11/18/19","","","","","","","","","","","H2201","","","","","11/18/19","H2201"';
-$bill = str_getcsv($csv_line, ',', '"');
+$bill = str_getcsv($csv_line, ',', '"', escape: '\\');
 $bill = $import->prepare_bill($bill);
 
 if ($bill['number'] != 'hb1') {

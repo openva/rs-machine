@@ -39,7 +39,7 @@ $fp = fopen('php://memory', 'r+');
 fwrite($fp, $csv_raw);
 rewind($fp);
 
-$header = fgetcsv($fp, 0, ',');
+$header = fgetcsv($fp, 0, ',', escape: '\\');
 if ($header === false) {
     fclose($fp);
     return \RsMachine\TaskResult::failed('Sponsors.csv is empty');
@@ -83,7 +83,7 @@ $bill_copatrons = [];
  */
 $unmatched = [];
 
-while (($row = fgetcsv($fp, 0, ',')) !== false) {
+while (($row = fgetcsv($fp, 0, ',', escape: '\\')) !== false) {
     if (count($row) < 4) {
         continue;
     }

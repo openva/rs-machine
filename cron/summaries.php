@@ -36,7 +36,7 @@ if ($fp === false) {
 }
 $rows = [];
 $first = true;
-while (($row = fgetcsv($fp, 0, ',')) !== false) {
+while (($row = fgetcsv($fp, 0, ',', escape: '\\')) !== false) {
     if ($first) {
         $first = false;
         continue;

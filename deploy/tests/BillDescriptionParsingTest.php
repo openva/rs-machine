@@ -13,10 +13,10 @@ class BillDescriptionParsingTest extends TestCase
 
         // Load the CSV file
         $handle = fopen($this->testDataPath, 'r');
-        $headers = fgetcsv($handle);
+        $headers = fgetcsv($handle, escape: '\\');
 
         $this->bills = [];
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, escape: '\\')) !== false) {
             $bill = array_combine($headers, $row);
             $bill['Bill_description'] = rtrim($bill['Bill_description']);
             // Only collect bills with special characters in description
@@ -38,8 +38,8 @@ class BillDescriptionParsingTest extends TestCase
             if (strpos($bill['Bill_description'], ',') !== false) {
                 // Verify the description was parsed correctly by reading the file again
                 $handle = fopen($this->testDataPath, 'r');
-                fgetcsv($handle); // Skip headers
-                while (($row = fgetcsv($handle)) !== false) {
+                fgetcsv($handle, escape: '\\'); // Skip headers
+                while (($row = fgetcsv($handle, escape: '\\')) !== false) {
                     if ($row[0] === $billId) {
                         $this->assertEquals($bill['Bill_description'], rtrim($row[1]));
                         break;
@@ -57,8 +57,8 @@ class BillDescriptionParsingTest extends TestCase
                 // Test specific bills with semicolons like "HB273"
                 // (Divorce; cruelty, reasonable apprehension...)
                 $handle = fopen($this->testDataPath, 'r');
-                fgetcsv($handle); // Skip headers
-                while (($row = fgetcsv($handle)) !== false) {
+                fgetcsv($handle, escape: '\\'); // Skip headers
+                while (($row = fgetcsv($handle, escape: '\\')) !== false) {
                     if ($row[0] === $billId) {
                         $this->assertEquals($bill['Bill_description'], rtrim($row[1]));
                         break;
@@ -74,8 +74,8 @@ class BillDescriptionParsingTest extends TestCase
         foreach ($this->bills as $billId => $bill) {
             if (strpos($bill['Bill_description'], '"') !== false) {
                 $handle = fopen($this->testDataPath, 'r');
-                fgetcsv($handle); // Skip headers
-                while (($row = fgetcsv($handle)) !== false) {
+                fgetcsv($handle, escape: '\\'); // Skip headers
+                while (($row = fgetcsv($handle, escape: '\\')) !== false) {
                     if ($row[0] === $billId) {
                         $this->assertEquals($bill['Bill_description'], rtrim($row[1]));
                         break;

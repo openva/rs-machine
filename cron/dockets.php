@@ -50,12 +50,12 @@ if (stripos(fgets($docket_csv), 'Doc_date') === false) {
 }
 
 // Skip the header row
-fgetcsv($docket_csv);
+fgetcsv($docket_csv, escape: '\\');
 
 // Process each row in the CSV file
 $errors = false;
 $updates = false;
-while (($row = fgetcsv($docket_csv)) !== false) {
+while (($row = fgetcsv($docket_csv, escape: '\\')) !== false) {
     $lis_id = $row[0];
     $date = date('Y-m-d', strtotime($row[1]));
     $bill_number = strtolower($row[3]);

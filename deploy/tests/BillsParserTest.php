@@ -14,8 +14,8 @@ class BillsParserTest extends TestCase
 
         // Load test data
         $handle = fopen($this->testDataPath, 'r');
-        $this->headers = fgetcsv($handle);
-        $this->sampleRow = fgetcsv($handle);
+        $this->headers = fgetcsv($handle, escape: '\\');
+        $this->sampleRow = fgetcsv($handle, escape: '\\');
         fclose($handle);
     }
 

@@ -39,14 +39,14 @@ class BillsDataTest extends TestCase
     public function testBillDataMatchesCSV()
     {
         $handle = fopen($this->testDataPath, 'r');
-        $headers = fgetcsv($handle);
+        $headers = fgetcsv($handle, escape: '\\');
 
         // Create header index map
         $headerMap = array_flip($headers);
 
         // Read CSV and store test bills
         $csvBills = [];
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, escape: '\\')) !== false) {
             $billId = trim($row[$headerMap['Bill_id']]);
             if (array_key_exists($billId, $this->testBills)) {
                 $csvBills[$billId] = [
@@ -76,10 +76,10 @@ class BillsDataTest extends TestCase
     public function testSpecialCharacterHandling()
     {
         $handle = fopen($this->testDataPath, 'r');
-        $headers = fgetcsv($handle);
+        $headers = fgetcsv($handle, escape: '\\');
         $headerMap = array_flip($headers);
 
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, escape: '\\')) !== false) {
             $description = $row[$headerMap['Bill_description']];
             $description = rtrim($description);
             $trimmed = trim($description);

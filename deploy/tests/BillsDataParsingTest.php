@@ -13,10 +13,10 @@ class BillsDataParsingTest extends TestCase
 
         // Load the CSV data
         $handle = fopen($this->testDataPath, 'r');
-        $headers = fgetcsv($handle);
+        $headers = fgetcsv($handle, escape: '\\');
 
         $this->csvData = [];
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, escape: '\\')) !== false) {
             $billData = array_combine($headers, $row);
             $this->csvData[$billData['Bill_id']] = $billData;
         }
