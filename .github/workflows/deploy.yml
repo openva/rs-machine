@@ -3,7 +3,7 @@ name: Deploy Process
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:  # Enable manual triggering
   pull_request:
   schedule:
@@ -90,9 +90,9 @@ jobs:
   deploy:
     runs-on: ubuntu-22.04
     needs: [build, test] # Don't deploy unless both build and tests succeed
-    # Only deploy from master. Without this, a pull_request event would attempt a production
+    # Only deploy from main. Without this, a pull_request event would attempt a production
     # deploy, and secrets would be requested for a build of untrusted code.
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
     steps:

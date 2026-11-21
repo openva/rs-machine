@@ -517,7 +517,7 @@ The code interacts with:
    - Lints every PHP file the repo owns — `cron/`, `cron/tasks/`, `src/`, `deploy/`, `utilities/` — in parallel with `xargs -P8`, excluding `includes/` (owned by richmondsunlight.com)
    - Runs subset of tests: `bills.php` and `committee_members.php`, against `settings-default.inc.php` placeholders (they parse CSV fixtures and need no real credentials)
    - Uploads a **credential-free** artifact, retained 1 day
-2. **Deploy job (conditional on build success, and only from `master`):**
+2. **Deploy job (conditional on build success, and only from `main`):**
    - Downloads artifact from build job
    - Populates credentials — `config_variables.sh`, `aws_credentials.sh`, `sftp_credentials.sh` run *here*, not in the build
    - Configures AWS credentials
@@ -525,7 +525,7 @@ The code interacts with:
    - Triggers CodeDeploy to RS-Machine-Fleet with OneAtATime deployment
 
 **Automatic Deployment Triggers:**
-- On push to `master` branch
+- On push to `main` branch
 - Manual trigger via workflow_dispatch
 - Daily at 4 AM UTC (`cron: 0 4 * * *`) to ensure fresh `includes/` files
 - On pull requests (build only, no deploy)
