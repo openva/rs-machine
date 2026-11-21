@@ -25,7 +25,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      # Match production, which runs PHP 8.4.
+      # PHP is pinned to 8.4 here and in local Docker (production runs 8.5). Pin a minor version,
+      # never a floating one, which would move past production's.
       - name: Specify PHP version
         uses: shivammathur/setup-php@v2
         with:

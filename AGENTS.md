@@ -511,7 +511,7 @@ The code interacts with:
 
 **CI/CD Pipeline ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)):**
 1. **Build job:**
-   - Sets up PHP 8.4 (production's version) on Ubuntu 22.04
+   - Sets up PHP 8.4 on Ubuntu 22.04 (pinned, as local Docker is; production runs 8.5)
    - Clones `richmondsunlight.com` deploy branch to get shared `includes/` files
    - Installs Composer dependencies for both repositories (with caching)
    - Lints every PHP file the repo owns — `cron/`, `cron/tasks/`, `src/`, `deploy/`, `utilities/` — in parallel with `xargs -P8`, excluding `includes/` (owned by richmondsunlight.com)
