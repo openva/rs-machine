@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../../includes/settings.inc.php';
@@ -81,14 +82,13 @@ class ImportShortnameStub extends Import
 class LegislatorShortnameTest extends TestCase
 {
     /**
-     * @dataProvider shortnameProvider
-     *
      * @param string $memberNumber LIS member number (e.g., H0001).
      * @param string $chamber      Chamber string (house|senate).
      * @param string $memberDisplayName MemberDisplayName value.
      * @param string $listDisplayName   ListDisplayName value.
      * @param string $expectedShortname Expected shortname.
      */
+    #[DataProvider('shortnameProvider')]
     public function testShortnameGeneration(
         string $memberNumber,
         string $chamber,

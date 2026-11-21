@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RsMachine\CatchLineRepair;
 
@@ -23,18 +24,14 @@ class CatchLineRepairTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider damagedTitles
-     */
+    #[DataProvider('damagedTitles')]
     public function testRecognizesDamagedCatchLine(string $csv, string $api): void
     {
         $this->assertTrue(CatchLineRepair::isDamaged($csv));
         $this->assertFalse(CatchLineRepair::isDamaged($api));
     }
 
-    /**
-     * @dataProvider damagedTitles
-     */
+    #[DataProvider('damagedTitles')]
     public function testMatchesIntactTitle(string $csv, string $api): void
     {
         $this->assertTrue(CatchLineRepair::matches($csv, $api));

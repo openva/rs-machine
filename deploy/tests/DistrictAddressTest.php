@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RsMachine\DistrictAddress;
 
@@ -10,9 +11,7 @@ use RsMachine\DistrictAddress;
  */
 class DistrictAddressTest extends TestCase
 {
-    /**
-     * @dataProvider addresses
-     */
+    #[DataProvider('addresses')]
     public function testAddressesAreNormalized(?string $stored, ?string $expected): void
     {
         $this->assertSame($expected, DistrictAddress::normalize($stored));

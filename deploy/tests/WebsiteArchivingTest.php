@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RsMachine\WebsiteArchiving;
 
@@ -18,9 +19,7 @@ class WebsiteArchivingTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider electionYears
-     */
+    #[DataProvider('electionYears')]
     public function testIsElectionYear(string $chamber, int $year, bool $expected): void
     {
         $this->assertSame($expected, WebsiteArchiving::isElectionYear($chamber, $year));
@@ -39,9 +38,7 @@ class WebsiteArchivingTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider weeklyDates
-     */
+    #[DataProvider('weeklyDates')]
     public function testIsWeekly(string $chamber, string $date, bool $expected): void
     {
         $this->assertSame($expected, WebsiteArchiving::isWeekly($chamber, new DateTimeImmutable($date)));

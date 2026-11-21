@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RsMachine\StatusTranslation;
 
@@ -69,9 +70,7 @@ class StatusTranslationTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider entries
-     */
+    #[DataProvider('entries')]
     public function testTranslate(string $status, ?string $expected): void
     {
         $this->assertSame($expected, StatusTranslation::translate($status));

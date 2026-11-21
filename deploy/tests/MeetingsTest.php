@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RsMachine\Meetings;
 
@@ -121,9 +122,7 @@ class MeetingsTest extends TestCase
         $this->assertNull($this->meeting(3604)['timedesc']);
     }
 
-    /**
-     * @dataProvider clockTimes
-     */
+    #[DataProvider('clockTimes')]
     public function testClockTimes(string $time, ?string $expected): void
     {
         $this->assertSame($expected, Meetings::clockTime($time));

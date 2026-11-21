@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../../includes/settings.inc.php';
@@ -95,9 +96,7 @@ class LegislatorEmailTest extends TestCase
         return $members;
     }
 
-    /**
-     * @dataProvider memberProvider
-     */
+    #[DataProvider('memberProvider')]
     public function testEmailIsTheCompleteAddress(string $chamber, string $memberNumber, string $expected): void
     {
         $legislator = $this->import(self::$contacts)->fetch_legislator_data_api($chamber, $memberNumber);
