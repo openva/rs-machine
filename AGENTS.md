@@ -334,8 +334,12 @@ correctly and rewrites each narrative once as the session's phase changes — an
 entries ("Left in Finance") into bills' statuses ("failed committee"). LIS's CSV history prefixed
 entries with their chamber ("House: Left in Finance") and the API's doesn't, so rules must accept
 both. LIS also records some committee motions that fail ("Continued to 2027 in Finance and
-Appropriations", on the day that committee reported the bill), so a committee failure with a
-same-day "Reported from" that committee isn't translated. [utilities/translate_statuses.php](utilities/translate_statuses.php) applies them to past
+Appropriations", on the day that committee reported the bill), so a committee failure followed
+later that day by "Reported from" that committee isn't translated (one that follows the report is
+real). LIS dates most committee actions at midnight, so the referral that preceded one sorts after
+it; a same-day referral to a committee that failed the bill doesn't set its status. "Assigned
+Chapter" enacts a bill (not a resolution, since constitutional amendments get chapters too),
+unless the governor's signature was recorded. [utilities/translate_statuses.php](utilities/translate_statuses.php) applies them to past
 sessions, which cleanup.php doesn't revisit. `WebsiteArchiving` and `WaybackMachine` are
 how [cron/tasks/archive_websites.php](cron/tasks/archive_websites.php) has the Wayback Machine archive
 legislators' websites (`terms.url`), using Save Page Now 2 with `IA_ACCESS_KEY` and `IA_SECRET_KEY`:

@@ -37,6 +37,7 @@ class StatusTranslationTest extends TestCase
             // Conference committees
             ['Failed to Pass from conference', 'failed'],
             ['Conference report rejected by Senate (16-Y 21-N 0-A)', 'failed'],
+            ['Different conference report agreed to by each chamber (failed)', 'failed'],
 
             // Introduction and referral
             ['Prefiled and ordered printed; Offered 01-14-2026 26100044D', 'introduced'],
@@ -77,6 +78,29 @@ class StatusTranslationTest extends TestCase
     }
 
     /**
+     * A chapter assignment is a bill's enactment, but not a resolution's (HJ1 (2026) is a
+     * constitutional amendment), and nothing when the bill isn't known.
+     *
+     * @return array<string, array{0: string, 1: ?string, 2: ?string}>
+     */
+    public static function chapters(): array
+    {
+        return [
+            'a Senate bill'          => ['Assigned Chapter 980 (effective 7/1/2026)', 'sb342', 'enacted'],
+            'a House bill'           => ['Assigned Chapter 12 (Effective 07/01/25) ', 'hb1500', 'enacted'],
+            'no space before number' => ['Assigned Chapter973(Effective 7/1/2026)', 'hb7', 'enacted'],
+            'a joint resolution'     => ['Assigned Chapter 973 (Effective  7/1/2026)', 'hj1', null],
+            'an unknown bill'        => ['Assigned Chapter 980 (effective 7/1/2026)', null, null],
+        ];
+    }
+
+    #[DataProvider('chapters')]
+    public function testAssignedChapter(string $status, ?string $number, ?string $expected): void
+    {
+        $this->assertSame($expected, StatusTranslation::translate($status, $number));
+    }
+
+    /**
      * @return array<string, array{0: string, 1: ?string}>
      */
     public static function incorporations(): array
@@ -93,14 +117,14 @@ class StatusTranslationTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('incorporations')]
+    #[DataProvider('incorporations')]
     public function testIncorporatedInto(string $status, ?string $expected): void
     {
         $this->assertSame($expected, StatusTranslation::incorporatedInto($status));
     }
 
     /**
-     * Committee failures, with the bill's other history entries from that day. The first four
+     * Committee failures, with the bill's history entries from later that day. The first four
      * are SB382, HB916, SB673 and SB283 (2026).
      *
      * @return array<string, array{0: string, 1: string[], 2: bool}>
@@ -149,6 +173,12 @@ class StatusTranslationTest extends TestCase
                 ['Reported from Finance and Appropriations (10-Y 5-N)'],
                 false,
             ],
+            // SB476 (2026): "Reported from Commerce and Labor with substitute" came first.
+            'reported earlier that day' => [
+                'Passed by indefinitely in Commerce and Labor',
+                ['Passed by indefinitely in Commerce and Labor (8-Y 6-N)'],
+                false,
+            ],
             'nothing else that day' => [
                 'Continued to 2027 in Rules',
                 ['Fiscal Impact Statement from Department of Planning and Budget (HB1)'],
@@ -163,11 +193,11 @@ class StatusTranslationTest extends TestCase
     }
 
     /**
-     * @param string[] $same_day
+     * @param string[] $later
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('failedMotions')]
-    public function testIsFailedMotion(string $status, array $same_day, bool $expected): void
+    #[DataProvider('failedMotions')]
+    public function testIsFailedMotion(string $status, array $later, bool $expected): void
     {
-        $this->assertSame($expected, StatusTranslation::isFailedMotion($status, $same_day));
+        $this->assertSame($expected, StatusTranslation::isFailedMotion($status, $later));
     }
 }
