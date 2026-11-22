@@ -317,6 +317,15 @@ return [
                     . 'Unrelated to LIS, so it runs around the clock.',
     ],
 
+    'sessions' => [
+        'schedule' => '50 5 * * *',
+        'in_all'   => false,
+        'timeout'  => 120,
+        'comment'  => 'Adds new sessions from LIS, and publishes downloads/sessions.json, which '
+                    . 'richmondsunlight.com\'s session-update workflow reads. Daily, before the '
+                    . 'day\'s first S3 sync (at :05).',
+    ],
+
     'log_prune' => [
         'schedule' => null,
         'in_all'   => true,

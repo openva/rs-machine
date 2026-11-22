@@ -21,3 +21,6 @@ cron/code-sections-parsed.json
 cron/bill-statuses.json
 cron/openai-quota.json
 cron/hashes/
+
+# Exports, generated on the server and copied to S3 (see deploy/crontab.txt)
+/downloads/
