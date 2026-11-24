@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RsMachine\VideoProcessorSize;
 
@@ -28,9 +29,7 @@ class VideoProcessorSizeTest extends TestCase
         $this->assertSame(VideoProcessorSize::SMALL, VideoProcessorSize::choose($counts, false));
     }
 
-    /**
-     * @dataProvider cpuStages
-     */
+    #[DataProvider('cpuStages')]
     public function testAnyProcessorHeavyStageGetsTheLargeInstance(string $stage): void
     {
         $counts = [$stage => 1, 'archive' => 40] + self::NOTHING;
