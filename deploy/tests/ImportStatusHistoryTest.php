@@ -28,15 +28,20 @@ if (!class_exists('NullLog', false)) {
 
 if (!class_exists('RecordingPdo', false)) {
     /**
-     * In-memory PDO stand-in that records prepared SQL and bound values.
+     * In-memory PDO stand-in that records prepared SQL and bound values. store_status_history()
+     * also prepares a SELECT of the entries already stored, which finds none here, and an UPDATE
+     * of a stored entry, so only the INSERT is kept as `statement`.
      */
     class RecordingPdo extends PDO
     {
-        /** @var RecordingStatement|null */
+        /** @var RecordingStatement|null The INSERT. */
         public $statement;
 
-        /** @var string|null */
+        /** @var string|null The INSERT's SQL. */
         public $preparedSql;
+
+        /** @var list<string> Every statement prepared. */
+        public $prepared = [];
 
         public function __construct()
         {
@@ -44,9 +49,18 @@ if (!class_exists('RecordingPdo', false)) {
 
         public function prepare(string $statement, array $options = []): PDOStatement|false
         {
-            $this->preparedSql = $statement;
-            $this->statement = new RecordingStatement();
-            return $this->statement;
+            $this->prepared[] = $statement;
+            $recording = new RecordingStatement();
+            if (str_contains($statement, 'INSERT INTO bills_status')) {
+                $this->preparedSql = $statement;
+                $this->statement = $recording;
+            }
+            return $recording;
+        }
+
+        public function lastInsertId(?string $name = null): string|false
+        {
+            return '1';
         }
     }
 
@@ -80,6 +94,11 @@ if (!class_exists('RecordingPdo', false)) {
         public function rowCount(): int
         {
             return 1;
+        }
+
+        public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array
+        {
+            return [];
         }
     }
 }
