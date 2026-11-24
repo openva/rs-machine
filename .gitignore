@@ -7,7 +7,7 @@ logs/site.log
 logs/site.log-*
 logs/site.log.rotating
 cron/bills.csv
-.phpunit.cache/test-results
+.phpunit.cache/
 settings.local.inc.php
 richmondsunlight.com/
 deploy/database_export.sh
