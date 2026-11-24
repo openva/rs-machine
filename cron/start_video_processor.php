@@ -28,6 +28,7 @@ use RichmondSunlight\VideoProcessor\Scraper\Http\GuzzleHttpClient;
 use RichmondSunlight\VideoProcessor\Scraper\Http\RateLimitedHttpClient;
 use RichmondSunlight\VideoProcessor\Scraper\Senate\SenateScraper;
 use RichmondSunlight\VideoProcessor\Scraper\Senate\SenateYouTubeScraper;
+use RsMachine\VideoProcessorSize;
 
 include_once(__DIR__ . '/../includes/settings.inc.php');
 include_once(__DIR__ . '/../includes/functions.inc.php');
@@ -118,9 +119,11 @@ function has_new_records(array $current, array $cached): bool
 }
 
 /**
- * Get the current state of the EC2 instance
+ * Get the current state and type of the EC2 instance
+ *
+ * @return array{state:?string,type:?string}
  */
-function get_instance_state(Ec2Client $ec2, string $instanceId): ?string
+function describe_instance(Ec2Client $ec2, string $instanceId): array
 {
     try {
         $result = $ec2->describeInstances([
@@ -129,12 +132,31 @@ function get_instance_state(Ec2Client $ec2, string $instanceId): ?string
 
         $reservations = $result->get('Reservations');
         if (empty($reservations) || empty($reservations[0]['Instances'])) {
-            return null;
+            return ['state' => null, 'type' => null];
         }
 
-        return $reservations[0]['Instances'][0]['State']['Name'] ?? null;
+        $instance = $reservations[0]['Instances'][0];
+        return ['state' => $instance['State']['Name'] ?? null, 'type' => $instance['InstanceType'] ?? null];
     } catch (AwsException $e) {
-        return null;
+        return ['state' => null, 'type' => null];
+    }
+}
+
+/**
+ * Change the type of the stopped instance. On failure it is started as it is: a run on the
+ * wrong size costs more or goes slower, while no run at all leaves the work waiting.
+ */
+function resize_instance(Ec2Client $ec2, string $instanceId, string $type, Log $log): bool
+{
+    try {
+        $ec2->modifyInstanceAttribute([
+            'InstanceId' => $instanceId,
+            'InstanceType' => ['Value' => $type],
+        ]);
+        return true;
+    } catch (AwsException $e) {
+        $log->put('Could not make the video processor a ' . $type . '; starting it as it is: ' . $e->getMessage(), 5);
+        return false;
     }
 }
 
@@ -218,12 +240,14 @@ $save_snapshots = static function () use (
 // A backlog is work too. Count what the processor could do right now, using
 // the same queue definitions its workers use.
 $pending_total = 0;
+$pending_counts = [];
 $last_activity = null;
 try {
     $pdo = (new Database())->connect();
     if ($pdo instanceof PDO && class_exists(PendingWork::class)) {
         $pending = new PendingWork($pdo);
-        $pending_total = $pending->total();
+        $pending_counts = $pending->counts();
+        $pending_total = array_sum($pending_counts);
         $last_activity = $pending->lastActivity();
     }
 } catch (Throwable $e) {
@@ -272,7 +296,7 @@ try {
 }
 
 // Check instance state
-$state = get_instance_state($ec2, VIDEO_PROCESSOR_INSTANCE_ID);
+['state' => $state, 'type' => $type] = describe_instance($ec2, VIDEO_PROCESSOR_INSTANCE_ID);
 
 if ($state === null) {
     $log->put('Could not determine video processor instance state.', 5);
@@ -291,10 +315,15 @@ if ($state === 'stopping') {
     exit(0);
 }
 
-// Instance is stopped (or in another non-running state) - start it
+// Instance is stopped (or in another non-running state). Size it for the work, then start it.
+$wanted = VideoProcessorSize::choose($pending_counts, $has_new);
+if ($state === 'stopped' && $type !== $wanted && resize_instance($ec2, VIDEO_PROCESSOR_INSTANCE_ID, $wanted, $log)) {
+    $type = $wanted;
+}
+
 if (start_instance($ec2, VIDEO_PROCESSOR_INSTANCE_ID, $log)) {
     $save_snapshots();
-    $log->put('Started video processor instance.', 4);
+    $log->put('Started video processor instance (' . ($type ?? 'unknown type') . ').', 4);
 } else {
     exit(1);
 }
