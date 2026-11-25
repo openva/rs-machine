@@ -28,6 +28,7 @@ use RichmondSunlight\VideoProcessor\Scraper\Http\GuzzleHttpClient;
 use RichmondSunlight\VideoProcessor\Scraper\Http\RateLimitedHttpClient;
 use RichmondSunlight\VideoProcessor\Scraper\Senate\SenateScraper;
 use RichmondSunlight\VideoProcessor\Scraper\Senate\SenateYouTubeScraper;
+use RsMachine\VideoProcessorLauncher;
 use RsMachine\VideoProcessorSize;
 
 include_once(__DIR__ . '/../includes/settings.inc.php');
@@ -36,10 +37,17 @@ include_once(__DIR__ . '/../includes/vendor/autoload.php');
 
 define('MACHINE_CACHE_DIR', __DIR__);
 
-// Video processor EC2 instance ID
-// Note that this will not work unless a) the instance ID is correct and b) the AWS keys have
-// permission to start it. The permissions are scoped down to the specific instance ID.
+// Each run is a disposable instance launched from this template (rs-video-processor's
+// terraform/), which deletes itself when the pipeline is done. The keys need the
+// rs-video-processor-launch policy, which Terraform attaches.
+define('VIDEO_PROCESSOR_LAUNCH_TEMPLATE', 'rs-video-processor');
+
+// The hand-built instance used before November 2026. Until it is retired it is never started,
+// unless VIDEO_PROCESSOR_USE_HAND_BUILT is set to true here to go back to it; but a run of it
+// someone started by hand still counts as a processor running. The keys need the inline
+// StartVideoProcessor policy to start it.
 define('VIDEO_PROCESSOR_INSTANCE_ID', 'i-05a12457e82c9aed5');
+define('VIDEO_PROCESSOR_USE_HAND_BUILT', false);
 
 // Instantiate logging
 $log = new Log();
@@ -295,7 +303,49 @@ try {
     exit(1);
 }
 
-// Check instance state
+$wanted = VideoProcessorSize::choose($pending_counts, $has_new);
+
+if (!VIDEO_PROCESSOR_USE_HAND_BUILT) {
+    $launcher = new VideoProcessorLauncher($ec2, VIDEO_PROCESSOR_LAUNCH_TEMPLATE);
+    try {
+        $running = $launcher->running();
+    } catch (AwsException $e) {
+        $log->put('Could not list running video processors: ' . $e->getMessage(), 5);
+        exit(1);
+    }
+
+    // The hand-built instance isn't tagged, so it is looked up by ID. Once it has been
+    // terminated, its state is null or "terminated", and it is ignored.
+    ['state' => $hand_built_state] = describe_instance($ec2, VIDEO_PROCESSOR_INSTANCE_ID);
+    if ($hand_built_state === 'pending' || $hand_built_state === 'running') {
+        $running[] = ['id' => VIDEO_PROCESSOR_INSTANCE_ID, 'type' => '', 'state' => $hand_built_state];
+    }
+
+    if ($running !== []) {
+        $save_snapshots();
+        $log->put('A video processor is already ' . $running[0]['state'] . ' (' . $running[0]['id'] . ').', 2);
+        exit(0);
+    }
+
+    try {
+        $launch = $launcher->launch($wanted);
+    } catch (AwsException $e) {
+        $log->put('Failed to launch a video processor: ' . $e->getMessage(), 6);
+        exit(1);
+    }
+
+    $save_snapshots();
+    $log->put(sprintf(
+        'Launched a video processor: %s, %s, %s.%s',
+        $launch['id'],
+        $wanted,
+        $launch['market'],
+        $launch['spotRefusal'] === null ? '' : ' Spot was refused (' . $launch['spotRefusal'] . ').'
+    ), 4);
+    exit(0);
+}
+
+// The hand-built instance, if VIDEO_PROCESSOR_USE_HAND_BUILT is set.
 ['state' => $state, 'type' => $type] = describe_instance($ec2, VIDEO_PROCESSOR_INSTANCE_ID);
 
 if ($state === null) {
@@ -316,7 +366,6 @@ if ($state === 'stopping') {
 }
 
 // Instance is stopped (or in another non-running state). Size it for the work, then start it.
-$wanted = VideoProcessorSize::choose($pending_counts, $has_new);
 if ($state === 'stopped' && $type !== $wanted && resize_instance($ec2, VIDEO_PROCESSOR_INSTANCE_ID, $wanted, $log)) {
     $type = $wanted;
 }

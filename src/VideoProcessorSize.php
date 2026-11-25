@@ -12,8 +12,9 @@ namespace RsMachine;
  * showed the c7a.xlarge at 0.5% CPU for 10 to 12 hours a day in November 2026, doing nothing
  * but archive uploads, at $0.205 an hour. The small type costs $0.0376.
  *
- * The type can be changed only while the instance is stopped, so a run started small stays
- * small even if new videos arrive during it: they are processed slowly, not lost.
+ * A run started small stays small even if new videos arrive during it: they are processed
+ * slowly, not lost. The instance type is fixed at launch (VideoProcessorLauncher), as it was
+ * at start for the hand-built instance, whose type could be changed only while it was stopped.
  */
 final class VideoProcessorSize
 {
